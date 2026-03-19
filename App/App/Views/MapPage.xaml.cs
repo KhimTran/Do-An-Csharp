@@ -1,9 +1,10 @@
-namespace App.Views;
-
-public partial class NewPage1 : ContentPage
+namespace App.Views
 {
-	public NewPage1()
-	{
-		InitializeComponent();
-	}
+    public partial class MapPage : ContentPage
+    {
+        public MapPage()
+        {
+            InitializeComponent();
+        }
+    }
 }

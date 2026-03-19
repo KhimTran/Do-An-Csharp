@@ -76,8 +76,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-<<<<<<< HEAD
-=======
 	  <Folder Include="Models\" />
 	  <Folder Include="Services\" />
 	  <Folder Include="ViewModels\" />
@@ -96,7 +94,6 @@
 	  <MauiXaml Update="Views\MapPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
->>>>>>> 020a0b85870030f74a62ecef5ef21b2d56440419
 	  <MauiXaml Update="Views\PoiListPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
