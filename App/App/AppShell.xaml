@@ -6,9 +6,32 @@
     xmlns:views="clr-namespace:App.Views"
     Shell.FlyoutBehavior="Disabled">
 
+<<<<<<< HEAD
     <ShellContent
         Title="Danh sách POI"
         ContentTemplate="{DataTemplate views:PoiListPage}"
         Route="PoiListPage" />
 
+=======
+    <TabBar>
+        <!-- Tab 1: Danh sách POI -->
+        <ShellContent
+            Title="Danh sách"
+            Icon="list.png"
+            ContentTemplate="{DataTemplate views:PoiListPage}" />
+
+        <!-- Tab 2: Bản đồ -->
+        <ShellContent
+            Title="Bản đồ"
+            Icon="map.png"
+            ContentTemplate="{DataTemplate views:MapPage}" />
+
+        <!-- Tab 3: Quét QR -->
+        <ShellContent
+            Title="Quét QR"
+            Icon="qr.png"
+            ContentTemplate="{DataTemplate views:QrScannerPage}" />
+    </TabBar>
+
+>>>>>>> 020a0b85870030f74a62ecef5ef21b2d56440419
 </Shell>
