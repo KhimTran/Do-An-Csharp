@@ -3,12 +3,27 @@
     x:Class="App.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:App"
-    Title="App">
+    xmlns:views="clr-namespace:App.Views"
+    Shell.FlyoutBehavior="Disabled">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <!-- Tab 1: Danh sách POI -->
+        <ShellContent
+            Title="Danh sách"
+            Icon="list.png"
+            ContentTemplate="{DataTemplate views:PoiListPage}" />
+
+        <!-- Tab 2: Bản đồ -->
+        <ShellContent
+            Title="Bản đồ"
+            Icon="map.png"
+            ContentTemplate="{DataTemplate views:MapPage}" />
+
+        <!-- Tab 3: Quét QR -->
+        <ShellContent
+            Title="Quét QR"
+            Icon="qr.png"
+            ContentTemplate="{DataTemplate views:QrScannerPage}" />
+    </TabBar>
 
 </Shell>

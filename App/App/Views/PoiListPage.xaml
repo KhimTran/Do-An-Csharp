@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="App.Views.PoiListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:App.ViewModels"
+    xmlns:model="clr-namespace:App.Models"
+    x:DataType="vm:PoiListViewModel"
+    Title="Điểm thuyết minh">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Hàng 0: Thông báo -->
+        <Label
+            Grid.Row="0"
+            Text="{Binding ThongBao}"
+            HorizontalOptions="Center"
+            Margin="10"
+            TextColor="Gray" />
+
+        <!-- Hàng 1: Loading spinner hoặc danh sách -->
+        <ActivityIndicator
+            Grid.Row="1"
+            IsRunning="{Binding DangTai}"
+            IsVisible="{Binding DangTai}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center" />
+
+        <CollectionView
+            Grid.Row="1"
+            ItemsSource="{Binding DanhSachPoi}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="model:PoiModel">
+                    <Frame Padding="12" Margin="10,5" CornerRadius="10">
+                        <VerticalStackLayout Spacing="4">
+                            <Label
+                                Text="{Binding Ten}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding MoTa_Vi}"
+                                FontSize="12"
+                                TextColor="Gray" />
+                            <Label
+                                Text="{Binding BanKinh, StringFormat='Bán kính: {0}m'}"
+                                FontSize="11"
+                                TextColor="DodgerBlue" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Hàng 2: Nút tải lại -->
+        <Button
+            Grid.Row="2"
+            Text="Tải danh sách POI"
+            Command="{Binding TaiDanhSachPoiCommand}"
+            Margin="20"
+            BackgroundColor="#1F5C99"
+            TextColor="White" />
+
+    </Grid>
+</ContentPage>
