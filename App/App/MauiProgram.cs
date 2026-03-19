@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-
+using App.Services;
+using App.ViewModels;   // ← THÊM
+using App.Views;        // ← THÊM
 namespace App
 {
     public static class MauiProgram
@@ -17,9 +19,11 @@ namespace App
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
-
+            builder.Services.AddSingleton<LocalDatabase>();
+            builder.Services.AddTransient<PoiListViewModel>();  // ← THÊM
+            builder.Services.AddTransient<PoiListPage>();       // ← THÊM
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();
