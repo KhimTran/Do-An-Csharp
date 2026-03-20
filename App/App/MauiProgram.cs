@@ -23,6 +23,8 @@ namespace App
             builder.Services.AddTransient<PoiListViewModel>();  // ← THÊM
             builder.Services.AddTransient<PoiListPage>();       // ← THÊM
             builder.Services.AddSingleton<GpsService>();   // ← THÊM DÒNG NÀY
+            builder.Services.AddTransient<MapViewModel>();   // ← THÊM
+            builder.Services.AddTransient<MapPage>();        // ← THÊM
 #if DEBUG
             builder.Logging.AddDebug();
 #endif

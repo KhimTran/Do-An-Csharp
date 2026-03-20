@@ -7,10 +7,14 @@
     Shell.FlyoutBehavior="Disabled">
 
     <TabBar>
-        <ShellContent Title="Danh sách"
-            ContentTemplate="{DataTemplate views:PoiListPage}" />
-        <ShellContent Title="Bản đồ"
-            ContentTemplate="{DataTemplate views:MapPage}" />
+        <ShellContent
+            Title="Danh sách"
+            ContentTemplate="{DataTemplate views:PoiListPage}"
+            Route="PoiListPage" />
+        <ShellContent
+            Title="Bản đồ"
+            ContentTemplate="{DataTemplate views:MapPage}"
+            Route="MapPage" />
     </TabBar>
 
 </Shell>
