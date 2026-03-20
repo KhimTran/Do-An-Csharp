@@ -3,13 +3,14 @@
     x:Class="App.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-
     xmlns:views="clr-namespace:App.Views"
     Shell.FlyoutBehavior="Disabled">
 
-    <ShellContent
-        Title="Danh sách POI"
-        ContentTemplate="{DataTemplate views:PoiListPage}"
-        Route="PoiListPage" />
+    <TabBar>
+        <ShellContent Title="Danh sách"
+            ContentTemplate="{DataTemplate views:PoiListPage}" />
+        <ShellContent Title="Bản đồ"
+            ContentTemplate="{DataTemplate views:MapPage}" />
+    </TabBar>
 
 </Shell>

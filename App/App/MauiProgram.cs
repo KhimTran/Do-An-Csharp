@@ -22,6 +22,7 @@ namespace App
             builder.Services.AddSingleton<LocalDatabase>();
             builder.Services.AddTransient<PoiListViewModel>();  // ← THÊM
             builder.Services.AddTransient<PoiListPage>();       // ← THÊM
+            builder.Services.AddSingleton<GpsService>();   // ← THÊM DÒNG NÀY
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
