@@ -57,6 +57,21 @@ public partial class MapPage : ContentPage
                     Location = new Location(poi.Lat, poi.Lng),
                     Type = PinType.Place
                 };
+
+                // ← THÊM: xử lý khi bấm vào pin
+                pin.MarkerClicked += async (s, e) =>
+                {
+                    e.HideInfoWindow = false;
+                    await Application.Current!.MainPage!.DisplayAlert(
+                        poi.Ten,
+                        $"📍 {poi.MoTa_Vi}\n\n" +
+                        $"🌐 {poi.MoTa_En}\n\n" +
+                        $"📏 Bán kính: {poi.BanKinh}m\n" +
+                        $"🗺️ Tọa độ: {poi.Lat:F4}, {poi.Lng:F4}",
+                        "Đóng"
+                    );
+                };
+
                 BanDo.Pins.Add(pin);
             }
         });
