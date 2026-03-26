@@ -25,6 +25,9 @@ namespace App
             builder.Services.AddSingleton<GpsService>();   // ← THÊM DÒNG NÀY
             builder.Services.AddTransient<MapViewModel>();   // ← THÊM
             builder.Services.AddTransient<MapPage>();        // ← THÊM
+            builder.Services.AddSingleton<ILocationService, LocationService>();  // ← THÊM
+            builder.Services.AddSingleton<GeofenceService>();                    // ← THÊM
+            builder.Services.AddSingleton<ITtsService, TtsService>();  // ← THÊM
 #if DEBUG
             builder.Logging.AddDebug();
 #endif

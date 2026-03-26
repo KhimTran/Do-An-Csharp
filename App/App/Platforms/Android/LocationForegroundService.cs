@@ -1,45 +1,35 @@
-﻿using Android.App;
+﻿// Platforms/Android/LocationForegroundService.cs
+using Android.App;
 using Android.Content;
 using Android.OS;
-using AndroidX.Core.App;
 
 namespace App
 {
     [Service(ForegroundServiceType = Android.Content.PM.ForegroundService.TypeLocation)]
     public class LocationForegroundService : Android.App.Service
     {
-        public const string CHANNEL_ID = "gps_channel";
-        public const int NOTIF_ID = 1001;
-
         public override IBinder? OnBind(Intent? intent) => null;
 
-        public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
+        public override StartCommandResult OnStartCommand(
+            Intent? intent, StartCommandFlags flags, int startId)
         {
-            TaoBieuTuong();
+            // Tạo notification để Android cho phép chạy nền
+            var channel = new NotificationChannel(
+                "location_channel", "Theo dõi vị trí",
+                NotificationImportance.Low
+            );
 
-            var notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .SetContentTitle("Vĩnh Khánh Tour")
+            var manager = (NotificationManager)GetSystemService(NotificationService)!;
+            manager.CreateNotificationChannel(channel);
+
+            var notification = new Notification.Builder(this, "location_channel")
+                .SetContentTitle("Vĩnh Khánh")
                 .SetContentText("Đang theo dõi vị trí để phát thuyết minh...")
-                .SetSmallIcon(Resource.Mipmap.appicon)
-                .SetOngoing(true)
+                .SetSmallIcon(Android.Resource.Drawable.IcDialogInfo)
                 .Build();
 
-            StartForeground(NOTIF_ID, notification);
+            StartForeground(1, notification);
             return StartCommandResult.Sticky;
-        }
-
-        private void TaoBieuTuong()
-        {
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
-            {
-                var channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "GPS Theo dõi vị trí",
-                    NotificationImportance.Low
-                );
-                var manager = (NotificationManager?)GetSystemService(NotificationService);
-                manager?.CreateNotificationChannel(channel);
-            }
         }
     }
 }
