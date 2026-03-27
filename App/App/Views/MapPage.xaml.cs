@@ -1,7 +1,15 @@
-using Microsoft.Maui.Controls.Maps;
-using Microsoft.Maui.Maps;
+using Mapsui;
+using Mapsui.Extensions;
+using Mapsui.Layers;
+using Mapsui.Projections;
+using Mapsui.Providers;
+using Mapsui.Styles;
+using Mapsui.UI.Maui;
+using Mapsui.Tiling;
 using App.ViewModels;
 using App.Models;
+using Color = Mapsui.Styles.Color;
+
 namespace App.Views;
 
 public partial class MapPage : ContentPage
@@ -14,10 +22,7 @@ public partial class MapPage : ContentPage
         _vm = vm;
         BindingContext = vm;
 
-        // Khi có danh sách POI → thêm pin lên bản đồ
         vm.OnDaCoiPoi += ThemPinLenBanDo;
-
-        // Khi GPS cập nhật → di chuyển bản đồ theo
         vm.OnViTriCapNhat += CapNhatViTriBanDo;
     }
 
@@ -31,57 +36,67 @@ public partial class MapPage : ContentPage
     {
         base.OnDisappearing();
         _vm.DungGps();
+        // Gỡ sự kiện để tránh tràn RAM
+        _vm.OnDaCoiPoi -= ThemPinLenBanDo;
+        _vm.OnViTriCapNhat -= CapNhatViTriBanDo;
     }
 
     private void BanDo_Loaded(object sender, EventArgs e)
     {
-        BanDo.MoveToRegion(
-            MapSpan.FromCenterAndRadius(
-                new Location(10.757, 106.690),
-                Distance.FromKilometers(0.5)
-            )
-        );
+        var map = new Map();
+        map.Layers.Add(OpenStreetMap.CreateTileLayer());
+        BanDo.Map = map;
+
+        // Di chuyển camera tới Vĩnh Khánh
+        var center = SphericalMercator.FromLonLat(106.690, 10.757);
+        BanDo.Map.Navigator.CenterOnAndZoomTo(center, 2);
+
+        BanDo.Info += BanDo_Info;
+    }
+
+    private async void BanDo_Info(object? sender, MapInfoEventArgs e)
+    {
+        if (e.MapInfo?.Feature != null)
+        {
+            var ten = e.MapInfo.Feature["Ten"]?.ToString();
+            var moTa = e.MapInfo.Feature["MoTa"]?.ToString();
+
+            if (!string.IsNullOrEmpty(ten))
+            {
+                await Application.Current!.MainPage!.DisplayAlert(ten, moTa, "Đóng");
+            }
+        }
     }
 
     private void ThemPinLenBanDo(List<PoiModel> danhSach)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            BanDo.Pins.Clear();
+            var features = new List<PointFeature>();
             foreach (var poi in danhSach)
             {
-                var pin = new Pin
+                var point = SphericalMercator.FromLonLat(poi.Lng, poi.Lat);
+                var feature = new PointFeature(point)
                 {
-                    Label = poi.Ten,
-                    Address = poi.MoTa_Vi,
-                    Location = new Location(poi.Lat, poi.Lng),
-                    Type = PinType.Place
+                    ["Ten"] = poi.Ten,
+                    ["MoTa"] = $"📍 {poi.MoTa_Vi}\n\n🌐 {poi.MoTa_En}\n\n📏 Bán kính: {poi.BanKinh}m"
                 };
-
-                // ← THÊM: xử lý khi bấm vào pin
-                pin.MarkerClicked += async (s, e) =>
-                {
-                    e.HideInfoWindow = false;
-                    await Application.Current!.MainPage!.DisplayAlert(
-                        poi.Ten,
-                        $"📍 {poi.MoTa_Vi}\n\n" +
-                        $"🌐 {poi.MoTa_En}\n\n" +
-                        $"📏 Bán kính: {poi.BanKinh}m\n" +
-                        $"🗺️ Tọa độ: {poi.Lat:F4}, {poi.Lng:F4}",
-                        "Đóng"
-                    );
-                };
-
-                BanDo.Pins.Add(pin);
+                features.Add(feature);
             }
+
+            var layer = new MemoryLayer
+            {
+                Name = "PoiLayer",
+                DataSource = new MemoryProvider(features),
+                Style = SymbolStyles.CreatePinStyle(Color.Red, 0.8)
+            };
+
+            BanDo.Map?.Layers.Add(layer);
         });
     }
 
     private void CapNhatViTriBanDo(Location viTri)
     {
-        // Không auto-move bản đồ, chỉ để GPS chạy ngầm
-        // Nếu muốn follow người dùng thì bỏ comment dòng dưới:
-        // MainThread.BeginInvokeOnMainThread(() =>
-        //     BanDo.MoveToRegion(MapSpan.FromCenterAndRadius(viTri, Distance.FromKilometers(0.3))));
+        // Mapsui tự động cập nhật chấm xanh MyLocationEnabled
     }
 }

@@ -3,18 +3,16 @@
     x:Class="App.Views.MapPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+    xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
     xmlns:vm="clr-namespace:App.ViewModels"
     x:DataType="vm:MapViewModel"
     Title="Bản đồ Vĩnh Khánh">
 
     <Grid RowDefinitions="*,Auto">
-
-        <maps:Map
+        <mapsui:MapControl
             x:Name="BanDo"
             Grid.Row="0"
-            MapType="Street"
-            IsShowingUser="True"
+            MyLocationEnabled="True"
             Loaded="BanDo_Loaded" />
 
         <Border
@@ -24,15 +22,10 @@
             Margin="10"
             StrokeShape="RoundRectangle 15">
             <VerticalStackLayout Spacing="5">
-                <Label Text="📍 Bạn đang gần:"
-                       FontSize="12" TextColor="Gray" />
-                <Label Text="{Binding TenPoiGanNhat}"
-                       FontSize="16" FontAttributes="Bold" />
-                <Label Text="{Binding KhoangCachGanNhat, StringFormat='Cách {0:F0} mét'}"
-                       FontSize="13" TextColor="DodgerBlue" />
+                <Label Text="📍 Bạn đang gần:" FontSize="12" TextColor="Gray" />
+                <Label Text="{Binding TenPoiGanNhat}" FontSize="16" FontAttributes="Bold" />
+                <Label Text="{Binding KhoangCachGanNhat, StringFormat='Cách {0:F0} mét'}" FontSize="13" TextColor="DodgerBlue" />
             </VerticalStackLayout>
         </Border>
-
     </Grid>
-
 </ContentPage>

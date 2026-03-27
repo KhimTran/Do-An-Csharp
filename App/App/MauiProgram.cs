@@ -1,8 +1,9 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using App.Services;
-using App.ViewModels;   // ← THÊM
-using App.Views;        // ← THÊM
+using App.ViewModels;
+using App.Views;
+
 namespace App
 {
     public static class MauiProgram
@@ -12,22 +13,20 @@ namespace App
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
-                .UseMauiCommunityToolkit()  // <-- Thêm dòng này
-                .UseMauiMaps()          // <-- Thêm dòng này (nếu dùng Maps)
+                .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
             builder.Services.AddSingleton<LocalDatabase>();
-            builder.Services.AddTransient<PoiListViewModel>();  // ← THÊM
-            builder.Services.AddTransient<PoiListPage>();       // ← THÊM
-            builder.Services.AddSingleton<GpsService>();   // ← THÊM DÒNG NÀY
-            builder.Services.AddTransient<MapViewModel>();   // ← THÊM
-            builder.Services.AddTransient<MapPage>();        // ← THÊM
-            builder.Services.AddSingleton<ILocationService, LocationService>();  // ← THÊM
-            builder.Services.AddSingleton<GeofenceService>();                    // ← THÊM
-            builder.Services.AddSingleton<ITtsService, TtsService>();  // ← THÊM
+            builder.Services.AddTransient<PoiListViewModel>();
+            builder.Services.AddTransient<PoiListPage>();
+            builder.Services.AddSingleton<GpsService>();
+            builder.Services.AddTransient<MapViewModel>();
+            builder.Services.AddTransient<MapPage>();
+
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
