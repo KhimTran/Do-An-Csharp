@@ -50,6 +50,8 @@ public partial class MapPage : ContentPage
     {
         // Đã sửa: Ghi rõ Mapsui.Map để không bị trùng với Map của MAUI
         var map = new Mapsui.Map();
+        // Thêm dòng này để xóa toàn bộ các chữ log, khung fps mặc định
+        map.Widgets.Clear();
         map.Layers.Add(OpenStreetMap.CreateTileLayer());
         BanDo.Map = map;
 

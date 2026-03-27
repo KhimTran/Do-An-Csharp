@@ -1,8 +1,10 @@
-﻿using CommunityToolkit.Maui;
+﻿using SkiaSharp.Views.Maui.Controls.Hosting;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using App.Services;
 using App.ViewModels;
 using App.Views;
+
 
 namespace App
 {
@@ -14,6 +16,7 @@ namespace App
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
+                .UseSkiaSharp() // <-- BỔ SUNG DÒNG NÀY VÀO ĐÂY
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
