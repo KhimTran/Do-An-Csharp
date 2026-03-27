@@ -9,10 +9,10 @@
     Title="Bản đồ Vĩnh Khánh">
 
     <Grid RowDefinitions="*,Auto">
+        <!-- Đã xóa dòng MyLocationEnabled="True" ở đây -->
         <mapsui:MapControl
             x:Name="BanDo"
             Grid.Row="0"
-            MyLocationEnabled="True"
             Loaded="BanDo_Loaded" />
 
         <Border

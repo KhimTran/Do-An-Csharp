@@ -1,5 +1,7 @@
-﻿// Services/GeofenceService.cs
-using App.Models;
+﻿using App.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace App.Services
 {
@@ -7,8 +9,9 @@ namespace App.Services
     {
         private readonly LocalDatabase _db;
 
-        // Lưu POI nào đã phát âm rồi để không phát lại liên tục
-        private readonly HashSet<int> _daPhat = new();
+        // Dictionary lưu thời gian đã phát của từng POI (Key là ID của điểm, Value là thời gian phát)
+        // Dùng để làm tính năng Cooldown 5 phút (chống phát âm liên tục)
+        private readonly Dictionary<int, DateTime> _lichSuPhat = new();
 
         public GeofenceService(LocalDatabase db) => _db = db;
 
@@ -27,15 +30,23 @@ namespace App.Services
                     poi.Lat, poi.Lng
                 );
 
-                if (khoangCach <= poi.BanKinh && !_daPhat.Contains(poi.Id))
+                // Nếu người dùng lọt vào vùng bán kính
+                if (khoangCach <= poi.BanKinh)
                 {
-                    _daPhat.Add(poi.Id); // đánh dấu đã phát
+                    // Kiểm tra Cooldown 5 phút
+                    if (_lichSuPhat.TryGetValue(poi.Id, out DateTime lanPhatCuoi))
+                    {
+                        // Nếu khoảng thời gian từ lần phát cuối đến hiện tại < 5 phút
+                        if ((DateTime.Now - lanPhatCuoi).TotalMinutes < 5)
+                        {
+                            continue; // Bỏ qua, chưa đủ thời gian cooldown, không phát lại
+                        }
+                    }
+
+                    // Đánh dấu thời gian phát mới nhất và trả về POI này để kích hoạt âm thanh
+                    _lichSuPhat[poi.Id] = DateTime.Now;
                     return poi;
                 }
-
-                // Nếu ra khỏi vùng → cho phép phát lại lần sau
-                if (khoangCach > poi.BanKinh * 1.5)
-                    _daPhat.Remove(poi.Id);
             }
 
             return null;
