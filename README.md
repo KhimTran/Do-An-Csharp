@@ -1,76 +1,102 @@
-# App About — Thuyết minh tự động đa ngôn ngữ
-## Phố ẩm thực Vĩnh Khánh
+📄 README.md — Bản nâng cấp (xịn)
+# App About — Multi-language Audio Guide
+## Vĩnh Khánh Food Street
 
 ---
 
-## 1. Giới thiệu
+## 1. Overview
 
-App About là ứng dụng mobile được xây dựng bằng .NET MAUI, cho phép tự động phát thuyết minh đa ngôn ngữ khi người dùng đi ngang qua các địa điểm ăn uống tại phố Vĩnh Khánh.
+App About là ứng dụng mobile được phát triển bằng .NET MAUI, cung cấp trải nghiệm hướng dẫn viên ảo bằng cách tự động phát thuyết minh đa ngôn ngữ dựa trên vị trí GPS của người dùng.
 
-Cơ chế hoạt động:
-- GPS tracking để lấy vị trí người dùng
-- Geofence xác định khi người dùng gần POI
-- Text-to-Speech phát thuyết minh tự động
-
----
-
-## 2. Mục tiêu
-
-- Trải nghiệm hands-free (không cần thao tác)
-- Hoạt động offline-first
-- Không phát trùng âm thanh (cooldown 5 phút)
-- Kiến trúc rõ ràng, dễ bảo trì (MVVM + DI)
+Hệ thống hoạt động theo mô hình:
+- Location Tracking (GPS)
+- Geofencing Engine
+- Narration Engine (Text-to-Speech)
+- Offline-first Data Storage (SQLite)
 
 ---
 
-## 3. Công nghệ sử dụng
+## 2. Objectives
 
-| Thành phần | Công nghệ |
-|-----------|----------|
-| Framework | .NET MAUI |
-| Bản đồ | Mapsui (OpenStreetMap) |
+- Tự động phát thuyết minh không cần thao tác (hands-free)
+- Hoạt động ổn định khi không có internet
+- Tránh phát trùng bằng cơ chế cooldown
+- Thiết kế theo kiến trúc tách lớp, dễ test và bảo trì
+
+---
+
+## 3. Technology Stack
+
+| Layer | Technology |
+|------|-----------|
+| UI | .NET MAUI (XAML) |
+| Architecture | MVVM (CommunityToolkit.Mvvm) |
+| Map | Mapsui (OpenStreetMap) |
+| Location | Geolocation API |
 | Database | SQLite |
-| GPS | Geolocation API |
 | Audio | Text-to-Speech |
-| QR Code | ZXing.Net.MAUI |
+| QR | ZXing.Net.MAUI |
+| Backend | ASP.NET Core Web API |
 
 ---
 
-## 4. Chức năng chính
+## 4. System Architecture
 
-### 4.1 Bản đồ và GPS
-- Hiển thị vị trí người dùng
-- Hiển thị danh sách POI trên bản đồ
-- Cập nhật vị trí mỗi 3 giây
+### 4.1 High-level Architecture
 
-### 4.2 Geofence
+
+[Mobile App]
+├── View (UI)
+├── ViewModel
+├── Services
+│ ├── LocationService
+│ ├── GeofenceService
+│ ├── NarrationService
+│ └── SyncService
+└── SQLite Database
+
+[Backend API]
+└── ASP.NET Core + SQL Server
+
+
+---
+
+### 4.2 Data Flow
+
+
+GPS → LocationService
+→ GeofenceService
+→ NarrationService
+→ SQLite (Log)
+→ TTS Output
+
+
+---
+
+## 5. Core Features
+
+### 5.1 Map & Location
+- Hiển thị bản đồ bằng Mapsui (OpenStreetMap)
+- Tracking GPS mỗi 3 giây
+- Hiển thị POI và vị trí người dùng
+
+### 5.2 Geofence Engine
 - Tính khoảng cách bằng công thức Haversine
-- Kích hoạt khi vào bán kính POI
-- Cooldown 5 phút tránh lặp
+- Trigger khi user vào vùng POI
+- Kiểm tra cooldown trước khi phát
 
-### 4.3 Audio
-- TTS đa ngôn ngữ (vi, en, zh)
+### 5.3 Narration Engine
+- Text-to-Speech đa ngôn ngữ (vi, en, zh)
 - Hàng đợi audio (Queue)
 - Không phát chồng âm thanh
 
-### 4.4 QR Code
+### 5.4 QR Mode
 - Quét QR để phát thuyết minh ngay
-- Bỏ qua Geofence và Cooldown
+- Bỏ qua logic Geofence và Cooldown
 
-### 4.5 Offline và Sync
-- Lưu dữ liệu bằng SQLite
-- Đồng bộ từ API khi có mạng
-
----
-
-## 5. Kiến trúc hệ thống
-
-- MVVM (Model - View - ViewModel)
-- Dependency Injection
-- Layered Architecture
-
-Luồng chính:
-GPS → Geofence → Narration → SQLite
+### 5.5 Offline-first
+- Toàn bộ dữ liệu lưu trong SQLite
+- Sync khi có mạng
 
 ---
 
@@ -92,6 +118,93 @@ GPS → Geofence → Narration → SQLite
 
 ---
 
-## 7. Sequence Diagram
+## 7. UML Diagrams
 
-User di chuyển → GPS cập nhật → Geofence kiểm tra → Audio phát
+### 7.1 Sequence Diagram
+
+```plantuml
+@startuml
+actor User
+participant LocationService
+participant GeofenceService
+participant NarrationService
+participant SQLite
+
+User -> LocationService : Update Location
+LocationService -> GeofenceService : Send Coordinates
+GeofenceService -> SQLite : Check Cooldown
+GeofenceService -> NarrationService : Trigger Audio
+NarrationService -> SQLite : Save Log
+NarrationService -> User : Play Audio
+@enduml
+7.2 Activity Diagram
+@startuml
+start
+:Nhận GPS;
+:Tính khoảng cách;
+if (Trong bán kính?) then (Yes)
+  if (Cooldown hợp lệ?) then (Yes)
+    :Phát audio;
+    :Lưu log;
+  else (No)
+    :Bỏ qua;
+  endif
+else (No)
+  :Chờ cập nhật GPS;
+endif
+stop
+@enduml
+7.3 State Diagram
+@startuml
+[*] --> Idle
+Idle --> Tracking
+Tracking --> InRange
+InRange --> Playing
+Playing --> Cooldown
+Cooldown --> Tracking
+@enduml
+7.4 Class Diagram
+@startuml
+
+class MapViewModel {
+  +KhoiDongAsync()
+}
+
+class LocationService {
+  +BatDauTracking()
+}
+
+class GeofenceService {
+  +KiemTraGeofence()
+}
+
+class NarrationService {
+  +PhatThuyetMinh()
+}
+
+class LocalDatabase {
+  +LayPoi()
+  +LuuLog()
+}
+
+MapViewModel --> LocationService
+MapViewModel --> GeofenceService
+GeofenceService --> NarrationService
+GeofenceService --> LocalDatabase
+NarrationService --> LocalDatabase
+
+@enduml
+8. Business Rules
+Cooldown: 5 phút cho mỗi POI
+QR override: bỏ qua cooldown
+Queue audio: chỉ phát 1 audio tại 1 thời điểm
+9. Constraints
+iOS hạn chế background GPS
+Không sử dụng Google Maps (không API key)
+Không yêu cầu đăng nhập người dùng
+10. Expected Outcome
+App hoạt động ổn định ngoài thực tế
+GPS tracking chính xác
+Audio không bị lặp
+Hoạt động offline hoàn chỉnh
+Codebase dễ hiểu và dễ bảo trì
