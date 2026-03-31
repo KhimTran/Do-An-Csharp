@@ -1,8 +1,6 @@
 using Mapsui;
-using Mapsui.Extensions;
 using Mapsui.Layers;
 using Mapsui.Projections;
-using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.UI.Maui;
 using Mapsui.Tiling;
@@ -10,11 +8,6 @@ using Mapsui.Nts;
 using NetTopologySuite.Geometries;
 using App.ViewModels;
 using App.Models;
-using System;
-using System.Collections.Generic;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.ApplicationModel;
-// Xóa Using Color = Mapsui.Styles.Color để tránh lỗi trùng
 
 namespace App.Views;
 
@@ -29,7 +22,7 @@ public partial class MapPage : ContentPage
         BindingContext = vm;
 
         vm.OnDaCoiPoi += ThemPinLenBanDo;
-        vm.OnViTriCapNhat += CapNhatViTriBanDo;
+        vm.OnViTriCapNhat += CapNhatViTriBanDo;  // ← nhận (double, double)
     }
 
     protected override async void OnAppearing()
@@ -48,14 +41,11 @@ public partial class MapPage : ContentPage
 
     private void BanDo_Loaded(object sender, EventArgs e)
     {
-        // Đã sửa: Ghi rõ Mapsui.Map để không bị trùng với Map của MAUI
         var map = new Mapsui.Map();
-        // Thêm dòng này để xóa toàn bộ các chữ log, khung fps mặc định
         map.Widgets.Clear();
         map.Layers.Add(OpenStreetMap.CreateTileLayer());
         BanDo.Map = map;
 
-        // Đã sửa: Chuyển đổi Tuple sang MPoint theo chuẩn Mapsui 5.0
         var centerTuple = SphericalMercator.FromLonLat(106.690, 10.757);
         var centerPoint = new MPoint(centerTuple.x, centerTuple.y);
         BanDo.Map.Navigator.CenterOnAndZoomTo(centerPoint, 2);
@@ -69,18 +59,15 @@ public partial class MapPage : ContentPage
 
             foreach (var poi in danhSach)
             {
-                // 1. Chuyển đổi tọa độ
                 var tuple = SphericalMercator.FromLonLat(poi.Lng, poi.Lat);
                 var point = new MPoint(tuple.x, tuple.y);
 
-                // 2. TẠO PIN (Cắm cờ)
                 var pinFeature = new PointFeature(point)
                 {
                     ["Ten"] = poi.Ten,
                     ["MoTa"] = $"📍 {poi.MoTa_Vi}\n\n🌐 {poi.MoTa_En}\n\n📏 Bán kính: {poi.BanKinh}m"
                 };
 
-                // Đã sửa: Mapsui 5.0 yêu cầu tạo Style trực tiếp thay vì dùng SymbolStyles class cũ
                 pinFeature.Styles.Add(new SymbolStyle
                 {
                     Fill = new Mapsui.Styles.Brush(Mapsui.Styles.Color.Red),
@@ -90,14 +77,11 @@ public partial class MapPage : ContentPage
 
                 features.Add(pinFeature);
 
-                // 3. TẠO VÒNG TRÒN GEOFENCE
                 double radiusInMercator = poi.BanKinh / Math.Cos(poi.Lat * Math.PI / 180.0);
-
-                var pointFactory = new NetTopologySuite.Geometries.Point(point.X, point.Y);
-                var circleGeometry = pointFactory.Buffer(radiusInMercator);
+                var pointGeom = new NetTopologySuite.Geometries.Point(point.X, point.Y);
+                var circleGeometry = pointGeom.Buffer(radiusInMercator);
                 var circleFeature = new GeometryFeature(circleGeometry);
 
-                // Đã sửa: Ghi rõ Mapsui.Styles.Brush để không trùng với Brush của MAUI
                 circleFeature.Styles.Add(new VectorStyle
                 {
                     Fill = new Mapsui.Styles.Brush(new Mapsui.Styles.Color(0, 150, 255, 50)),
@@ -107,7 +91,6 @@ public partial class MapPage : ContentPage
                 features.Add(circleFeature);
             }
 
-            // Đã sửa: Mapsui 5.0 dùng thuộc tính Features thay vì DataSource
             var layer = new MemoryLayer
             {
                 Name = "PoiLayer",
@@ -118,9 +101,9 @@ public partial class MapPage : ContentPage
         });
     }
 
-    // Đã sửa: Ghi rõ Microsoft.Maui.Devices.Sensors.Location để không trùng với Location của thư viện Geofence
-    private void CapNhatViTriBanDo(Microsoft.Maui.Devices.Sensors.Location viTri)
+    // ← Đã sửa: nhận (double lat, double lng) cho khớp với MapViewModel
+    private void CapNhatViTriBanDo(double lat, double lng)
     {
-        // Xử lý vị trí tại đây
+        // Tuần 4 sẽ dùng để vẽ vị trí người dùng lên bản đồ
     }
 }

@@ -25,7 +25,6 @@ namespace App
 
             // 1. ĐĂNG KÝ DATABASE & CÁC SERVICES (MÌNH ĐÃ BỔ SUNG ĐẦY ĐỦ Ở ĐÂY)
             builder.Services.AddSingleton<LocalDatabase>();
-            builder.Services.AddSingleton<GpsService>();
             builder.Services.AddSingleton<GeofenceService>(); // <-- Sửa lỗi sập app
             builder.Services.AddSingleton<ITtsService, TtsService>(); // <-- Sửa lỗi sập app
             builder.Services.AddSingleton<ILocationService, LocationService>();

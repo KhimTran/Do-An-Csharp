@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using App.Models;
 using App.Services;
 
@@ -8,29 +7,21 @@ namespace App.ViewModels
     public partial class MapViewModel : ObservableObject
     {
         private readonly LocalDatabase _db;
-        private readonly GpsService _gps;
+        private readonly ILocationService _gps;
         private List<PoiModel> _danhSachPoi = new();
 
-        public MapViewModel(LocalDatabase db, GpsService gps)
+        public MapViewModel(LocalDatabase db, ILocationService gps)
         {
             _db = db;
             _gps = gps;
         }
 
-        [ObservableProperty]
-        private string tenPoiGanNhat = "Chưa có điểm gần";
+        [ObservableProperty] private string tenPoiGanNhat = "Chưa có điểm gần";
+        [ObservableProperty] private double khoangCachGanNhat = 0;
+        [ObservableProperty] private bool coPoiGanNhat = false;
 
-        [ObservableProperty]
-        private double khoangCachGanNhat = 0;
-
-        [ObservableProperty]
-        private bool coPoiGanNhat = false;
-
-        // Sự kiện báo MapPage thêm pin lên bản đồ
         public event Action<List<PoiModel>>? OnDaCoiPoi;
-
-        // Sự kiện báo vị trí người dùng thay đổi
-        public event Action<Location>? OnViTriCapNhat;
+        public event Action<double, double>? OnViTriCapNhat;
 
         public async Task KhoiDongAsync()
         {
@@ -38,31 +29,24 @@ namespace App.ViewModels
             _danhSachPoi = await _db.LayTatCaPoiAsync();
             OnDaCoiPoi?.Invoke(_danhSachPoi);
 
-            // Bắt đầu GPS
-            _gps.OnViTriMoi += XuLyViTriMoi;
-            _gps.BatDauTracking();
+            // Bắt đầu GPS — dùng callback của ILocationService
+            await _gps.BatDauTheoDoiAsync((lat, lng) =>
+            {
+                OnViTriCapNhat?.Invoke(lat, lng);
+                XuLyViTriMoi(lat, lng);
+            });
         }
 
-        public void DungGps()
-        {
-            _gps.OnViTriMoi -= XuLyViTriMoi;
-            _gps.DungTracking();
-        }
+        public void DungGps() => _gps.DungTheoDoi();
 
-        private void XuLyViTriMoi(Location viTri)
+        private void XuLyViTriMoi(double lat, double lng)
         {
-            OnViTriCapNhat?.Invoke(viTri);
-
-            // Tìm POI gần nhất
             PoiModel? ganNhat = null;
             double minKc = double.MaxValue;
 
             foreach (var poi in _danhSachPoi)
             {
-                double kc = GpsService.TinhKhoangCach(
-                    viTri.Latitude, viTri.Longitude,
-                    poi.Lat, poi.Lng
-                );
+                double kc = GeofenceService.TinhKhoangCachMetres(lat, lng, poi.Lat, poi.Lng);
                 if (kc < minKc)
                 {
                     minKc = kc;
@@ -72,9 +56,12 @@ namespace App.ViewModels
 
             if (ganNhat != null)
             {
-                TenPoiGanNhat = ganNhat.Ten;
-                KhoangCachGanNhat = minKc;
-                CoPoiGanNhat = minKc <= ganNhat.BanKinh * 3;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    TenPoiGanNhat = ganNhat.Ten;
+                    KhoangCachGanNhat = minKc;
+                    CoPoiGanNhat = minKc <= ganNhat.BanKinh * 3;
+                });
             }
         }
     }
