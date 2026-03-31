@@ -29,7 +29,7 @@ namespace App
             builder.Services.AddSingleton<GeofenceService>(); // <-- Sửa lỗi sập app
             builder.Services.AddSingleton<ITtsService, TtsService>(); // <-- Sửa lỗi sập app
             builder.Services.AddSingleton<ILocationService, LocationService>();
-
+            builder.Services.AddSingleton<SyncService>();
             // 2. ĐĂNG KÝ VIEW MODELS
             builder.Services.AddTransient<PoiListViewModel>();
             builder.Services.AddTransient<MapViewModel>();
