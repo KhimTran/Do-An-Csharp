@@ -31,7 +31,7 @@ namespace App.ViewModels
 
                 // 3. Gọi đồng bộ dữ liệu từ server về SQLite trước
                 ThongBao = "Đang đồng bộ dữ liệu từ Server...";
-                await _sync.DongBoAsync();
+                await _sync.DongBoPoisAsync();
 
                 // 4. Sau đó mới load dữ liệu từ SQLite lên giao diện
                 var ds = await _db.LayTatCaPoiAsync();
