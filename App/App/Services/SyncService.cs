@@ -1,5 +1,7 @@
 ﻿using System.Net.Http.Json;
 using App.Models;
+using Microsoft.Maui.Networking;
+using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
@@ -8,7 +10,6 @@ namespace App.Services
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
 
-        // ⚠️ Thay URL này bằng địa chỉ API đang chạy
         // Khi test trên emulator: dùng 10.0.2.2 thay cho localhost
         private const string API_URL = "http://10.0.2.2:5099/api/pois";
 
@@ -26,6 +27,11 @@ namespace App.Services
         {
             try
             {
+                // Nếu bật offline mode thì không gọi API
+                bool offlineMode = Preferences.Get("offline_mode", false);
+                if (offlineMode)
+                    return false;
+
                 // Kiểm tra có mạng không trước khi gọi API
                 if (Connectivity.NetworkAccess != NetworkAccess.Internet)
                     return false;
