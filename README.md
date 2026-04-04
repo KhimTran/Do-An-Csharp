@@ -14,7 +14,7 @@
 | Phiên bản | 1.0 (MVP) |
 | Ngày lập tài liệu | 27/03/2026 |
 | Trạng thái | Bản nháp cho Development |
-| Người sở hữu (Owner) | Nhóm phát triển (Sinh viên A & B) |
+| Người sở hữu (Owner) | Trần Trọng Duy Khiêm & Nguyễn Công Vinh |
 | Đối tượng đọc | Development Team, Giảng viên hướng dẫn (Stakeholder) |
 
 ---
@@ -558,4 +558,3 @@ stateDiagram-v2
 
 ---
 
-*© 2026 Nhóm phát triển — Đồ án tốt nghiệp. Dành cho mục đích học thuật.*
