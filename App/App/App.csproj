@@ -74,10 +74,7 @@
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Models\" />
+		<PackageReference Include="ZXing.Net.MAUI" Version="0.7.4" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -94,6 +91,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\PoiListPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\QrScanPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>

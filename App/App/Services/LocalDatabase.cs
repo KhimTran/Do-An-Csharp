@@ -17,7 +17,7 @@ namespace App.Services
 
             _db = new SQLiteAsyncConnection(duongDan);
             await _db.CreateTableAsync<PoiModel>();
-
+            await _db.CreateTableAsync<LichSuPhatModel>(); // ← THÊM DÒNG NÀY
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
         }
@@ -63,6 +63,25 @@ namespace App.Services
             return poi.Id == 0
                 ? await _db!.InsertAsync(poi)
                 : await _db!.UpdateAsync(poi);
+        }
+        // Ghi lại lịch sử phát âm (dùng cho Cooldown và Analytics)
+        public async Task GhiLichSuPhatAsync(LichSuPhatModel lichSu)
+        {
+            await KhoiTaoAsync();
+            await _db!.InsertAsync(lichSu);
+        }
+
+        // Kiểm tra cooldown: trả về true nếu được phép phát (chưa phát trong 5 phút)
+        public async Task<bool> KiemTraCooldownAsync(int poiId)
+        {
+            await KhoiTaoAsync();
+            var lanCuoi = await _db!.Table<LichSuPhatModel>()
+                .Where(l => l.PoiId == poiId && l.NguonKichHoat == "GPS")
+                .OrderByDescending(l => l.ThoiGianPhat)
+                .FirstOrDefaultAsync();
+
+            if (lanCuoi == null) return true; // Chưa từng phát → cho phép
+            return (DateTime.Now - lanCuoi.ThoiGianPhat).TotalMinutes >= 5;
         }
     }
 }
