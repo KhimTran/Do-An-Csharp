@@ -1,11 +1,10 @@
-﻿using SkiaSharp.Views.Maui.Controls.Hosting;
-using CommunityToolkit.Maui;
-using Microsoft.Extensions.Logging;
-using App.Services;
+﻿using App.Services;
 using App.ViewModels;
 using App.Views;
+using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using ZXing.Net.Maui;
-
 
 namespace App
 {
@@ -14,31 +13,32 @@ namespace App
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
-                .UseSkiaSharp() // <-- BỔ SUNG DÒNG NÀY VÀO ĐÂY
+                .UseSkiaSharp()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            // 1. ĐĂNG KÝ DATABASE & CÁC SERVICES (MÌNH ĐÃ BỔ SUNG ĐẦY ĐỦ Ở ĐÂY)
             builder.Services.AddSingleton<LocalDatabase>();
             builder.Services.AddSingleton<SyncService>();
-            builder.Services.AddSingleton<GeofenceService>(); // <-- Sửa lỗi sập app
-            builder.Services.AddSingleton<ITtsService, TtsService>(); // <-- Sửa lỗi sập app
+            builder.Services.AddSingleton<GeofenceService>();
+            builder.Services.AddSingleton<ITtsService, TtsService>();
             builder.Services.AddSingleton<ILocationService, LocationService>();
+
             // 2. ĐĂNG KÝ VIEW MODELS
             builder.Services.AddTransient<PoiListViewModel>();
             builder.Services.AddTransient<MapViewModel>();
             builder.Services.AddTransient<QrScanViewModel>();
             builder.Services.AddTransient<QrScanPage>();
 
-            // 3. ĐĂNG KÝ VIEWS (PAGES)
             builder.Services.AddTransient<PoiListPage>();
             builder.Services.AddTransient<MapPage>();
+            builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG
             builder.Logging.AddDebug();

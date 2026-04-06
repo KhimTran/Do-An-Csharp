@@ -1,4 +1,5 @@
 ﻿using App.Models;
+using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
@@ -15,6 +16,9 @@ namespace App.Services
         {
             var danhSach = await _db.LayTatCaPoiAsync();
 
+            // Lấy bán kính từ Settings (Người B tuần 4), mặc định 100m
+            int banKinhMacDinh = Preferences.Get("geofence_radius", 100);
+
             foreach (var poi in danhSach)
             {
                 double khoangCach = TinhKhoangCachMetres(
@@ -22,7 +26,10 @@ namespace App.Services
                     poi.Lat, poi.Lng
                 );
 
-                if (khoangCach <= poi.BanKinh)
+                // Dùng bán kính lớn hơn giữa bán kính POI và bán kính từ Settings
+                double banKinhApDung = Math.Max(poi.BanKinh, banKinhMacDinh);
+
+                if (khoangCach <= banKinhApDung)
                 {
                     // Kiểm tra cooldown từ SQLite (bền vững qua restart)
                     bool duocPhep = await _db.KiemTraCooldownAsync(poi.Id);

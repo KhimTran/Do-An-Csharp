@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="App.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Cài đặt">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label Text="Cài đặt ứng dụng"
+                   FontSize="22"
+                   FontAttributes="Bold" />
+
+            <Frame Padding="16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Ngôn ngữ thuyết minh"
+                           FontAttributes="Bold" />
+                    <Picker x:Name="NgonNguPicker"
+                            Title="Chọn ngôn ngữ">
+                        <Picker.Items>
+                            <x:String>Tiếng Việt</x:String>
+                            <x:String>English</x:String>
+                            <x:String>中文</x:String>
+                        </Picker.Items>
+                    </Picker>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Bán kính geofence"
+                           FontAttributes="Bold" />
+                    <Label x:Name="BanKinhLabel"
+                           Text="50 m" />
+                    <Slider x:Name="BanKinhSlider"
+                            Minimum="20"
+                            Maximum="200"
+                            Value="50"
+                            ValueChanged="BanKinhSlider_ValueChanged" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Offline mode"
+                           FontAttributes="Bold" />
+                    <HorizontalStackLayout Spacing="12">
+                        <Switch x:Name="OfflineSwitch" />
+                        <Label Text="Chỉ dùng dữ liệu local khi không có mạng"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Button Text="Lưu"
+                    Clicked="LuuButton_Clicked" />
+
+            <Button Text="Khôi phục mặc định"
+                    Clicked="MacDinhButton_Clicked" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

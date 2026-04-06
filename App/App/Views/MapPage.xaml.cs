@@ -1,19 +1,25 @@
+using App.Models;
+using App.ViewModels;
 using Mapsui;
 using Mapsui.Layers;
+using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
-using Mapsui.UI.Maui;
 using Mapsui.Tiling;
-using Mapsui.Nts;
 using NetTopologySuite.Geometries;
-using App.ViewModels;
-using App.Models;
+
+using MapsuiBrush = Mapsui.Styles.Brush;
+using MapsuiColor = Mapsui.Styles.Color;
+using NtsPoint = NetTopologySuite.Geometries.Point;
 
 namespace App.Views;
 
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
+    private Mapsui.Map _map = new();
+
+    private bool _daZoomLanDau = false;
 
     public MapPage(MapViewModel vm)
     {
@@ -21,8 +27,10 @@ public partial class MapPage : ContentPage
         _vm = vm;
         BindingContext = vm;
 
-        vm.OnDaCoiPoi += ThemPinLenBanDo;
-        vm.OnViTriCapNhat += CapNhatViTriBanDo;  // ← nhận (double, double)
+        _vm.OnDaCoiPoi += ThemPinLenBanDo;
+        _vm.OnViTriCapNhat += CapNhatViTriBanDo;
+
+        KhoiTaoBanDo();
     }
 
     protected override async void OnAppearing()
@@ -35,57 +43,63 @@ public partial class MapPage : ContentPage
     {
         base.OnDisappearing();
         _vm.DungGps();
-        _vm.OnDaCoiPoi -= ThemPinLenBanDo;
-        _vm.OnViTriCapNhat -= CapNhatViTriBanDo;
+        _daZoomLanDau = false;
     }
 
-    private void BanDo_Loaded(object sender, EventArgs e)
+    private void KhoiTaoBanDo()
     {
-        var map = new Mapsui.Map();
-        map.Widgets.Clear();
-        map.Layers.Add(OpenStreetMap.CreateTileLayer());
-        BanDo.Map = map;
+        _map = new Mapsui.Map();
+        _map.Widgets.Clear();
+        _map.Layers.Add(OpenStreetMap.CreateTileLayer());
 
-        var centerTuple = SphericalMercator.FromLonLat(106.690, 10.757);
-        var centerPoint = new MPoint(centerTuple.x, centerTuple.y);
-        BanDo.Map.Navigator.CenterOnAndZoomTo(centerPoint, 2);
+        var center = SphericalMercator.FromLonLat(106.7002, 10.7605);
+        _map.Navigator.CenterOnAndZoomTo(new MPoint(center.x, center.y), 3000);
+
+        BanDo.Map = _map;
     }
 
     private void ThemPinLenBanDo(List<PoiModel> danhSach)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            var layerCu = _map.Layers.FirstOrDefault(l => l.Name == "PoiLayer");
+            if (layerCu != null)
+                _map.Layers.Remove(layerCu);
+
             var features = new List<IFeature>();
 
             foreach (var poi in danhSach)
             {
-                var tuple = SphericalMercator.FromLonLat(poi.Lng, poi.Lat);
-                var point = new MPoint(tuple.x, tuple.y);
+                var (x, y) = SphericalMercator.FromLonLat(poi.Lng, poi.Lat);
+                var point = new MPoint(x, y);
 
                 var pinFeature = new PointFeature(point)
                 {
                     ["Ten"] = poi.Ten,
-                    ["MoTa"] = $"📍 {poi.MoTa_Vi}\n\n🌐 {poi.MoTa_En}\n\n📏 Bán kính: {poi.BanKinh}m"
+                    ["MoTa"] = poi.MoTa_Vi
                 };
 
                 pinFeature.Styles.Add(new SymbolStyle
                 {
-                    Fill = new Mapsui.Styles.Brush(Mapsui.Styles.Color.Red),
+                    Fill = new MapsuiBrush(MapsuiColor.Red),
+                    Outline = new Pen(MapsuiColor.White, 2),
                     SymbolType = SymbolType.Ellipse,
-                    SymbolScale = 0.5
+                    SymbolScale = 0.6
                 });
 
                 features.Add(pinFeature);
 
-                double radiusInMercator = poi.BanKinh / Math.Cos(poi.Lat * Math.PI / 180.0);
-                var pointGeom = new NetTopologySuite.Geometries.Point(point.X, point.Y);
-                var circleGeometry = pointGeom.Buffer(radiusInMercator);
-                var circleFeature = new GeometryFeature(circleGeometry);
+                double banKinhHienThi = poi.BanKinh > 0 ? poi.BanKinh : 100;
+                double radiusMercator = banKinhHienThi / Math.Cos(poi.Lat * Math.PI / 180.0);
 
+                var pointGeom = new NtsPoint(point.X, point.Y);
+                var circleGeometry = pointGeom.Buffer(radiusMercator);
+
+                var circleFeature = new GeometryFeature(circleGeometry);
                 circleFeature.Styles.Add(new VectorStyle
                 {
-                    Fill = new Mapsui.Styles.Brush(new Mapsui.Styles.Color(0, 150, 255, 50)),
-                    Outline = new Pen(Mapsui.Styles.Color.DodgerBlue, 2)
+                    Fill = new MapsuiBrush(new MapsuiColor(0, 150, 255, 50)),
+                    Outline = new Pen(MapsuiColor.DodgerBlue, 2)
                 });
 
                 features.Add(circleFeature);
@@ -97,13 +111,45 @@ public partial class MapPage : ContentPage
                 Features = features
             };
 
-            BanDo.Map?.Layers.Add(layer);
+            _map.Layers.Add(layer);
+            BanDo.Refresh();
         });
     }
 
-    // ← Đã sửa: nhận (double lat, double lng) cho khớp với MapViewModel
     private void CapNhatViTriBanDo(double lat, double lng)
     {
-        // Tuần 4 sẽ dùng để vẽ vị trí người dùng lên bản đồ
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var layerCu = _map.Layers.FirstOrDefault(l => l.Name == "UserLocationLayer");
+            if (layerCu != null)
+                _map.Layers.Remove(layerCu);
+
+            var (x, y) = SphericalMercator.FromLonLat(lng, lat);
+            var point = new MPoint(x, y);
+
+            var userFeature = new PointFeature(point);
+            userFeature.Styles.Add(new SymbolStyle
+            {
+                Fill = new MapsuiBrush(MapsuiColor.Blue),
+                Outline = new Pen(MapsuiColor.White, 3),
+                SymbolType = SymbolType.Ellipse,
+                SymbolScale = 0.8
+            });
+
+            var userLayer = new MemoryLayer
+            {
+                Name = "UserLocationLayer",
+                Features = new List<IFeature> { userFeature }
+            };
+
+            _map.Layers.Add(userLayer);
+
+            // Zoom lần đầu và các lần sau đều dùng mức zoom 10
+            _map.Navigator.CenterOnAndZoomTo(point, 10);
+
+            _daZoomLanDau = true;
+
+            BanDo.Refresh();
+        });
     }
 }

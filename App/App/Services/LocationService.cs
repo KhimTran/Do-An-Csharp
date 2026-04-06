@@ -1,5 +1,4 @@
-﻿// Services/LocationService.cs
-namespace App.Services
+﻿namespace App.Services
 {
     public class LocationService : ILocationService
     {
@@ -7,45 +6,82 @@ namespace App.Services
 
         public async Task BatDauTheoDoiAsync(Action<double, double> khiCoViTri)
         {
-            // Xin quyền GPS
             var trangThai = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
             if (trangThai != PermissionStatus.Granted)
                 throw new Exception("Không có quyền truy cập GPS.");
 
+            // Nếu đang chạy rồi thì không chạy thêm lần nữa
+            if (_cts != null && !_cts.IsCancellationRequested)
+                return;
+
             _cts = new CancellationTokenSource();
 
-            // Chạy vòng lặp theo dõi trên luồng nền
+            // Chụp token ra biến local để tránh bị null khi DungTheoDoi() chạy
+            var token = _cts.Token;
+
             _ = Task.Run(async () =>
             {
-                while (!_cts.Token.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
                     try
                     {
                         var viTri = await Geolocation.GetLocationAsync(
                             new GeolocationRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(10)),
-                            _cts.Token
-                        );
+                            token);
 
                         if (viTri != null)
+                        {
                             khiCoViTri(viTri.Latitude, viTri.Longitude);
+                            System.Diagnostics.Debug.WriteLine($"[GPS] {viTri.Latitude}, {viTri.Longitude}");
+                        }
                     }
                     catch (FeatureNotEnabledException)
                     {
-                        // GPS tắt — thông báo cho người dùng nếu cần
+                        System.Diagnostics.Debug.WriteLine("[GPS] GPS đang tắt.");
                     }
-                    catch (Exception) { /* bỏ qua lỗi tạm thời */ }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[GPS] Lỗi: {ex.Message}");
+                    }
 
-                    await Task.Delay(5000, _cts.Token); // kiểm tra mỗi 5 giây
+                    try
+                    {
+                        await Task.Delay(3000, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
                 }
-            }, _cts.Token);
+            }, token);
         }
 
-        public void DungTheoDoi() => _cts?.Cancel();
+        public void DungTheoDoi()
+        {
+            if (_cts == null)
+                return;
+
+            try
+            {
+                _cts.Cancel();
+            }
+            catch
+            {
+            }
+
+            _cts.Dispose();
+            _cts = null;
+        }
 
         public async Task<(double Lat, double Lng)?> LayViTriHienTaiAsync()
         {
             var viTri = await Geolocation.GetLastKnownLocationAsync();
             if (viTri == null) return null;
+
             return (viTri.Latitude, viTri.Longitude);
         }
     }
