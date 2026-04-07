@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using App.Services;
+using App.Models;
+using Microsoft.Maui.Storage;
 
 namespace App.ViewModels
 {
@@ -18,14 +20,12 @@ namespace App.ViewModels
         [ObservableProperty] private bool dangQuet = true;
         [ObservableProperty] private string thongBao = "Hướng camera vào mã QR";
 
-        // Gọi khi ZXing quét được mã
         [RelayCommand]
         public async Task XuLyQrAsync(string ketQua)
         {
-            if (!DangQuet) return; // Chống quét trùng lặp
+            if (!DangQuet) return;
             DangQuet = false;
 
-            // Mã QR chứa số ID của POI, ví dụ: "1" hoặc "2"
             if (!int.TryParse(ketQua, out int poiId))
             {
                 ThongBao = $"Mã QR không hợp lệ: {ketQua}";
@@ -41,22 +41,59 @@ namespace App.ViewModels
                 return;
             }
 
-            // QR bỏ qua cooldown (BR-002)
+            // Đọc ngôn ngữ từ Preferences
+            string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
+            string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
+
             ThongBao = $"🎯 Đang phát: {poi.Ten}";
-            await _db.GhiLichSuPhatAsync(new Models.LichSuPhatModel
+
+            await _db.GhiLichSuPhatAsync(new LichSuPhatModel
             {
                 PoiId = poi.Id,
                 TenPoi = poi.Ten,
-                NgonNgu = "vi",
+                NgonNgu = RutGonMaNgonNgu(maNgonNgu), // vi / en / zh
                 ThoiGianPhat = DateTime.Now,
-                NguonKichHoat = "QR" // Đánh dấu nguồn là QR
+                NguonKichHoat = "QR"
             });
-            await _tts.PhatAmAsync(poi.MoTa_Vi, "vi-VN");
+
+            await _tts.PhatAmAsync(noiDung, maNgonNgu);
 
             ThongBao = "✅ Xong! Quét mã khác?";
             await Task.Delay(2000);
             DangQuet = true;
             ThongBao = "Hướng camera vào mã QR";
+        }
+
+        private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
+        {
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(poi.MoTa_En))
+                    return poi.MoTa_En;
+
+                return poi.MoTa_Vi;
+            }
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(poi.MoTa_Zh))
+                    return poi.MoTa_Zh;
+
+                return poi.MoTa_Vi;
+            }
+
+            return poi.MoTa_Vi;
+        }
+
+        private static string RutGonMaNgonNgu(string maNgonNgu)
+        {
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return "en";
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return "zh";
+
+            return "vi";
         }
     }
 }
