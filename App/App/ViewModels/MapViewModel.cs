@@ -142,7 +142,7 @@ namespace App.ViewModels
 
         private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi)
         {
-            string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
+            string maNgonNgu = Preferences.Get("ngon_ngu", Preferences.Get("tts_language", "vi-VN"));
             string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
 
             System.Diagnostics.Debug.WriteLine($"[LANG] {maNgonNgu}");

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Media;
+using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
@@ -16,9 +17,12 @@ namespace App.Services
 
         public bool DangPhat { get; private set; } = false;
 
-        public async Task PhatAmAsync(string vanBan, string maNgonNgu = "vi-VN")
+        public async Task PhatAmAsync(string vanBan, string maNgonNgu = "")
         {
             if (string.IsNullOrWhiteSpace(vanBan)) return;
+
+            // Nếu caller không truyền, tự đọc từ Preferences để Settings có tác dụng toàn app
+            string ngonNguDaChon = LayNgonNguTuPreferences(maNgonNgu);
 
             // Cho đoạn văn bản vào hàng đợi thay vì phát ngay lập tức
             _hangDoi.Enqueue(vanBan);
@@ -27,7 +31,20 @@ namespace App.Services
             if (DangPhat) return;
 
             // Nếu đang rảnh thì kích hoạt tiến trình xử lý hàng đợi
-            await XuLyHangDoi(maNgonNgu);
+            await XuLyHangDoi(ngonNguDaChon);
+        }
+
+        private static string LayNgonNguTuPreferences(string maNgonNgu)
+        {
+            if (!string.IsNullOrWhiteSpace(maNgonNgu))
+                return maNgonNgu;
+
+            // Ưu tiên key mới "ngon_ngu", fallback key cũ để tương thích ngược
+            var ngonNguMoi = Preferences.Get("ngon_ngu", string.Empty);
+            if (!string.IsNullOrWhiteSpace(ngonNguMoi))
+                return ngonNguMoi;
+
+            return Preferences.Get("tts_language", "vi-VN");
         }
 
         private async Task XuLyHangDoi(string maNgonNgu)

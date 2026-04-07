@@ -5,6 +5,7 @@
 > Ứng dụng di động: Thuyết minh tự động đa ngôn ngữ — Phố ẩm thực Vĩnh Khánh
 
 ---
+> 📘 Hướng dẫn triển khai đồ án theo tuần (bản tóm tắt cho team): `docs/HUONG_DAN_DA_AN_NET_MAUI.md`
 
 ## Thông tin tài liệu
 

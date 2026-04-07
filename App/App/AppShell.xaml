@@ -15,6 +15,10 @@
             ContentTemplate="{DataTemplate views:MapPage}" />
 
         <ShellContent
+            Title="QR"
+            ContentTemplate="{DataTemplate views:QrScanPage}" />
+
+        <ShellContent
             Title="Cài đặt"
             ContentTemplate="{DataTemplate views:SettingsPage}" />
     </TabBar>

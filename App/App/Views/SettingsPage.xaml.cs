@@ -12,7 +12,7 @@ public partial class SettingsPage : ContentPage
 
     private void TaiCaiDat()
     {
-        string ngonNgu = Preferences.Get("tts_language", "vi-VN");
+        string ngonNgu = Preferences.Get("ngon_ngu", Preferences.Get("tts_language", "vi-VN"));
         int banKinh = Preferences.Get("geofence_radius", 50);
         bool offlineMode = Preferences.Get("offline_mode", false);
 
@@ -47,7 +47,8 @@ public partial class SettingsPage : ContentPage
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
 
-        Preferences.Set("tts_language", maNgonNgu);
+        Preferences.Set("ngon_ngu", maNgonNgu);
+        Preferences.Set("tts_language", maNgonNgu); // key cũ để tương thích
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
         Preferences.Set("force_reread_once", true);
