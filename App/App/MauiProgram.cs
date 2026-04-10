@@ -4,7 +4,7 @@ using App.Views;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
-using ZXing.Net.Maui;
+using ZXing.Net.Maui.Controls;
 
 namespace App
 {
