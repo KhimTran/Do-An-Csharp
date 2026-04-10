@@ -11,8 +11,8 @@ namespace App.Services
 
         private static readonly string[] DefaultApiUrls =
         {
-            "http://10.0.2.2:5099/api/pois", // Android Emulator -> host machine
-            "http://localhost:5099/api/pois" // local desktop testing
+            "http://10.0.2.2:5099/api/pois",
+            "http://localhost:5099/api/pois"
         };
 
         public string LastError { get; private set; } = string.Empty;
@@ -25,7 +25,6 @@ namespace App.Services
                 Timeout = TimeSpan.FromSeconds(10)
             };
         }
-
 
         private static string ChuanHoaApiUrl(string url)
         {
@@ -44,14 +43,12 @@ namespace App.Services
                 yield return ChuanHoaApiUrl(url);
         }
 
-        // Gọi hàm này khi app khởi động để đồng bộ POI từ server
         public async Task<bool> DongBoPoisAsync()
         {
             try
             {
                 LastError = string.Empty;
 
-                // Nếu bật offline mode thì không gọi API
                 bool offlineMode = Preferences.Get("offline_mode", false);
                 if (offlineMode)
                 {
@@ -66,11 +63,14 @@ namespace App.Services
                     try
                     {
                         var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(url);
-                        if (danhSach == null || danhSach.Count == 0)
+                        if (danhSach == null)
                             continue;
 
                         foreach (var poi in danhSach)
                             await _db.LuuPoiAsync(poi);
+
+                        var serverIds = danhSach.Select(p => p.Id).ToList();
+                        await _db.XoaNhungPoiKhongConTrenServerAsync(serverIds);
 
                         return true;
                     }

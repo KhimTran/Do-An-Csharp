@@ -84,7 +84,7 @@ public partial class MapPage : ContentPage
                     Fill = new MapsuiBrush(MapsuiColor.Red),
                     Outline = new Pen(MapsuiColor.White, 2),
                     SymbolType = SymbolType.Ellipse,
-                    SymbolScale = 0.6
+                    SymbolScale = 0.8
                 });
 
                 features.Add(pinFeature);
@@ -133,7 +133,7 @@ public partial class MapPage : ContentPage
                 Fill = new MapsuiBrush(MapsuiColor.Blue),
                 Outline = new Pen(MapsuiColor.White, 3),
                 SymbolType = SymbolType.Ellipse,
-                SymbolScale = 0.8
+                SymbolScale = 0.5
             });
 
             var userLayer = new MemoryLayer
@@ -145,7 +145,7 @@ public partial class MapPage : ContentPage
             _map.Layers.Add(userLayer);
 
             // Zoom lần đầu và các lần sau đều dùng mức zoom 10
-            _map.Navigator.CenterOnAndZoomTo(point, 10);
+            _map.Navigator.CenterOnAndZoomTo(point, _map.Navigator.Resolutions[15]);
 
             _daZoomLanDau = true;
 

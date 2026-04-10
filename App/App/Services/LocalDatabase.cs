@@ -19,6 +19,7 @@ namespace App.Services
             await _db.CreateTableAsync<PoiModel>();
             await _db.CreateTableAsync<LichSuPhatModel>();
             await _db.CreateTableAsync<AppSettingModel>();
+
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
         }
@@ -31,13 +32,21 @@ namespace App.Services
                     Ten = "Quán Bún Bò Huế Vĩnh Khánh",
                     MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
                     MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                    Lat = 10.7565, Lng = 106.6896, BanKinh = 50, UuTien = 1
+                    MoTa_Zh = "著名的顺化牛肉米线餐厅，拥有30年历史。",
+                    Lat = 10.7565,
+                    Lng = 106.6896,
+                    BanKinh = 50,
+                    UuTien = 1
                 },
                 new PoiModel {
                     Ten = "Chợ Xóm Chiếu",
                     MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
                     MoTa_En = "Traditional market of District 4.",
-                    Lat = 10.7580, Lng = 106.6910, BanKinh = 80, UuTien = 2
+                    MoTa_Zh = "第四郡传统市场。",
+                    Lat = 10.7580,
+                    Lng = 106.6910,
+                    BanKinh = 80,
+                    UuTien = 2
                 },
             });
         }
@@ -46,27 +55,43 @@ namespace App.Services
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .OrderBy(p => p.UuTien)
-                              .ToListAsync();
+                .OrderBy(p => p.UuTien)
+                .ToListAsync();
         }
 
         public async Task<PoiModel?> LayPoiTheoIdAsync(int id)
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .Where(p => p.Id == id)
-                              .FirstOrDefaultAsync();
+                .Where(p => p.Id == id)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<int> LuuPoiAsync(PoiModel poi)
         {
             await KhoiTaoAsync();
-            // Dữ liệu từ server thường có Id cố định (>0).
-            // Nếu dùng UpdateAsync trực tiếp cho Id mới (chưa có trong SQLite) thì sẽ update 0 dòng.
-            // InsertOrReplaceAsync giúp xử lý đúng cả 2 trường hợp:
-            // - POI mới từ server -> INSERT
-            // - POI đã tồn tại -> REPLACE/UPDATE
             return await _db!.InsertOrReplaceAsync(poi);
+        }
+
+        public async Task XoaPoiAsync(int id)
+        {
+            await KhoiTaoAsync();
+            await _db!.DeleteAsync<PoiModel>(id);
+        }
+
+        public async Task XoaNhungPoiKhongConTrenServerAsync(List<int> serverIds)
+        {
+            await KhoiTaoAsync();
+
+            var tatCaPoiLocal = await _db!.Table<PoiModel>().ToListAsync();
+
+            var idsCanXoa = tatCaPoiLocal
+                .Where(p => !serverIds.Contains(p.Id))
+                .Select(p => p.Id)
+                .ToList();
+
+            foreach (var id in idsCanXoa)
+                await _db.DeleteAsync<PoiModel>(id);
         }
 
         public async Task GhiLichSuPhatAsync(LichSuPhatModel lichSu)
@@ -78,35 +103,43 @@ namespace App.Services
         public async Task<bool> KiemTraCooldownAsync(int poiId)
         {
             await KhoiTaoAsync();
+
             var lanCuoi = await _db!.Table<LichSuPhatModel>()
                 .Where(l => l.PoiId == poiId && l.NguonKichHoat == "GPS")
                 .OrderByDescending(l => l.ThoiGianPhat)
                 .FirstOrDefaultAsync();
 
             if (lanCuoi == null) return true;
+
             return (DateTime.Now - lanCuoi.ThoiGianPhat).TotalMinutes >= 5;
         }
-
 
         public async Task<string?> LayCaiDatAsync(string key)
         {
             await KhoiTaoAsync();
+
             var setting = await _db!.Table<AppSettingModel>()
                 .Where(x => x.Key == key)
                 .FirstOrDefaultAsync();
+
             return setting?.Value;
         }
 
         public async Task LuuCaiDatAsync(string key, string value)
         {
             await KhoiTaoAsync();
+
             var setting = await _db!.Table<AppSettingModel>()
                 .Where(x => x.Key == key)
                 .FirstOrDefaultAsync();
 
             if (setting == null)
             {
-                await _db.InsertAsync(new AppSettingModel { Key = key, Value = value });
+                await _db.InsertAsync(new AppSettingModel
+                {
+                    Key = key,
+                    Value = value
+                });
                 return;
             }
 
@@ -117,6 +150,7 @@ namespace App.Services
         public async Task<List<LichSuPhatModel>> LayLichSuMoiNhatAsync(int soLuong = 30)
         {
             await KhoiTaoAsync();
+
             return await _db!.Table<LichSuPhatModel>()
                 .OrderByDescending(l => l.ThoiGianPhat)
                 .Take(soLuong)
@@ -126,6 +160,7 @@ namespace App.Services
         public async Task<List<ThongKePoiModel>> LayTopPoiDuocNgheNhieuAsync(int top = 5)
         {
             await KhoiTaoAsync();
+
             var lichSu = await _db!.Table<LichSuPhatModel>().ToListAsync();
 
             return lichSu
