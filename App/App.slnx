@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="App/App.csproj" />
+  <Project Path="../../../Users/Nguyen Cong Vinh/source/repos/Do-An-Csharp/VinhKhanhApi/VinhKhanhApi.csproj" />
+  <Project Path="App/App.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>

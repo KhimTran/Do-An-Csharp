@@ -16,7 +16,7 @@ namespace App.Services
         {
             var danhSach = await _db.LayTatCaPoiAsync();
 
-            // Lấy bán kính từ Settings (Người B tuần 4), mặc định 100m
+            // Lấy bán kính từ Settings, mặc định 100m
             int banKinhMacDinh = Preferences.Get("geofence_radius", 100);
 
             foreach (var poi in danhSach)
@@ -31,16 +31,18 @@ namespace App.Services
 
                 if (khoangCach <= banKinhApDung)
                 {
-                    // Kiểm tra cooldown từ SQLite (bền vững qua restart)
+                    // Kiểm tra cooldown từ SQLite
                     bool duocPhep = await _db.KiemTraCooldownAsync(poi.Id);
                     if (!duocPhep) continue;
 
-                    // Ghi lịch sử vào SQLite
+                    string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
+
+                    // Ghi lịch sử vào SQLite với ngôn ngữ đúng theo settings hiện tại
                     await _db.GhiLichSuPhatAsync(new LichSuPhatModel
                     {
                         PoiId = poi.Id,
                         TenPoi = poi.Ten,
-                        NgonNgu = "vi",
+                        NgonNgu = RutGonMaNgonNgu(maNgonNgu),
                         ThoiGianPhat = DateTime.Now,
                         NguonKichHoat = "GPS"
                     });
@@ -70,5 +72,16 @@ namespace App.Services
         }
 
         private static double ToRad(double deg) => deg * Math.PI / 180.0;
+
+        private static string RutGonMaNgonNgu(string maNgonNgu)
+        {
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return "en";
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return "zh";
+
+            return "vi";
+        }
     }
 }

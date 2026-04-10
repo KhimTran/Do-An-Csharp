@@ -28,17 +28,17 @@ namespace App.Services
             await _db!.InsertAllAsync(new List<PoiModel>
             {
                 new PoiModel {
-                    Ten = "Quán Bún Bò Huế Vĩnh Khánh",
-                    MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
-                    MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                    Lat = 10.7565, Lng = 106.6896, BanKinh = 50, UuTien = 1
+                    Ten = "Bún Bò Vĩnh Khánh",
+                    MoTa_Vi = "Quán bún bò nổi tiếng lâu đời.",
+                    MoTa_En = "Famous bun bo restaurant.",
+                    Lat = 10.7565, Lng = 106.6896
                 },
                 new PoiModel {
                     Ten = "Chợ Xóm Chiếu",
-                    MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
-                    MoTa_En = "Traditional market of District 4.",
-                    Lat = 10.7580, Lng = 106.6910, BanKinh = 80, UuTien = 2
-                },
+                    MoTa_Vi = "Khu chợ truyền thống lâu đời.",
+                    MoTa_En = "Traditional market.",
+                    Lat = 10.7580, Lng = 106.6910
+                }
             });
         }
 
@@ -46,16 +46,16 @@ namespace App.Services
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .OrderBy(p => p.UuTien)
-                              .ToListAsync();
+             .OrderBy(p => p.UuTien)
+             .ToListAsync();
         }
 
         public async Task<PoiModel?> LayPoiTheoIdAsync(int id)
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .Where(p => p.Id == id)
-                              .FirstOrDefaultAsync();
+                .Where(p => p.Id == id)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<int> LuuPoiAsync(PoiModel poi)

@@ -1,0 +1,49 @@
+﻿@model VinhKhanhApi.Models.PoiModel
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Xóa POI</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { margin: 0; background: #f4f7fb; color: #1f2937; }
+        .container { max-width: 720px; margin: 40px auto; background: white; padding: 28px; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.06); }
+        h1 { margin-top: 0; color: #dc2626; }
+        .box { background: #fff1f2; border: 1px solid #fecdd3; padding: 18px; border-radius: 12px; }
+        .actions { display: flex; gap: 10px; margin-top: 18px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Xác nhận xóa POI</h1>
+
+        <div class="box">
+            <p><strong>ID:</strong> @Model.Id</p>
+            <p><strong>Tên:</strong> @Model.Ten</p>
+            <p><strong>Mô tả:</strong> @Model.MoTa_Vi</p>
+        </div>
+
+        <form method="post" action="/Cms/DeleteConfirmed/@Model.Id">
+            @Html.AntiForgeryToken()
+
+            <div class="actions">
+                <button type="submit" class="btn btn-danger">Xóa</button>
+                <a href="/Cms" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

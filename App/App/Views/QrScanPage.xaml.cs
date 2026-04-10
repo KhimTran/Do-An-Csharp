@@ -1,16 +1,12 @@
 ﻿using App.ViewModels;
-using ZXing.Net.Maui;
 
 namespace App.Views
 {
     public partial class QrScanPage : ContentPage
     {
-        private readonly QrScanViewModel _vm;
-
         public QrScanPage(QrScanViewModel vm)
         {
             InitializeComponent();
-            _vm = vm;
             BindingContext = vm;
 
             QrCamera.Options = new BarcodeReaderOptions
