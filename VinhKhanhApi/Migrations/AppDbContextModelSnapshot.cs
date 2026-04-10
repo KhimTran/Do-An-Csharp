@@ -57,6 +57,12 @@ namespace VinhKhanhApi.Migrations
                     b.Property<string>("TenFileAudio_Vi")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("TenFileAudio_En")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TenFileAudio_Zh")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("UuTien")
                         .HasColumnType("int");
 
@@ -89,6 +95,36 @@ namespace VinhKhanhApi.Migrations
                             Ten = "Chợ Xóm Chiếu",
                             UuTien = 2
                         });
+                });
+
+            modelBuilder.Entity("VinhKhanhApi.Models.PlaybackLogModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nguon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PoiId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PoiTen")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ThoiGianNghe")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ThoiLuongGiay")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlaybackLogs");
                 });
 #pragma warning restore 612, 618
         }
