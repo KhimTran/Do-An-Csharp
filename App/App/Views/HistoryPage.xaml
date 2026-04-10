@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:App.ViewModels"
+             x:Class="App.Views.HistoryPage"
+             x:DataType="vm:HistoryViewModel"
+             Title="Lịch sử nghe">
+
+    <RefreshView Command="{Binding TaiDuLieuCommand}" IsRefreshing="{Binding DangTai}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="14">
+                <Label Text="Top POI được nghe nhiều" FontSize="18" FontAttributes="Bold" />
+
+                <CollectionView ItemsSource="{Binding TopPoi}">
+                    <CollectionView.EmptyView>
+                        <Label Text="Chưa có dữ liệu thống kê." />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto" Padding="8,6">
+                                <Label Text="{Binding TenPoi}" />
+                                <Label Grid.Column="1" Text="{Binding SoLanNghe, StringFormat='x{0}'}" FontAttributes="Bold" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="Lịch sử gần đây" FontSize="18" FontAttributes="Bold" Margin="0,8,0,0" />
+
+                <CollectionView ItemsSource="{Binding LichSuGanDay}">
+                    <CollectionView.EmptyView>
+                        <Label Text="Chưa có lượt nghe nào." />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 10" Padding="10" Margin="0,4">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding TenPoi}" FontAttributes="Bold" />
+                                    <Label Text="{Binding ThoiGianPhat, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="12" TextColor="Gray" />
+                                    <Label Text="{Binding NguonKichHoat, StringFormat='Nguồn: {0}'}" FontSize="12" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

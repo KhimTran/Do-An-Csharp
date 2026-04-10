@@ -1,0 +1,28 @@
+@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Thống kê";
+}
+
+<h2>Thống kê nghe thuyết minh</h2>
+<p><strong>Tổng lượt nghe:</strong> @ViewData["TongLuotNghe"]</p>
+<p><strong>Thời lượng trung bình (giây):</strong> @ViewData["ThoiLuongTrungBinh"]</p>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>POI</th>
+            <th>Số lượt nghe</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var row in Model)
+    {
+        <tr>
+            <td>@row.TenPoi</td>
+            <td>@row.SoLan</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a class="btn btn-secondary" href="@Url.Action("Index", "Cms")">Quay lại CMS</a>

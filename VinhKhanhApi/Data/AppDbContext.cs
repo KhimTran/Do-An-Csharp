@@ -8,12 +8,11 @@ namespace VinhKhanhApi.Data
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) { }
 
-        // Bảng POIs trong SQL Server
         public DbSet<PoiModel> POIs { get; set; }
+        public DbSet<PlaybackLogModel> PlaybackLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Thêm 2 POI mẫu vào database khi tạo lần đầu
             modelBuilder.Entity<PoiModel>().HasData(
                 new PoiModel
                 {

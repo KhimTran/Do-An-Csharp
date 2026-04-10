@@ -1,20 +1,36 @@
+using App.Services;
 using Microsoft.Maui.Storage;
 
 namespace App.Views;
 
 public partial class SettingsPage : ContentPage
 {
-    public SettingsPage()
+    private readonly LocalDatabase _db;
+
+    public SettingsPage(LocalDatabase db)
     {
         InitializeComponent();
-        TaiCaiDat();
+        _db = db;
     }
 
-    private void TaiCaiDat()
+    protected override async void OnAppearing()
     {
-        string ngonNgu = Preferences.Get("tts_language", "vi-VN");
-        int banKinh = Preferences.Get("geofence_radius", 50);
-        bool offlineMode = Preferences.Get("offline_mode", false);
+        base.OnAppearing();
+        await TaiCaiDatAsync();
+    }
+
+    private async Task TaiCaiDatAsync()
+    {
+        string ngonNgu = await _db.LayCaiDatAsync("tts_language")
+                         ?? Preferences.Get("tts_language", "vi-VN");
+
+        int banKinh = int.TryParse(await _db.LayCaiDatAsync("geofence_radius"), out var bk)
+            ? bk
+            : Preferences.Get("geofence_radius", 50);
+
+        bool offlineMode = bool.TryParse(await _db.LayCaiDatAsync("offline_mode"), out var off)
+            ? off
+            : Preferences.Get("offline_mode", false);
 
         NgonNguPicker.SelectedIndex = ngonNgu switch
         {
@@ -47,18 +63,27 @@ public partial class SettingsPage : ContentPage
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
 
+        // Lưu cả Preferences (dùng nhanh tại runtime) + SQLite (đáp ứng yêu cầu tuần 5)
         Preferences.Set("tts_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
         Preferences.Set("force_reread_once", true);
 
+        await _db.LuuCaiDatAsync("tts_language", maNgonNgu);
+        await _db.LuuCaiDatAsync("geofence_radius", banKinh.ToString());
+        await _db.LuuCaiDatAsync("offline_mode", offlineMode.ToString());
+
         await DisplayAlert("Thành công", "Đã lưu cài đặt.", "OK");
     }
 
-    private void MacDinhButton_Clicked(object sender, EventArgs e)
+    private async void MacDinhButton_Clicked(object sender, EventArgs e)
     {
         NgonNguPicker.SelectedIndex = 0;
         BanKinhSlider.Value = 50;
         OfflineSwitch.IsToggled = false;
+
+        await _db.LuuCaiDatAsync("tts_language", "vi-VN");
+        await _db.LuuCaiDatAsync("geofence_radius", "50");
+        await _db.LuuCaiDatAsync("offline_mode", "False");
     }
 }

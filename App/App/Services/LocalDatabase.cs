@@ -1,5 +1,5 @@
-﻿using SQLite;
-using App.Models;
+﻿using App.Models;
+using SQLite;
 
 namespace App.Services
 {
@@ -17,7 +17,8 @@ namespace App.Services
 
             _db = new SQLiteAsyncConnection(duongDan);
             await _db.CreateTableAsync<PoiModel>();
-            await _db.CreateTableAsync<LichSuPhatModel>(); // ← THÊM DÒNG NÀY
+            await _db.CreateTableAsync<LichSuPhatModel>();
+            await _db.CreateTableAsync<AppSettingModel>();
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
         }
@@ -64,14 +65,13 @@ namespace App.Services
                 ? await _db!.InsertAsync(poi)
                 : await _db!.UpdateAsync(poi);
         }
-        // Ghi lại lịch sử phát âm (dùng cho Cooldown và Analytics)
+
         public async Task GhiLichSuPhatAsync(LichSuPhatModel lichSu)
         {
             await KhoiTaoAsync();
             await _db!.InsertAsync(lichSu);
         }
 
-        // Kiểm tra cooldown: trả về true nếu được phép phát (chưa phát trong 5 phút)
         public async Task<bool> KiemTraCooldownAsync(int poiId)
         {
             await KhoiTaoAsync();
@@ -80,8 +80,61 @@ namespace App.Services
                 .OrderByDescending(l => l.ThoiGianPhat)
                 .FirstOrDefaultAsync();
 
-            if (lanCuoi == null) return true; // Chưa từng phát → cho phép
+            if (lanCuoi == null) return true;
             return (DateTime.Now - lanCuoi.ThoiGianPhat).TotalMinutes >= 5;
+        }
+
+
+        public async Task<string?> LayCaiDatAsync(string key)
+        {
+            await KhoiTaoAsync();
+            var setting = await _db!.Table<AppSettingModel>()
+                .Where(x => x.Key == key)
+                .FirstOrDefaultAsync();
+            return setting?.Value;
+        }
+
+        public async Task LuuCaiDatAsync(string key, string value)
+        {
+            await KhoiTaoAsync();
+            var setting = await _db!.Table<AppSettingModel>()
+                .Where(x => x.Key == key)
+                .FirstOrDefaultAsync();
+
+            if (setting == null)
+            {
+                await _db.InsertAsync(new AppSettingModel { Key = key, Value = value });
+                return;
+            }
+
+            setting.Value = value;
+            await _db.UpdateAsync(setting);
+        }
+
+        public async Task<List<LichSuPhatModel>> LayLichSuMoiNhatAsync(int soLuong = 30)
+        {
+            await KhoiTaoAsync();
+            return await _db!.Table<LichSuPhatModel>()
+                .OrderByDescending(l => l.ThoiGianPhat)
+                .Take(soLuong)
+                .ToListAsync();
+        }
+
+        public async Task<List<ThongKePoiModel>> LayTopPoiDuocNgheNhieuAsync(int top = 5)
+        {
+            await KhoiTaoAsync();
+            var lichSu = await _db!.Table<LichSuPhatModel>().ToListAsync();
+
+            return lichSu
+                .GroupBy(x => x.TenPoi)
+                .Select(g => new ThongKePoiModel
+                {
+                    TenPoi = g.Key,
+                    SoLanNghe = g.Count()
+                })
+                .OrderByDescending(x => x.SoLanNghe)
+                .Take(top)
+                .ToList();
         }
     }
 }

@@ -1,0 +1,41 @@
+@model List<VinhKhanhApi.Models.PoiModel>
+@{
+    ViewData["Title"] = "CMS POI";
+}
+
+<h2>CMS quản lý POI</h2>
+<p>
+    <a class="btn btn-primary" href="@Url.Action("Edit", "Cms")">+ Thêm POI</a>
+    <a class="btn btn-secondary" href="@Url.Action("Stats", "Cms")">Xem thống kê</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Tên</th>
+            <th>Ưu tiên</th>
+            <th>Audio VI</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.Id</td>
+            <td>@item.Ten</td>
+            <td>@item.UuTien</td>
+            <td>@item.TenFileAudio_Vi</td>
+            <td>
+                <a class="btn btn-sm btn-warning" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
+                <form asp-action="Delete" asp-controller="Cms" method="post" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.Id" />
+                    <button class="btn btn-sm btn-danger" type="submit">Xóa</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

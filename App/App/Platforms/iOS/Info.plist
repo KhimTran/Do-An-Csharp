@@ -34,6 +34,9 @@
 		<string>App cần vị trí để phát thuyết minh khi đến gần điểm tham quan.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>App cần vị trí ngay cả khi chạy nền để không bỏ lỡ điểm thuyết minh.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>App cần camera để quét mã QR điểm thuyết minh.</string>
+
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>

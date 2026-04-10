@@ -1,0 +1,30 @@
+@model VinhKhanhApi.ViewModels.CmsPoiFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Tạo POI" : "Sửa POI";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+
+    <div><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
+    <div><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
+    <div><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
+    <div><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
+
+    <div><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
+    <div><label>Lng</label><input asp-for="Lng" class="form-control" /></div>
+    <div><label>Bán kính</label><input asp-for="BanKinh" class="form-control" /></div>
+    <div><label>Ưu tiên</label><input asp-for="UuTien" class="form-control" /></div>
+
+    <hr />
+    <div><label>Audio VI (.mp3)</label><input asp-for="AudioVi" type="file" class="form-control" /><small>@Model.TenFileAudio_Vi</small></div>
+    <div><label>Audio EN (.mp3)</label><input asp-for="AudioEn" type="file" class="form-control" /><small>@Model.TenFileAudio_En</small></div>
+    <div><label>Audio ZH (.mp3)</label><input asp-for="AudioZh" type="file" class="form-control" /><small>@Model.TenFileAudio_Zh</small></div>
+
+    <br/>
+    <button type="submit" class="btn btn-success">Lưu</button>
+    <a class="btn btn-secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
+</form>

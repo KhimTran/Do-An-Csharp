@@ -2,30 +2,39 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              x:DataType="vm:QrScanViewModel"
              x:Class="App.Views.QrScanPage"
              Title="Quét mã QR">
 
-    <Grid RowDefinitions="*,Auto,Auto">
+    <Grid RowDefinitions="*,Auto,Auto" Padding="12">
 
-        <!-- Placeholder camera view — ZXing sẽ tích hợp sau -->
-        <Border Grid.Row="0" Margin="20" StrokeShape="RoundRectangle 12"
-                BackgroundColor="#1a1a2e">
-            <VerticalStackLayout VerticalOptions="Center" Spacing="12">
-                <Label Text="📷" FontSize="60" HorizontalOptions="Center" />
-                <Label Text="Camera QR" FontSize="18" TextColor="White"
-                       HorizontalOptions="Center" />
-            </VerticalStackLayout>
+        <Border Grid.Row="0" StrokeShape="RoundRectangle 12">
+            <Grid>
+                <zxing:CameraBarcodeReaderView x:Name="QrCamera"
+                                               IsDetecting="{Binding DangQuet}"
+                                               BarcodesDetected="BarcodeReader_BarcodesDetected" />
+
+                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#66000000"
+                        HorizontalOptions="Center" VerticalOptions="End" Margin="12">
+                    <Label Text="Đưa QR chứa POI ID vào khung hình"
+                           TextColor="White" Padding="10,6" />
+                </Border>
+            </Grid>
         </Border>
 
-        <Label Grid.Row="1" Text="{Binding ThongBao}"
-               FontSize="16" HorizontalOptions="Center"
+        <Label Grid.Row="1"
+               Text="{Binding ThongBao}"
+               FontSize="16"
+               HorizontalOptions="Center"
                Margin="10" />
 
-        <!-- Nút test thủ công (dùng khi chưa có camera thật) -->
-        <Button Grid.Row="2" Text="Test: Quét POI số 1"
+        <Button Grid.Row="2"
+                Text="Test nhanh: POI 1"
                 Command="{Binding XuLyQrCommand}"
                 CommandParameter="1"
-                Margin="20" BackgroundColor="#1F5C99" TextColor="White" />
+                Margin="10"
+                BackgroundColor="#1F5C99"
+                TextColor="White" />
     </Grid>
 </ContentPage>

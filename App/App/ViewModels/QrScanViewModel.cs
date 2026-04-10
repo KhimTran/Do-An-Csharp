@@ -1,7 +1,7 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using App.Models;
 using App.Services;
-using App.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Storage;
 
 namespace App.ViewModels
@@ -10,6 +10,9 @@ namespace App.ViewModels
     {
         private readonly LocalDatabase _db;
         private readonly ITtsService _tts;
+
+        private string _maVuaQuet = string.Empty;
+        private DateTime _thoiDiemQuetCuoi = DateTime.MinValue;
 
         public QrScanViewModel(LocalDatabase db, ITtsService tts)
         {
@@ -23,13 +26,20 @@ namespace App.ViewModels
         [RelayCommand]
         public async Task XuLyQrAsync(string ketQua)
         {
-            if (!DangQuet) return;
+            if (!DangQuet || string.IsNullOrWhiteSpace(ketQua)) return;
+
+            // Chống đọc lặp cùng 1 mã trong cửa sổ 3 giây.
+            if (_maVuaQuet == ketQua && (DateTime.Now - _thoiDiemQuetCuoi).TotalSeconds < 3)
+                return;
+
+            _maVuaQuet = ketQua;
+            _thoiDiemQuetCuoi = DateTime.Now;
             DangQuet = false;
 
             if (!int.TryParse(ketQua, out int poiId))
             {
                 ThongBao = $"Mã QR không hợp lệ: {ketQua}";
-                DangQuet = true;
+                await MoLaiCheDoQuetSauDelay();
                 return;
             }
 
@@ -37,11 +47,10 @@ namespace App.ViewModels
             if (poi == null)
             {
                 ThongBao = $"Không tìm thấy điểm số {poiId}";
-                DangQuet = true;
+                await MoLaiCheDoQuetSauDelay();
                 return;
             }
 
-            // Đọc ngôn ngữ từ Preferences
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
             string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
 
@@ -51,7 +60,7 @@ namespace App.ViewModels
             {
                 PoiId = poi.Id,
                 TenPoi = poi.Ten,
-                NgonNgu = RutGonMaNgonNgu(maNgonNgu), // vi / en / zh
+                NgonNgu = RutGonMaNgonNgu(maNgonNgu),
                 ThoiGianPhat = DateTime.Now,
                 NguonKichHoat = "QR"
             });
@@ -59,7 +68,12 @@ namespace App.ViewModels
             await _tts.PhatAmAsync(noiDung, maNgonNgu);
 
             ThongBao = "✅ Xong! Quét mã khác?";
-            await Task.Delay(2000);
+            await MoLaiCheDoQuetSauDelay();
+        }
+
+        private async Task MoLaiCheDoQuetSauDelay()
+        {
+            await Task.Delay(1200);
             DangQuet = true;
             ThongBao = "Hướng camera vào mã QR";
         }
@@ -67,32 +81,18 @@ namespace App.ViewModels
         private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
         {
             if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(poi.MoTa_En))
-                    return poi.MoTa_En;
-
-                return poi.MoTa_Vi;
-            }
+                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
 
             if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(poi.MoTa_Zh))
-                    return poi.MoTa_Zh;
-
-                return poi.MoTa_Vi;
-            }
+                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
 
             return poi.MoTa_Vi;
         }
 
         private static string RutGonMaNgonNgu(string maNgonNgu)
         {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return "en";
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return "zh";
-
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en";
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh";
             return "vi";
         }
     }
