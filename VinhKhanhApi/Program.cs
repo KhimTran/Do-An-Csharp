@@ -3,15 +3,15 @@ using VinhKhanhApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Đăng ký DbContext với SQL Server
+// DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddControllers();
+// MVC + API
+builder.Services.AddControllersWithViews();
 builder.Services.AddOpenApi();
 
-// Cho phép app Android gọi API (CORS)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -27,8 +27,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseStaticFiles();
+app.UseRouting();
+
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Cms}/{action=Index}/{id?}");
+
 app.MapControllers();
+
 app.Run();

@@ -1,0 +1,301 @@
+﻿@model List<VinhKhanhApi.Models.PoiModel>
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vĩnh Khánh CMS</title>
+    <style>
+            * {
+                box-sizing: border-box;
+                font-family: Arial, sans-serif;
+            }
+
+            body {
+                margin: 0;
+                background: #f4f7fb;
+                color: #1f2937;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 230px;
+                height: 100vh;
+                background: linear-gradient(180deg, #1e3a8a, #1d4ed8);
+                color: white;
+                padding: 24px 18px;
+            }
+
+            .sidebar h2 {
+                margin: 0 0 24px;
+                font-size: 24px;
+            }
+
+            .sidebar .menu {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .sidebar .menu a {
+                color: white;
+                text-decoration: none;
+                padding: 10px 14px;
+                border-radius: 10px;
+                background: rgba(255,255,255,0.08);
+            }
+
+            .sidebar .menu a.active,
+            .sidebar .menu a:hover {
+                background: rgba(255,255,255,0.18);
+            }
+
+            .main {
+                margin-left: 230px;
+                padding: 28px;
+            }
+
+            .topbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 22px;
+            }
+
+            .topbar h1 {
+                margin: 0;
+                font-size: 28px;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 10px 16px;
+                border-radius: 10px;
+                text-decoration: none;
+                border: none;
+                cursor: pointer;
+                font-weight: bold;
+            }
+
+            .btn-primary {
+                background: #2563eb;
+                color: white;
+            }
+
+            .btn-warning {
+                background: #f59e0b;
+                color: white;
+            }
+
+            .btn-danger {
+                background: #dc2626;
+                color: white;
+            }
+
+            .btn-secondary {
+                background: #6b7280;
+                color: white;
+            }
+
+            .stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 18px;
+                margin-bottom: 22px;
+            }
+
+            .card {
+                background: white;
+                border-radius: 16px;
+                padding: 18px;
+                box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+            }
+
+            .card h3 {
+                margin: 0 0 10px;
+                font-size: 15px;
+                color: #6b7280;
+            }
+
+            .card .value {
+                font-size: 28px;
+                font-weight: bold;
+                color: #111827;
+            }
+
+            .table-card {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+                overflow: hidden;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            thead {
+                background: #eff6ff;
+            }
+
+            th, td {
+                text-align: left;
+                padding: 14px 16px;
+                border-bottom: 1px solid #e5e7eb;
+                vertical-align: top;
+            }
+
+            th {
+                font-size: 14px;
+                color: #1e3a8a;
+            }
+
+            .badge {
+                display: inline-block;
+                padding: 6px 10px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            .badge-id {
+                background: #dbeafe;
+                color: #1d4ed8;
+            }
+
+            .badge-priority {
+                background: #dcfce7;
+                color: #15803d;
+            }
+
+            .actions {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .desc {
+                max-width: 340px;
+                color: #374151;
+                line-height: 1.5;
+            }
+
+            .success {
+                margin-bottom: 16px;
+                background: #dcfce7;
+                color: #166534;
+                padding: 12px 14px;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+
+            @@media (max-width: 992px) {
+                .sidebar {
+                    position: static;
+                    width: 100%;
+                    height: auto;
+                }
+
+                .main {
+                    margin-left: 0;
+                }
+
+                .stats {
+                    grid-template-columns: 1fr;
+                }
+
+                .topbar {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                }
+            }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <h2>VK CMS</h2>
+        <div class="menu">
+            <a class="active" href="/Cms">Quản lý POI</a>
+            <a href="/api/pois" target="_blank">Xem API JSON</a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <h1>Quản trị POI phố Vĩnh Khánh</h1>
+            <a class="btn btn-primary" href="/Cms/Create">+ Thêm POI</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="success">@TempData["Success"]</div>
+        }
+
+        <section class="stats">
+            <div class="card">
+                <h3>Tổng số POI</h3>
+                <div class="value">@Model.Count</div>
+            </div>
+            <div class="card">
+                <h3>POI ưu tiên cao</h3>
+                <div class="value">@Model.Count(x => x.UuTien <= 2)</div>
+            </div>
+            <div class="card">
+                <h3>POI có audio</h3>
+                <div class="value">@Model.Count(x => !string.IsNullOrWhiteSpace(x.TenFileAudio_Vi))</div>
+            </div>
+        </section>
+
+        <section class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên quán</th>
+                        <th>Mô tả</th>
+                        <th>Tọa độ</th>
+                        <th>Bán kính</th>
+                        <th>Ưu tiên</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var poi in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge badge-id">#@poi.Id</span>
+                            </td>
+                            <td>
+                                <strong>@poi.Ten</strong>
+                            </td>
+                            <td class="desc">
+                                @poi.MoTa_Vi
+                            </td>
+                            <td>
+                                <div>Lat: @poi.Lat</div>
+                                <div>Lng: @poi.Lng</div>
+                            </td>
+                            <td>@poi.BanKinh m</td>
+                            <td>
+                                <span class="badge badge-priority">@poi.UuTien</span>
+                            </td>
+                            <td>
+                                <div class="actions">
+                                    <a class="btn btn-warning" href="/Cms/Edit/@poi.Id">Sửa</a>
+                                    <a class="btn btn-danger" href="/Cms/Delete/@poi.Id">Xóa</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

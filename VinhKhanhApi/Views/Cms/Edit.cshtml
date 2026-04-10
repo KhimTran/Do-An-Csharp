@@ -1,0 +1,97 @@
+﻿@model VinhKhanhApi.Models.PoiModel
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sửa POI</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { margin: 0; background: #f4f7fb; color: #1f2937; }
+        .container { max-width: 900px; margin: 40px auto; background: white; padding: 28px; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.06); }
+        h1 { margin-top: 0; color: #1e3a8a; }
+        .row { margin-bottom: 14px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+        }
+        textarea { min-height: 90px; resize: vertical; }
+        .actions { display: flex; gap: 10px; margin-top: 18px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sửa POI</h1>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+
+            <div class="row">
+                <label>Tên quán</label>
+                <input asp-for="Ten" />
+            </div>
+
+            <div class="row">
+                <label>Mô tả tiếng Việt</label>
+                <textarea asp-for="MoTa_Vi"></textarea>
+            </div>
+
+            <div class="row">
+                <label>Mô tả tiếng Anh</label>
+                <textarea asp-for="MoTa_En"></textarea>
+            </div>
+
+            <div class="row">
+                <label>Mô tả tiếng Trung</label>
+                <textarea asp-for="MoTa_Zh"></textarea>
+            </div>
+
+            <div class="row">
+                <label>Latitude</label>
+                <input asp-for="Lat" type="number" step="any" />
+            </div>
+
+            <div class="row">
+                <label>Longitude</label>
+                <input asp-for="Lng" type="number" step="any" />
+            </div>
+
+            <div class="row">
+                <label>Bán kính</label>
+                <input asp-for="BanKinh" type="number" step="any" />
+            </div>
+
+            <div class="row">
+                <label>Ưu tiên</label>
+                <input asp-for="UuTien" type="number" />
+            </div>
+
+            <div class="row">
+                <label>Tên file audio</label>
+                <input asp-for="TenFileAudio_Vi" />
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">Cập nhật</button>
+                <a href="/Cms" class="btn btn-secondary">Quay lại</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
