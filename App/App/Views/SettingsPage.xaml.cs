@@ -32,6 +32,9 @@ public partial class SettingsPage : ContentPage
             ? off
             : Preferences.Get("offline_mode", false);
 
+        string apiUrl = await _db.LayCaiDatAsync("api_poi_url")
+                        ?? Preferences.Get("api_poi_url", "http://10.0.2.2:5099/api/pois");
+
         NgonNguPicker.SelectedIndex = ngonNgu switch
         {
             "vi-VN" => 0,
@@ -43,6 +46,7 @@ public partial class SettingsPage : ContentPage
         BanKinhSlider.Value = banKinh;
         BanKinhLabel.Text = $"{banKinh} m";
         OfflineSwitch.IsToggled = offlineMode;
+        ApiUrlEntry.Text = apiUrl;
     }
 
     private void BanKinhSlider_ValueChanged(object sender, ValueChangedEventArgs e)
@@ -62,16 +66,21 @@ public partial class SettingsPage : ContentPage
 
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
+        string apiUrl = string.IsNullOrWhiteSpace(ApiUrlEntry.Text)
+            ? "http://10.0.2.2:5099/api/pois"
+            : ApiUrlEntry.Text.Trim();
 
         // Lưu cả Preferences (dùng nhanh tại runtime) + SQLite (đáp ứng yêu cầu tuần 5)
         Preferences.Set("tts_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
+        Preferences.Set("api_poi_url", apiUrl);
         Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", maNgonNgu);
         await _db.LuuCaiDatAsync("geofence_radius", banKinh.ToString());
         await _db.LuuCaiDatAsync("offline_mode", offlineMode.ToString());
+        await _db.LuuCaiDatAsync("api_poi_url", apiUrl);
 
         await DisplayAlert("Thành công", "Đã lưu cài đặt.", "OK");
     }
@@ -82,8 +91,12 @@ public partial class SettingsPage : ContentPage
         BanKinhSlider.Value = 50;
         OfflineSwitch.IsToggled = false;
 
+        ApiUrlEntry.Text = "http://10.0.2.2:5099/api/pois";
+
+        Preferences.Set("api_poi_url", "http://10.0.2.2:5099/api/pois");
         await _db.LuuCaiDatAsync("tts_language", "vi-VN");
         await _db.LuuCaiDatAsync("geofence_radius", "50");
         await _db.LuuCaiDatAsync("offline_mode", "False");
+        await _db.LuuCaiDatAsync("api_poi_url", "http://10.0.2.2:5099/api/pois");
     }
 }

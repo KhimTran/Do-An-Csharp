@@ -9,7 +9,7 @@ namespace App.Services
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
 
-        private static readonly string[] ApiUrls =
+        private static readonly string[] DefaultApiUrls =
         {
             "http://10.0.2.2:5099/api/pois", // Android Emulator -> host machine
             "http://10.0.2.2:7074/api/pois", // fallback profile
@@ -27,6 +27,24 @@ namespace App.Services
             };
         }
 
+
+        private static string ChuanHoaApiUrl(string url)
+        {
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+                return url.Replace("localhost", "10.0.2.2", StringComparison.OrdinalIgnoreCase);
+
+            return url;
+        }
+
+        private static IEnumerable<string> LayDanhSachApiCanThu(string? customUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(customUrl))
+                yield return ChuanHoaApiUrl(customUrl.Trim());
+
+            foreach (var url in DefaultApiUrls)
+                yield return ChuanHoaApiUrl(url);
+        }
+
         // Gọi hàm này khi app khởi động để đồng bộ POI từ server
         public async Task<bool> DongBoPoisAsync()
         {
@@ -42,7 +60,9 @@ namespace App.Services
                     return false;
                 }
 
-                foreach (var url in ApiUrls)
+                var customUrl = Preferences.Get("api_poi_url", string.Empty);
+
+                foreach (var url in LayDanhSachApiCanThu(customUrl).Distinct())
                 {
                     try
                     {
@@ -57,7 +77,7 @@ namespace App.Services
                     }
                     catch (Exception ex)
                     {
-                        LastError = ex.Message;
+                        LastError = $"{url} -> {ex.Message}";
                     }
                 }
 
