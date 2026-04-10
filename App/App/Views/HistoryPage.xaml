@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
+             xmlns:models="clr-namespace:App.Models"
              x:Class="App.Views.HistoryPage"
              x:DataType="vm:HistoryViewModel"
              Title="Lịch sử nghe">
@@ -16,7 +17,7 @@
                         <Label Text="Chưa có dữ liệu thống kê." />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="models:ThongKePoiModel">
                             <Grid ColumnDefinitions="*,Auto" Padding="8,6">
                                 <Label Text="{Binding TenPoi}" />
                                 <Label Grid.Column="1" Text="{Binding SoLanNghe, StringFormat='x{0}'}" FontAttributes="Bold" />
@@ -32,7 +33,7 @@
                         <Label Text="Chưa có lượt nghe nào." />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="models:LichSuPhatModel">
                             <Border StrokeShape="RoundRectangle 10" Padding="10" Margin="0,4">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding TenPoi}" FontAttributes="Bold" />
