@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace VinhKhanhApi.Migrations
 {
+    [DbContext(typeof(Data.AppDbContext))]
+    [Migration("20260410152000_AddAudioColumnsAndPlaybackLogs")]
     public partial class AddAudioColumnsAndPlaybackLogs : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
