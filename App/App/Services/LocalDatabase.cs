@@ -61,9 +61,12 @@ namespace App.Services
         public async Task<int> LuuPoiAsync(PoiModel poi)
         {
             await KhoiTaoAsync();
-            return poi.Id == 0
-                ? await _db!.InsertAsync(poi)
-                : await _db!.UpdateAsync(poi);
+            // Dữ liệu từ server thường có Id cố định (>0).
+            // Nếu dùng UpdateAsync trực tiếp cho Id mới (chưa có trong SQLite) thì sẽ update 0 dòng.
+            // InsertOrReplaceAsync giúp xử lý đúng cả 2 trường hợp:
+            // - POI mới từ server -> INSERT
+            // - POI đã tồn tại -> REPLACE/UPDATE
+            return await _db!.InsertOrReplaceAsync(poi);
         }
 
         public async Task GhiLichSuPhatAsync(LichSuPhatModel lichSu)
