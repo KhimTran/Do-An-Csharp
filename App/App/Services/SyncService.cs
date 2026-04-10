@@ -1,6 +1,5 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using App.Models;
-using Microsoft.Maui.Networking;
 using Microsoft.Maui.Storage;
 
 namespace App.Services
@@ -10,8 +9,14 @@ namespace App.Services
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
 
-        // Khi test trên emulator: dùng 10.0.2.2 thay cho localhost
-        private const string API_URL = "http://10.0.2.2:5099/api/pois";
+        private static readonly string[] ApiUrls =
+        {
+            "http://10.0.2.2:5099/api/pois", // Android Emulator -> host machine
+            "http://10.0.2.2:7074/api/pois", // fallback profile
+            "http://localhost:5099/api/pois" // local desktop testing
+        };
+
+        public string LastError { get; private set; } = string.Empty;
 
         public SyncService(LocalDatabase db)
         {
@@ -27,28 +32,43 @@ namespace App.Services
         {
             try
             {
+                LastError = string.Empty;
+
                 // Nếu bật offline mode thì không gọi API
                 bool offlineMode = Preferences.Get("offline_mode", false);
                 if (offlineMode)
+                {
+                    LastError = "Offline mode đang bật";
                     return false;
+                }
 
-                // Kiểm tra có mạng không trước khi gọi API
-                if (Connectivity.NetworkAccess != NetworkAccess.Internet)
-                    return false;
+                foreach (var url in ApiUrls)
+                {
+                    try
+                    {
+                        var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(url);
+                        if (danhSach == null || danhSach.Count == 0)
+                            continue;
 
-                var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(API_URL);
-                if (danhSach == null || danhSach.Count == 0)
-                    return false;
+                        foreach (var poi in danhSach)
+                            await _db.LuuPoiAsync(poi);
 
-                // Lưu từng POI vào SQLite local
-                foreach (var poi in danhSach)
-                    await _db.LuuPoiAsync(poi);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        LastError = ex.Message;
+                    }
+                }
 
-                return true;
+                if (string.IsNullOrWhiteSpace(LastError))
+                    LastError = "Không lấy được dữ liệu từ API";
+
+                return false;
             }
-            catch
+            catch (Exception ex)
             {
-                // Không có mạng hoặc server lỗi → dùng dữ liệu offline SQLite
+                LastError = ex.Message;
                 return false;
             }
         }

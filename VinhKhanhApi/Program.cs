@@ -32,7 +32,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors("AllowAll");
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseAuthorization();
 

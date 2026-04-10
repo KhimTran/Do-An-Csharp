@@ -31,12 +31,14 @@ namespace App.ViewModels
 
                 // 3. Gọi đồng bộ dữ liệu từ server về SQLite trước
                 ThongBao = "Đang đồng bộ dữ liệu từ Server...";
-                await _sync.DongBoPoisAsync();
+                bool daDongBo = await _sync.DongBoPoisAsync();
 
                 // 4. Sau đó mới load dữ liệu từ SQLite lên giao diện
                 var ds = await _db.LayTatCaPoiAsync();
                 DanhSachPoi = new ObservableCollection<PoiModel>(ds);
-                ThongBao = $"Đã tải {DanhSachPoi.Count} điểm thuyết minh";
+                ThongBao = daDongBo
+                    ? $"Đã tải {DanhSachPoi.Count} điểm thuyết minh (đã đồng bộ server)"
+                    : $"Đã tải {DanhSachPoi.Count} điểm thuyết minh (offline/API lỗi: {_sync.LastError})";
             }
             catch (Exception ex)
             {
