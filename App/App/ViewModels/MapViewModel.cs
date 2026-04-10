@@ -12,6 +12,7 @@ namespace App.ViewModels
         private readonly ILocationService _gps;
         private readonly GeofenceService _geofence;
         private readonly ITtsService _tts;
+        private readonly AnalyticsService _analytics;
 
         private List<PoiModel> _danhSachPoi = new();
         private bool _dangXuLyViTri = false;
@@ -21,12 +22,14 @@ namespace App.ViewModels
             LocalDatabase db,
             ILocationService gps,
             GeofenceService geofence,
-            ITtsService tts)
+            ITtsService tts,
+            AnalyticsService analytics)
         {
             _db = db;
             _gps = gps;
             _geofence = geofence;
             _tts = tts;
+            _analytics = analytics;
         }
 
         [ObservableProperty]
@@ -113,7 +116,7 @@ namespace App.ViewModels
                 if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
                 {
                     System.Diagnostics.Debug.WriteLine($"[FORCE] Đọc lại 1 lần cho POI: {ganNhat.Ten}");
-                    await DocThuyetMinhTheoNgonNguAsync(ganNhat);
+                    await DocThuyetMinhTheoNgonNguAsync(ganNhat, "GPS");
                     Preferences.Set("force_reread_once", false);
                     return;
                 }
@@ -127,7 +130,7 @@ namespace App.ViewModels
 
                 if (poiCanPhat != null)
                 {
-                    await DocThuyetMinhTheoNgonNguAsync(poiCanPhat);
+                    await DocThuyetMinhTheoNgonNguAsync(poiCanPhat, "GPS");
                 }
             }
             catch (Exception ex)
@@ -140,7 +143,7 @@ namespace App.ViewModels
             }
         }
 
-        private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi)
+        private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi, string nguon)
         {
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
             string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
@@ -152,6 +155,9 @@ namespace App.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[TTS] Đang đọc: {noiDung}");
                 await _tts.PhatAmAsync(noiDung, maNgonNgu);
+
+                int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+                await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
             }
             else
             {

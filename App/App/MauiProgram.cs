@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using ZXing.Net.Maui.Controls;
 
+
 namespace App
 {
     public static class MauiProgram
@@ -41,6 +42,7 @@ namespace App
             builder.Services.AddTransient<QrScanPage>();
             builder.Services.AddTransient<SettingsPage>();
             builder.Services.AddTransient<HistoryPage>();
+            builder.Services.AddSingleton<AnalyticsService>();
 
 #if DEBUG
             builder.Logging.AddDebug();

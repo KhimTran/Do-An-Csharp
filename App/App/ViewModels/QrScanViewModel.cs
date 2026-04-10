@@ -10,14 +10,16 @@ namespace App.ViewModels
     {
         private readonly LocalDatabase _db;
         private readonly ITtsService _tts;
+        private readonly AnalyticsService _analytics;
 
         private string _maVuaQuet = string.Empty;
         private DateTime _thoiDiemQuetCuoi = DateTime.MinValue;
 
-        public QrScanViewModel(LocalDatabase db, ITtsService tts)
+        public QrScanViewModel(LocalDatabase db, ITtsService tts, AnalyticsService analytics)
         {
             _db = db;
             _tts = tts;
+            _analytics = analytics;
         }
 
         [ObservableProperty] private bool dangQuet = true;
@@ -66,6 +68,9 @@ namespace App.ViewModels
             });
 
             await _tts.PhatAmAsync(noiDung, maNgonNgu);
+
+            int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+            await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
 
             ThongBao = "✅ Xong! Quét mã khác?";
             await MoLaiCheDoQuetSauDelay();
