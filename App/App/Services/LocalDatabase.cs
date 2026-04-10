@@ -17,7 +17,8 @@ namespace App.Services
 
             _db = new SQLiteAsyncConnection(duongDan);
             await _db.CreateTableAsync<PoiModel>();
-            await _db.CreateTableAsync<LichSuPhatModel>(); // ← THÊM DÒNG NÀY
+            await _db.CreateTableAsync<LichSuPhatModel>();
+
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
         }
@@ -27,17 +28,17 @@ namespace App.Services
             await _db!.InsertAllAsync(new List<PoiModel>
             {
                 new PoiModel {
-                    Ten = "Quán Bún Bò Huế Vĩnh Khánh",
-                    MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
-                    MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                    Lat = 10.7565, Lng = 106.6896, BanKinh = 50, UuTien = 1
+                    Ten = "Bún Bò Vĩnh Khánh",
+                    MoTa_Vi = "Quán bún bò nổi tiếng lâu đời.",
+                    MoTa_En = "Famous bun bo restaurant.",
+                    Lat = 10.7565, Lng = 106.6896
                 },
                 new PoiModel {
                     Ten = "Chợ Xóm Chiếu",
-                    MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
-                    MoTa_En = "Traditional market of District 4.",
-                    Lat = 10.7580, Lng = 106.6910, BanKinh = 80, UuTien = 2
-                },
+                    MoTa_Vi = "Khu chợ truyền thống lâu đời.",
+                    MoTa_En = "Traditional market.",
+                    Lat = 10.7580, Lng = 106.6910
+                }
             });
         }
 
@@ -45,16 +46,16 @@ namespace App.Services
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .OrderBy(p => p.UuTien)
-                              .ToListAsync();
+             .OrderBy(p => p.UuTien)
+             .ToListAsync();
         }
 
         public async Task<PoiModel?> LayPoiTheoIdAsync(int id)
         {
             await KhoiTaoAsync();
             return await _db!.Table<PoiModel>()
-                              .Where(p => p.Id == id)
-                              .FirstOrDefaultAsync();
+                .Where(p => p.Id == id)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<int> LuuPoiAsync(PoiModel poi)
@@ -64,14 +65,13 @@ namespace App.Services
                 ? await _db!.InsertAsync(poi)
                 : await _db!.UpdateAsync(poi);
         }
-        // Ghi lại lịch sử phát âm (dùng cho Cooldown và Analytics)
+
         public async Task GhiLichSuPhatAsync(LichSuPhatModel lichSu)
         {
             await KhoiTaoAsync();
             await _db!.InsertAsync(lichSu);
         }
 
-        // Kiểm tra cooldown: trả về true nếu được phép phát (chưa phát trong 5 phút)
         public async Task<bool> KiemTraCooldownAsync(int poiId)
         {
             await KhoiTaoAsync();
@@ -80,8 +80,36 @@ namespace App.Services
                 .OrderByDescending(l => l.ThoiGianPhat)
                 .FirstOrDefaultAsync();
 
-            if (lanCuoi == null) return true; // Chưa từng phát → cho phép
+            if (lanCuoi == null) return true;
             return (DateTime.Now - lanCuoi.ThoiGianPhat).TotalMinutes >= 5;
+        }
+
+        // 🔥 LẤY LỊCH SỬ
+        public async Task<List<LichSuPhatModel>> LayLichSuPhatAsync()
+        {
+            await KhoiTaoAsync();
+            return await _db!.Table<LichSuPhatModel>()
+                .OrderByDescending(x => x.ThoiGianPhat)
+                .ToListAsync();
+        }
+
+        // 🔥 THỐNG KÊ
+        public async Task<List<ThongKePoiModel>> LayThongKePoiAsync()
+        {
+            await KhoiTaoAsync();
+
+            var lichSu = await _db!.Table<LichSuPhatModel>().ToListAsync();
+
+            return lichSu
+                .GroupBy(x => x.TenPoi)
+                .Select(g => new ThongKePoiModel
+                {
+                    TenPoi = g.Key,
+                    SoLanNghe = g.Count(),
+                    LanNgheCuoi = g.Max(x => x.ThoiGianPhat)
+                })
+                .OrderByDescending(x => x.SoLanNghe)
+                .ToList();
         }
     }
 }

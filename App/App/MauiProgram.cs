@@ -4,7 +4,6 @@ using App.Views;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
-using ZXing.Net.Maui;
 
 namespace App
 {
@@ -30,15 +29,18 @@ namespace App
             builder.Services.AddSingleton<ITtsService, TtsService>();
             builder.Services.AddSingleton<ILocationService, LocationService>();
 
-            // 2. ĐĂNG KÝ VIEW MODELS
             builder.Services.AddTransient<PoiListViewModel>();
             builder.Services.AddTransient<MapViewModel>();
             builder.Services.AddTransient<QrScanViewModel>();
-            builder.Services.AddTransient<QrScanPage>();
+            builder.Services.AddTransient<HistoryViewModel>();
+            builder.Services.AddTransient<AnalyticsViewModel>();
 
             builder.Services.AddTransient<PoiListPage>();
             builder.Services.AddTransient<MapPage>();
+            builder.Services.AddTransient<QrScanPage>();
             builder.Services.AddTransient<SettingsPage>();
+            builder.Services.AddTransient<HistoryPage>();
+            builder.Services.AddTransient<AnalyticsPage>();
 
 #if DEBUG
             builder.Logging.AddDebug();

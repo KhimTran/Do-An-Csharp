@@ -74,12 +74,19 @@
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
-		<PackageReference Include="ZXing.Net.MAUI" Version="0.7.4" />
+		<PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
+		
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\HistoryPage.xaml.cs">
+	    <DependentUpon>HistoryPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\MapPage.xaml.cs">
 	    <DependentUpon>MapPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\AnalyticsPage.xaml.cs">
+	    <DependentUpon>AnalyticsPage.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Views\SettingsPage.xaml.cs">
 	    <DependentUpon>SettingsPage.xaml</DependentUpon>
@@ -90,7 +97,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Views\HistoryPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\MapPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\AnalyticsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\SettingsPage.xaml">

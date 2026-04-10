@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:App.ViewModels"
+             xmlns:models="clr-namespace:App.Models"
+             x:DataType="vm:AnalyticsViewModel"
+             x:Class="App.Views.AnalyticsPage"
+             Title="Thống kê">
+
+    <VerticalStackLayout Padding="10" Spacing="10">
+
+        <Label Text="{Binding ThongBao}"
+               FontSize="16"
+               HorizontalOptions="Center"
+               TextColor="Gray" />
+
+        <CollectionView ItemsSource="{Binding ThongKe}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ThongKePoiModel">
+                    <Frame Margin="5"
+                           Padding="10"
+                           CornerRadius="10"
+                           HasShadow="True">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding TenPoi}"
+                                   FontAttributes="Bold"
+                                   FontSize="16" />
+
+                            <Label Text="{Binding SoLanNghe, StringFormat='Số lần nghe: {0}'}"
+                                   FontSize="13" />
+
+                            <Label Text="{Binding LanNgheCuoi, StringFormat='Lần cuối: {0:dd/MM/yyyy HH:mm:ss}'}"
+                                   FontSize="13"
+                                   TextColor="Gray" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Text="Tải thống kê"
+                Command="{Binding TaiThongKeCommand}"
+                Margin="10"
+                BackgroundColor="#1F5C99"
+                TextColor="White" />
+
+    </VerticalStackLayout>
+</ContentPage>

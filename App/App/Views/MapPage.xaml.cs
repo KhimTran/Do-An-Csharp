@@ -144,7 +144,6 @@ public partial class MapPage : ContentPage
 
             _map.Layers.Add(userLayer);
 
-            // Zoom lần đầu và các lần sau đều dùng mức zoom 10
             _map.Navigator.CenterOnAndZoomTo(point, 10);
 
             _daZoomLanDau = true;

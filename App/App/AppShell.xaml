@@ -19,6 +19,14 @@
             ContentTemplate="{DataTemplate views:QrScanPage}" />
 
         <ShellContent
+            Title="Lịch sử"
+            ContentTemplate="{DataTemplate views:HistoryPage}" />
+
+        <ShellContent
+            Title="Thống kê"
+            ContentTemplate="{DataTemplate views:AnalyticsPage}" />
+
+        <ShellContent
             Title="Cài đặt"
             ContentTemplate="{DataTemplate views:SettingsPage}" />
     </TabBar>

@@ -8,24 +8,43 @@
 
     <Grid RowDefinitions="*,Auto,Auto">
 
-        <!-- Placeholder camera view — ZXing sẽ tích hợp sau -->
-        <Border Grid.Row="0" Margin="20" StrokeShape="RoundRectangle 12"
+        <Border Grid.Row="0"
+                Margin="20"
+                StrokeShape="RoundRectangle 12"
                 BackgroundColor="#1a1a2e">
             <VerticalStackLayout VerticalOptions="Center" Spacing="12">
-                <Label Text="📷" FontSize="60" HorizontalOptions="Center" />
-                <Label Text="Camera QR" FontSize="18" TextColor="White"
+                <Label Text="📷"
+                       FontSize="60"
+                       HorizontalOptions="Center" />
+                <Label Text="Camera QR tạm thời đang ở chế độ demo"
+                       FontSize="18"
+                       TextColor="White"
+                       HorizontalOptions="Center" />
+                <Label Text="Dùng nút bên dưới để test POI"
+                       FontSize="14"
+                       TextColor="LightGray"
                        HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Border>
 
-        <Label Grid.Row="1" Text="{Binding ThongBao}"
-               FontSize="16" HorizontalOptions="Center"
+        <Label Grid.Row="1"
+               Text="{Binding ThongBao}"
+               FontSize="16"
+               HorizontalOptions="Center"
                Margin="10" />
 
-        <!-- Nút test thủ công (dùng khi chưa có camera thật) -->
-        <Button Grid.Row="2" Text="Test: Quét POI số 1"
-                Command="{Binding XuLyQrCommand}"
-                CommandParameter="1"
-                Margin="20" BackgroundColor="#1F5C99" TextColor="White" />
+        <VerticalStackLayout Grid.Row="2" Spacing="10" Margin="20">
+            <Button Text="Test: Quét POI số 1"
+                    Command="{Binding XuLyQrCommand}"
+                    CommandParameter="1"
+                    BackgroundColor="#1F5C99"
+                    TextColor="White" />
+
+            <Button Text="Test: Quét POI số 2"
+                    Command="{Binding XuLyQrCommand}"
+                    CommandParameter="2"
+                    BackgroundColor="#1F5C99"
+                    TextColor="White" />
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>
