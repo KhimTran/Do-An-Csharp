@@ -3,26 +3,43 @@
     ViewData["Title"] = "Thống kê";
 }
 
-<h2>Thống kê nghe thuyết minh</h2>
-<p><strong>Tổng lượt nghe:</strong> @ViewData["TongLuotNghe"]</p>
-<p><strong>Thời lượng trung bình (giây):</strong> @ViewData["ThoiLuongTrungBinh"]</p>
+<h1 class="page-title">Thống kê nghe thuyết minh</h1>
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>POI</th>
-            <th>Số lượt nghe</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var row in Model)
-    {
-        <tr>
-            <td>@row.TenPoi</td>
-            <td>@row.SoLan</td>
-        </tr>
-    }
-    </tbody>
-</table>
+<section class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Tổng lượt nghe</div>
+        <div class="value">@ViewData["TongLuotNghe"]</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Thời lượng trung bình (giây)</div>
+        <div class="value">@Math.Round(Convert.ToDouble(ViewData["ThoiLuongTrungBinh"] ?? 0), 1)</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Số POI có lượt nghe</div>
+        <div class="value">@Model.Count()</div>
+    </div>
+</section>
 
-<a class="btn btn-secondary" href="@Url.Action("Index", "Cms")">Quay lại CMS</a>
+<div class="vk-table-wrap">
+    <table class="vk-table">
+        <thead>
+            <tr>
+                <th>POI</th>
+                <th>Số lượt nghe</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr>
+                    <td>@row.TenPoi</td>
+                    <td><span class="badge-pill badge-priority">@row.SoLan</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top:14px;">
+    <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại CMS</a>
+</div>

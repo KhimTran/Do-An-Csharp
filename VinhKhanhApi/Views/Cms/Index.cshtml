@@ -1,41 +1,66 @@
 @model List<VinhKhanhApi.Models.PoiModel>
 @{
-    ViewData["Title"] = "CMS POI";
+    ViewData["Title"] = "Quản lý POI";
+    var soPoiAudio = Model.Count(x => !string.IsNullOrWhiteSpace(x.TenFileAudio_Vi)
+        || !string.IsNullOrWhiteSpace(x.TenFileAudio_En)
+        || !string.IsNullOrWhiteSpace(x.TenFileAudio_Zh));
 }
 
-<h2>CMS quản lý POI</h2>
-<p>
-    <a class="btn btn-primary" href="@Url.Action("Edit", "Cms")">+ Thêm POI</a>
-    <a class="btn btn-secondary" href="@Url.Action("Stats", "Cms")">Xem thống kê</a>
-</p>
+<h1 class="page-title">Quản trị POI phố Vĩnh Khánh</h1>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Tên</th>
-            <th>Ưu tiên</th>
-            <th>Audio VI</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var item in Model)
-    {
-        <tr>
-            <td>@item.Id</td>
-            <td>@item.Ten</td>
-            <td>@item.UuTien</td>
-            <td>@item.TenFileAudio_Vi</td>
-            <td>
-                <a class="btn btn-sm btn-warning" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
-                <form asp-action="Delete" asp-controller="Cms" method="post" style="display:inline">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@item.Id" />
-                    <button class="btn btn-sm btn-danger" type="submit">Xóa</button>
-                </form>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
+<div class="action-bar">
+    <div></div>
+    <a class="vk-btn primary" href="@Url.Action("Edit", "Cms")">+ Thêm POI</a>
+</div>
+
+<section class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Tổng số POI</div>
+        <div class="value">@Model.Count</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">POI ưu tiên cao</div>
+        <div class="value">@Model.Count(x => x.UuTien <= 2)</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">POI có audio</div>
+        <div class="value">@soPoiAudio</div>
+    </div>
+</section>
+
+<div class="vk-table-wrap">
+    <table class="vk-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tên quán</th>
+                <th>Mô tả</th>
+                <th>Tọa độ</th>
+                <th>Bán kính</th>
+                <th>Ưu tiên</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td><span class="badge-pill badge-id">#@item.Id</span></td>
+                    <td><strong>@item.Ten</strong></td>
+                    <td>@item.MoTa_Vi</td>
+                    <td>Lat: @item.Lat<br />Lng: @item.Lng</td>
+                    <td>@item.BanKinh m</td>
+                    <td><span class="badge-pill badge-priority">@item.UuTien</span></td>
+                    <td>
+                        <a class="vk-btn warning" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
+                        <form asp-action="Delete" asp-controller="Cms" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="vk-btn danger" type="submit">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

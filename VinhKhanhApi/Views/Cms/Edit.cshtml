@@ -3,28 +3,41 @@
     ViewData["Title"] = Model.Id == 0 ? "Tạo POI" : "Sửa POI";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h1 class="page-title">@ViewData["Title"]</h1>
 
-<form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data">
+<form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data" class="vk-form">
     @Html.AntiForgeryToken()
     <input asp-for="Id" type="hidden" />
 
-    <div><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
-    <div><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
-    <div><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
-    <div><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
+    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
 
-    <div><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
-    <div><label>Lng</label><input asp-for="Lng" class="form-control" /></div>
-    <div><label>Bán kính</label><input asp-for="BanKinh" class="form-control" /></div>
-    <div><label>Ưu tiên</label><input asp-for="UuTien" class="form-control" /></div>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
+        <div class="col-md-6 mb-3"><label>Lng</label><input asp-for="Lng" class="form-control" /></div>
+        <div class="col-md-6 mb-3"><label>Bán kính</label><input asp-for="BanKinh" class="form-control" /></div>
+        <div class="col-md-6 mb-3"><label>Ưu tiên</label><input asp-for="UuTien" class="form-control" /></div>
+    </div>
 
     <hr />
-    <div><label>Audio VI (.mp3)</label><input asp-for="AudioVi" type="file" class="form-control" /><small>@Model.TenFileAudio_Vi</small></div>
-    <div><label>Audio EN (.mp3)</label><input asp-for="AudioEn" type="file" class="form-control" /><small>@Model.TenFileAudio_En</small></div>
-    <div><label>Audio ZH (.mp3)</label><input asp-for="AudioZh" type="file" class="form-control" /><small>@Model.TenFileAudio_Zh</small></div>
+    <div class="mb-3">
+        <label>Audio VI (.mp3)</label>
+        <input asp-for="AudioVi" type="file" class="form-control" />
+        <small class="muted">@Model.TenFileAudio_Vi</small>
+    </div>
+    <div class="mb-3">
+        <label>Audio EN (.mp3)</label>
+        <input asp-for="AudioEn" type="file" class="form-control" />
+        <small class="muted">@Model.TenFileAudio_En</small>
+    </div>
+    <div class="mb-3">
+        <label>Audio ZH (.mp3)</label>
+        <input asp-for="AudioZh" type="file" class="form-control" />
+        <small class="muted">@Model.TenFileAudio_Zh</small>
+    </div>
 
-    <br/>
-    <button type="submit" class="btn btn-success">Lưu</button>
-    <a class="btn btn-secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
+    <button type="submit" class="vk-btn primary">Lưu</button>
+    <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
 </form>
