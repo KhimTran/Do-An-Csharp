@@ -12,7 +12,6 @@ namespace App.Services
         private static readonly string[] DefaultApiUrls =
         {
             "http://10.0.2.2:5099/api/pois", // Android Emulator -> host machine
-            "http://10.0.2.2:7074/api/pois", // fallback profile
             "http://localhost:5099/api/pois" // local desktop testing
         };
 
