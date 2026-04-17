@@ -42,6 +42,16 @@
 
 ---
 
+## Thiết lập Google Maps Android
+
+Để hiển thị bản đồ Google Maps trên Android, cập nhật API key trong file:
+
+- `App/App/Platforms/Android/Resources/values/google_maps_api.xml`
+
+Thay giá trị `REPLACE_WITH_GOOGLE_MAPS_API_KEY` bằng API key thật đã bật **Maps SDK for Android** trong Google Cloud Console.
+
+---
+
 ## 0. Quy trình kiểm tra trước khi gửi code (bắt buộc)
 
 > Áp dụng cho backend `VinhKhanhApi` để tránh gửi code lỗi build/test cơ bản.

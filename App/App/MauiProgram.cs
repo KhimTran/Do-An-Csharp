@@ -20,6 +20,7 @@ namespace App
                 .UseMauiCommunityToolkit()
                 .UseSkiaSharp()
                 .UseBarcodeReader()
+                .UseMauiMaps()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

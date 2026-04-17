@@ -11,6 +11,10 @@
             android:name=".LocationForegroundService"
             android:foregroundServiceType="location" />
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
 	</application>
 
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
