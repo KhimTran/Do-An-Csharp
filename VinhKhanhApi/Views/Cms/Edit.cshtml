@@ -10,15 +10,30 @@
     <input asp-for="Id" type="hidden" />
 
     <div class="mb-3"><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
-    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Mô tả VI (nội dung chính đã duyệt)</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
 
     <div class="row">
         <div class="col-md-6 mb-3"><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
         <div class="col-md-6 mb-3"><label>Lng</label><input asp-for="Lng" class="form-control" /></div>
-        <div class="col-md-6 mb-3"><label>Bán kính</label><input asp-for="BanKinh" class="form-control" /></div>
+        <div class="col-md-6 mb-3"><label>Bán kính geofence (m)</label><input asp-for="BanKinh" class="form-control" /></div>
         <div class="col-md-6 mb-3"><label>Ưu tiên</label><input asp-for="UuTien" class="form-control" /></div>
+    </div>
+
+    <h4 class="mt-4">Thông tin chủ quán (Local User)</h4>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label>Số điện thoại</label><input asp-for="SoDienThoai" class="form-control" /></div>
+        <div class="col-md-3 mb-3"><label>Giờ mở cửa</label><input asp-for="GioMoCua" class="form-control" placeholder="09:00" /></div>
+        <div class="col-md-3 mb-3"><label>Giờ đóng cửa</label><input asp-for="GioDongCua" class="form-control" placeholder="22:30" /></div>
+    </div>
+    <div class="mb-3"><label>Món đặc trưng / menu ngắn</label><input asp-for="MonDacTrung" class="form-control" /></div>
+    <div class="mb-3"><label>Gallery (JSON array URL ảnh)</label><textarea asp-for="GalleryJson" class="form-control" placeholder='["/images/quan1.jpg","/images/mon1.jpg"]'></textarea></div>
+
+    <h4 class="mt-4">Nội dung QR & Audio/TTS (Admin)</h4>
+    <div class="row">
+        <div class="col-md-8 mb-3"><label>Nội dung QR</label><input asp-for="QrCodeNoiDung" class="form-control" placeholder="poi:123" /></div>
+        <div class="col-md-4 mb-3"><label>Giọng TTS mặc định</label><input asp-for="TtsVoiceCode" class="form-control" placeholder="vi-VN" /></div>
     </div>
 
     <hr />
@@ -37,6 +52,35 @@
         <input asp-for="AudioZh" type="file" class="form-control" />
         <small class="muted">@Model.TenFileAudio_Zh</small>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.NoiDungDeXuat))
+    {
+        <hr />
+        <h4>Yêu cầu duyệt từ chủ quán</h4>
+        <div class="alert alert-warning">
+            <div><strong>Trạng thái:</strong> @Model.TrangThaiDuyet</div>
+            <div><strong>Nội dung đề xuất:</strong> @Model.NoiDungDeXuat</div>
+            @if (!string.IsNullOrWhiteSpace(Model.LyDoTuChoi))
+            {
+                <div><strong>Lý do từ chối:</strong> @Model.LyDoTuChoi</div>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <form asp-action="Approve" asp-controller="Cms" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="approve" value="true" />
+                <button type="submit" class="vk-btn primary">Duyệt nội dung</button>
+            </form>
+            <form asp-action="Approve" asp-controller="Cms" method="post" class="d-flex gap-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="approve" value="false" />
+                <input type="text" name="lyDoTuChoi" class="form-control" placeholder="Lý do từ chối" />
+                <button type="submit" class="vk-btn danger">Từ chối</button>
+            </form>
+        </div>
+    }
 
     <button type="submit" class="vk-btn primary">Lưu</button>
     <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>

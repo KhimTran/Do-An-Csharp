@@ -45,7 +45,19 @@ namespace VinhKhanhApi.Controllers
                 UuTien = poi.UuTien,
                 TenFileAudio_Vi = poi.TenFileAudio_Vi,
                 TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                SoDienThoai = poi.SoDienThoai,
+                GioMoCua = poi.GioMoCua,
+                GioDongCua = poi.GioDongCua,
+                MonDacTrung = poi.MonDacTrung,
+                GalleryJson = poi.GalleryJson,
+                QrCodeNoiDung = poi.QrCodeNoiDung,
+                TtsVoiceCode = poi.TtsVoiceCode,
+                TrangThaiDuyet = poi.TrangThaiDuyet,
+                NoiDungDeXuat = poi.NoiDungDeXuat,
+                NgayDeXuat = poi.NgayDeXuat,
+                NgayDuyet = poi.NgayDuyet,
+                LyDoTuChoi = poi.LyDoTuChoi
             });
         }
 
@@ -76,12 +88,49 @@ namespace VinhKhanhApi.Controllers
             poi.BanKinh = model.BanKinh;
             poi.UuTien = model.UuTien;
 
+            poi.SoDienThoai = model.SoDienThoai;
+            poi.GioMoCua = model.GioMoCua;
+            poi.GioDongCua = model.GioDongCua;
+            poi.MonDacTrung = model.MonDacTrung;
+            poi.GalleryJson = model.GalleryJson;
+            poi.QrCodeNoiDung = model.QrCodeNoiDung;
+            poi.TtsVoiceCode = string.IsNullOrWhiteSpace(model.TtsVoiceCode) ? "vi-VN" : model.TtsVoiceCode;
+            poi.NguoiCapNhat = "admin";
+
             poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, model.TenFileAudio_Vi);
             poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, model.TenFileAudio_En);
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
 
             await _db.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Approve(int id, bool approve, string? lyDoTuChoi)
+        {
+            var poi = await _db.POIs.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            if (approve)
+            {
+                if (!string.IsNullOrWhiteSpace(poi.NoiDungDeXuat))
+                    poi.MoTa_Vi = poi.NoiDungDeXuat;
+
+                poi.TrangThaiDuyet = "Approved";
+                poi.LyDoTuChoi = null;
+            }
+            else
+            {
+                poi.TrangThaiDuyet = "Rejected";
+                poi.LyDoTuChoi = lyDoTuChoi;
+            }
+
+            poi.NgayDuyet = DateTime.UtcNow;
+            poi.NguoiCapNhat = "admin";
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Edit), new { id });
         }
 
         [HttpPost]
