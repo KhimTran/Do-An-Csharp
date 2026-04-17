@@ -9,33 +9,28 @@
     <div class="alert alert-success">@TempData["ok"]</div>
 }
 
-<section class="stat-grid">
-    <div class="stat-card"><div class="label">Tổng lượt nghe</div><div class="value">@Model.TongLuotNghe</div></div>
-    <div class="stat-card"><div class="label">Lượt quét QR</div><div class="value">@Model.LuotQr</div></div>
-    <div class="stat-card"><div class="label">GPS auto</div><div class="value">@Model.LuotGps</div></div>
-</section>
-
-<form method="post" asp-action="Dashboard" class="vk-form">
+<form method="post" asp-action="Dashboard" enctype="multipart/form-data" class="vk-form">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="PoiId" />
-    <div class="mb-3"><label>Số điện thoại</label><input asp-for="SoDienThoai" class="form-control" /></div>
-    <div class="row">
-        <div class="col-md-6 mb-3"><label>Giờ mở cửa</label><input asp-for="GioMoCua" class="form-control" /></div>
-        <div class="col-md-6 mb-3"><label>Giờ đóng cửa</label><input asp-for="GioDongCua" class="form-control" /></div>
-    </div>
-    <div class="mb-3"><label>Món đặc trưng</label><input asp-for="MonDacTrung" class="form-control" /></div>
-    <div class="mb-3"><label>Gallery JSON URL</label><textarea asp-for="GalleryJson" class="form-control"></textarea></div>
-    <div class="mb-3"><label>Đề xuất nội dung thuyết minh (chờ duyệt)</label><textarea asp-for="NoiDungDeXuat" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control" rows="4"></textarea></div>
+    <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control" rows="4"></textarea></div>
+    <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control" rows="4"></textarea></div>
 
     <div class="mb-3">
-        <span class="badge-pill @(Model.TrangThaiDuyet == "Pending" ? "badge-pending" : Model.TrangThaiDuyet == "Rejected" ? "badge-rejected" : "badge-approved")">
-            Trạng thái: @Model.TrangThaiDuyet
-        </span>
-        @if (!string.IsNullOrWhiteSpace(Model.LyDoTuChoi))
-        {
-            <div class="text-danger mt-2">Lý do từ chối: @Model.LyDoTuChoi</div>
-        }
+        <label>Audio VI (.mp3)</label>
+        <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+        <small class="muted">@Model.TenFileAudio_Vi</small>
+    </div>
+    <div class="mb-3">
+        <label>Audio EN (.mp3)</label>
+        <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+        <small class="muted">@Model.TenFileAudio_En</small>
+    </div>
+    <div class="mb-3">
+        <label>Audio ZH (.mp3)</label>
+        <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+        <small class="muted">@Model.TenFileAudio_Zh</small>
     </div>
 
-    <button type="submit" class="vk-btn primary">Lưu & gửi duyệt</button>
+    <button type="submit" class="vk-btn primary">Lưu thay đổi</button>
 </form>

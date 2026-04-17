@@ -11,10 +11,12 @@ namespace VinhKhanhApi.Controllers
     public class OwnerController : Controller
     {
         private readonly AppDbContext _db;
+        private readonly IWebHostEnvironment _env;
 
-        public OwnerController(AppDbContext db)
+        public OwnerController(AppDbContext db, IWebHostEnvironment env)
         {
             _db = db;
+            _env = env;
         }
 
         [HttpGet]
@@ -26,23 +28,16 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FindAsync(poiId.Value);
             if (poi == null) return NotFound();
 
-            var logs = await _db.PlaybackLogs.Where(x => x.PoiId == poi.Id).ToListAsync();
-
             var vm = new OwnerShopViewModel
             {
                 PoiId = poi.Id,
                 Ten = poi.Ten,
-                SoDienThoai = poi.SoDienThoai,
-                GioMoCua = poi.GioMoCua,
-                GioDongCua = poi.GioDongCua,
-                MonDacTrung = poi.MonDacTrung,
-                GalleryJson = poi.GalleryJson,
-                NoiDungDeXuat = poi.NoiDungDeXuat,
-                TrangThaiDuyet = poi.TrangThaiDuyet,
-                LyDoTuChoi = poi.LyDoTuChoi,
-                TongLuotNghe = logs.Count,
-                LuotQr = logs.Count(x => x.Nguon == "QR"),
-                LuotGps = logs.Count(x => x.Nguon == "GPS")
+                MoTa_Vi = poi.MoTa_Vi,
+                MoTa_En = poi.MoTa_En,
+                MoTa_Zh = poi.MoTa_Zh,
+                TenFileAudio_Vi = poi.TenFileAudio_Vi,
+                TenFileAudio_En = poi.TenFileAudio_En,
+                TenFileAudio_Zh = poi.TenFileAudio_Zh
             };
 
             return View(vm);
@@ -58,24 +53,33 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FindAsync(model.PoiId);
             if (poi == null) return NotFound();
 
-            // Chủ quán được tự cập nhật info cơ bản trực tiếp.
-            poi.SoDienThoai = model.SoDienThoai;
-            poi.GioMoCua = model.GioMoCua;
-            poi.GioDongCua = model.GioDongCua;
-            poi.MonDacTrung = model.MonDacTrung;
-            poi.GalleryJson = model.GalleryJson;
-
-            // Nội dung thuyết minh phải qua duyệt admin.
-            poi.NoiDungDeXuat = model.NoiDungDeXuat;
-            poi.TrangThaiDuyet = "Pending";
-            poi.NgayDeXuat = DateTime.UtcNow;
-            poi.LyDoTuChoi = null;
+            poi.MoTa_Vi = model.MoTa_Vi;
+            poi.MoTa_En = model.MoTa_En;
+            poi.MoTa_Zh = model.MoTa_Zh;
+            poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, poi.TenFileAudio_Vi);
+            poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, poi.TenFileAudio_En);
+            poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, poi.TenFileAudio_Zh);
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync();
 
-            TempData["ok"] = "Đã cập nhật thông tin và gửi đề xuất chờ Admin duyệt.";
+            TempData["ok"] = "Đã lưu mô tả và audio cho quán.";
             return RedirectToAction(nameof(Dashboard));
+        }
+
+        private async Task<string?> LuuFileAudioNeuCo(IFormFile? file, string? fileNameCu)
+        {
+            if (file == null || file.Length == 0) return fileNameCu;
+
+            var thuMucAudio = Path.Combine(_env.WebRootPath, "audio");
+            Directory.CreateDirectory(thuMucAudio);
+
+            var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
+            var duongDan = Path.Combine(thuMucAudio, tenMoi);
+
+            await using var stream = System.IO.File.Create(duongDan);
+            await file.CopyToAsync(stream);
+            return tenMoi;
         }
 
         private int? LayPoiIdTuClaims()
