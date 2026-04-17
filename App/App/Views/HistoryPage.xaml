@@ -1,20 +1,21 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
              xmlns:models="clr-namespace:App.Models"
+             xmlns:services="clr-namespace:App.Services"
              x:Class="App.Views.HistoryPage"
              x:DataType="vm:HistoryViewModel"
-             Title="Lịch sử nghe">
+             Title="{Binding [HistoryPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
 
     <RefreshView Command="{Binding TaiDuLieuCommand}" IsRefreshing="{Binding DangTai}">
         <ScrollView>
             <VerticalStackLayout Padding="16" Spacing="14">
-                <Label Text="Top POI được nghe nhiều" FontSize="18" FontAttributes="Bold" />
+                <Label Text="{Binding [HistoryPage_Top], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="18" FontAttributes="Bold" />
 
                 <CollectionView ItemsSource="{Binding TopPoi}">
                     <CollectionView.EmptyView>
-                        <Label Text="Chưa có dữ liệu thống kê." />
+                        <Label Text="{Binding [HistoryPage_NoStats], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:ThongKePoiModel">
@@ -26,11 +27,11 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <Label Text="Lịch sử gần đây" FontSize="18" FontAttributes="Bold" Margin="0,8,0,0" />
+                <Label Text="{Binding [HistoryPage_Recent], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="18" FontAttributes="Bold" Margin="0,8,0,0" />
 
                 <CollectionView ItemsSource="{Binding LichSuGanDay}">
                     <CollectionView.EmptyView>
-                        <Label Text="Chưa có lượt nghe nào." />
+                        <Label Text="{Binding [HistoryPage_NoPlayback], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:LichSuPhatModel">
@@ -38,7 +39,7 @@
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding TenPoi}" FontAttributes="Bold" />
                                     <Label Text="{Binding ThoiGianPhat, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="12" TextColor="Gray" />
-                                    <Label Text="{Binding NguonKichHoat, StringFormat='Nguồn: {0}'}" FontSize="12" />
+                                    <Label Text="{Binding NguonKichHoat}" FontSize="12" />
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
