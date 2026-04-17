@@ -20,17 +20,17 @@ namespace App.ViewModels
             _db = db;
             _tts = tts;
             _analytics = analytics;
+            ThongBao = LocalizationResourceManager.Instance["QrPage_AimCamera"];
         }
 
         [ObservableProperty] private bool dangQuet = true;
-        [ObservableProperty] private string thongBao = "Hướng camera vào mã QR";
+        [ObservableProperty] private string thongBao = string.Empty;
 
         [RelayCommand]
         public async Task XuLyQrAsync(string ketQua)
         {
             if (!DangQuet || string.IsNullOrWhiteSpace(ketQua)) return;
 
-            // Chống đọc lặp cùng 1 mã trong cửa sổ 3 giây.
             if (_maVuaQuet == ketQua && (DateTime.Now - _thoiDiemQuetCuoi).TotalSeconds < 3)
                 return;
 
@@ -40,7 +40,7 @@ namespace App.ViewModels
 
             if (!int.TryParse(ketQua, out int poiId))
             {
-                ThongBao = $"Mã QR không hợp lệ: {ketQua}";
+                ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_Invalid", ketQua);
                 await MoLaiCheDoQuetSauDelay();
                 return;
             }
@@ -48,7 +48,7 @@ namespace App.ViewModels
             var poi = await _db.LayPoiTheoIdAsync(poiId);
             if (poi == null)
             {
-                ThongBao = $"Không tìm thấy điểm số {poiId}";
+                ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_PoiNotFound", poiId);
                 await MoLaiCheDoQuetSauDelay();
                 return;
             }
@@ -56,7 +56,7 @@ namespace App.ViewModels
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
             string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
 
-            ThongBao = $"🎯 Đang phát: {poi.Ten}";
+            ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_Playing", poi.Ten);
 
             await _db.GhiLichSuPhatAsync(new LichSuPhatModel
             {
@@ -72,7 +72,7 @@ namespace App.ViewModels
             int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
 
-            ThongBao = "✅ Xong! Quét mã khác?";
+            ThongBao = LocalizationResourceManager.Instance["QrPage_Done"];
             await MoLaiCheDoQuetSauDelay();
         }
 
@@ -80,7 +80,7 @@ namespace App.ViewModels
         {
             await Task.Delay(1200);
             DangQuet = true;
-            ThongBao = "Hướng camera vào mã QR";
+            ThongBao = LocalizationResourceManager.Instance["QrPage_AimCamera"];
         }
 
         private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)

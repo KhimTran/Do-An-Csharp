@@ -3,9 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
              xmlns:models="clr-namespace:App.Models"
+             xmlns:services="clr-namespace:App.Services"
              x:DataType="vm:PoiListViewModel"
              x:Class="App.Views.PoiListPage"
-             Title="Điểm thuyết minh">
+             Title="{Binding [PoiPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
     <Grid RowDefinitions="Auto,*,Auto">
         <Label Grid.Row="0" Text="{Binding ThongBao}"
                HorizontalOptions="Center" Margin="10" TextColor="Gray" />
@@ -19,14 +20,15 @@
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding Ten}" FontSize="16" FontAttributes="Bold" />
                             <Label Text="{Binding MoTa_Vi}" FontSize="12" TextColor="Gray" />
-                            <Label Text="{Binding BanKinh, StringFormat='Bán kính: {0}m'}"
+                            <Label Text="{Binding BanKinh, StringFormat='{}{0} m'}"
                                    FontSize="11" TextColor="DodgerBlue" />
                         </VerticalStackLayout>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <Button Grid.Row="2" Text="Tải danh sách POI"
+        <Button Grid.Row="2"
+                Text="{Binding [PoiPage_LoadButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
                 Command="{Binding TaiDanhSachPoiCommand}"
                 Margin="20" BackgroundColor="#1F5C99" TextColor="White" />
     </Grid>
