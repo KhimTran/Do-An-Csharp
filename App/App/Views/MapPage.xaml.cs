@@ -157,7 +157,7 @@ public partial class MapPage : ContentPage
         if (_daCanhBaoGoogleMapsKey)
             return;
 
-        var context = Application.Context;
+        var context = Android.App.Application.Context;
         var resources = context.Resources;
         if (resources == null)
             return;
