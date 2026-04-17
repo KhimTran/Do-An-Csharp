@@ -1,6 +1,9 @@
 using App.Models;
 using App.Services;
 using App.ViewModels;
+#if ANDROID
+using Android.App;
+#endif
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Maps;
@@ -11,6 +14,7 @@ namespace App.Views;
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
+    private static bool _daCanhBaoGoogleMapsKey;
 
     private bool _daZoomLanDau;
     private bool _daCanhKhungTheoPoi;
@@ -40,6 +44,7 @@ public partial class MapPage : ContentPage
     {
         base.OnAppearing();
         LocalizationResourceManager.Instance.PropertyChanged += OnLocalizationChanged;
+        await CanhBaoNeuChuaCauHinhGoogleMapsKeyAsync();
         await _vm.KhoiDongAsync();
     }
 
@@ -144,6 +149,34 @@ public partial class MapPage : ContentPage
     private void OnLocalizationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         LamMoiMoTaPoiTheoNgonNgu();
+    }
+
+    private async Task CanhBaoNeuChuaCauHinhGoogleMapsKeyAsync()
+    {
+#if ANDROID
+        if (_daCanhBaoGoogleMapsKey)
+            return;
+
+        var context = Application.Context;
+        var resources = context.Resources;
+        if (resources == null)
+            return;
+
+        int resourceId = resources.GetIdentifier("google_maps_key", "string", context.PackageName);
+        if (resourceId <= 0)
+            return;
+
+        string apiKey = context.GetString(resourceId) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(apiKey) ||
+            apiKey.Contains("REPLACE_WITH_GOOGLE_MAPS_API_KEY", StringComparison.OrdinalIgnoreCase))
+        {
+            _daCanhBaoGoogleMapsKey = true;
+            await DisplayAlert(
+                "Google Maps chưa cấu hình",
+                "Bản đồ đang trống vì chưa có Google Maps API key hợp lệ. Hãy thay giá trị google_maps_key trong Platforms/Android/Resources/values/google_maps_api.xml, bật Maps SDK for Android và Billing trong Google Cloud.",
+                "Đã hiểu");
+        }
+#endif
     }
 
     private void CapNhatViTriBanDo(double lat, double lng)
