@@ -22,10 +22,12 @@ namespace VinhKhanhApi.ViewModels
         public string? TenFileAudio_Vi { get; set; }
         public string? TenFileAudio_En { get; set; }
         public string? TenFileAudio_Zh { get; set; }
+        public string? TenFileAnhMinhHoa { get; set; }
 
         public IFormFile? AudioVi { get; set; }
         public IFormFile? AudioEn { get; set; }
         public IFormFile? AudioZh { get; set; }
+        public IFormFile? AnhMinhHoa { get; set; }
 
         // Chủ quán cập nhật thông tin cơ bản.
         public string? SoDienThoai { get; set; }

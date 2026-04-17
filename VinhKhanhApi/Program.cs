@@ -42,6 +42,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
     await DamBaoCotPoiMoiAsync(db);
     await DamBaoBangTaiKhoanAsync(db);
+    await DamBaoBangRoutePingsAsync(db);
 }
 
 app.UseCors("AllowAll");
@@ -69,6 +70,7 @@ static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
         "IF COL_LENGTH('POIs','GioDongCua') IS NULL ALTER TABLE POIs ADD GioDongCua NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','MonDacTrung') IS NULL ALTER TABLE POIs ADD MonDacTrung NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','GalleryJson') IS NULL ALTER TABLE POIs ADD GalleryJson NVARCHAR(MAX) NULL;",
+        "IF COL_LENGTH('POIs','TenFileAnhMinhHoa') IS NULL ALTER TABLE POIs ADD TenFileAnhMinhHoa NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','QrCodeNoiDung') IS NULL ALTER TABLE POIs ADD QrCodeNoiDung NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','TtsVoiceCode') IS NULL ALTER TABLE POIs ADD TtsVoiceCode NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','NguoiCapNhat') IS NULL ALTER TABLE POIs ADD NguoiCapNhat NVARCHAR(MAX) NULL;",
@@ -117,4 +119,22 @@ BEGIN
     INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
     VALUES ('owner1', {ownerHash}, 'Owner', 1, 1);
 END");
+}
+
+static async Task DamBaoBangRoutePingsAsync(AppDbContext db)
+{
+    var sql = @"
+IF OBJECT_ID('RoutePings', 'U') IS NULL
+BEGIN
+    CREATE TABLE RoutePings (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        SessionId NVARCHAR(100) NOT NULL,
+        Lat FLOAT NOT NULL,
+        Lng FLOAT NOT NULL,
+        ThoiGian DATETIME2 NOT NULL DEFAULT(GETUTCDATE()),
+        Nguon NVARCHAR(20) NOT NULL DEFAULT('GPS')
+    );
+END";
+
+    await db.Database.ExecuteSqlRawAsync(sql);
 }

@@ -10,6 +10,32 @@
     <Grid RowDefinitions="*,Auto">
         <maps:Map x:Name="BanDo" Grid.Row="0" IsShowingUser="False" />
 
+        <Grid x:Name="PoiPopupOverlay" Grid.Row="0" BackgroundColor="#66000000" IsVisible="False" Padding="20">
+            <Frame
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                WidthRequest="340"
+                MaximumWidthRequest="420"
+                MaximumHeightRequest="460"
+                Padding="16"
+                CornerRadius="8"
+                BackgroundColor="White">
+                <VerticalStackLayout Spacing="10">
+                    <Label x:Name="PoiPopupTitle" FontSize="24" FontAttributes="Bold" TextColor="#1E1E1E" />
+                    <Image x:Name="PoiPopupImage" IsVisible="False" Aspect="AspectFill" HeightRequest="170" />
+                    <ScrollView MaximumHeightRequest="180">
+                        <Label x:Name="PoiPopupDescription" FontSize="14" TextColor="#444444" LineBreakMode="WordWrap" />
+                    </ScrollView>
+
+                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
+                        <Label />
+                        <Button Grid.Column="1" Text="Đóng" Clicked="DongPopup_Clicked" />
+                        <Button Grid.Column="2" Margin="8,0,0,0" Text="Tracking" Clicked="TrackingPopup_Clicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
+
         <Frame
             Grid.Row="0"
             Margin="12"

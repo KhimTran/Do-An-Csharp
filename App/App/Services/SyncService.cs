@@ -59,6 +59,11 @@ namespace App.Services
                             continue;
 
                         foreach (var poi in danhSach)
+                        {
+                            poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(baseUrl: url, tenFileAnh: poi.TenFileAnhMinhHoa);
+                        }
+
+                        foreach (var poi in danhSach)
                             await _db.LuuPoiAsync(poi);
 
                         var serverIds = danhSach.Select(p => p.Id).ToList();
@@ -82,6 +87,19 @@ namespace App.Services
                 LastError = ex.Message;
                 return false;
             }
+        }
+
+        private static string? ChuanHoaUrlAnh(string baseUrl, string? tenFileAnh)
+        {
+            if (string.IsNullOrWhiteSpace(tenFileAnh))
+                return null;
+
+            var raw = tenFileAnh.Trim();
+            if (Uri.TryCreate(raw, UriKind.Absolute, out _))
+                return raw;
+
+            var normalizedBase = baseUrl.Replace("/api/pois", string.Empty, StringComparison.OrdinalIgnoreCase).TrimEnd('/');
+            return $"{normalizedBase}/images/poi/{raw}";
         }
     }
 }
