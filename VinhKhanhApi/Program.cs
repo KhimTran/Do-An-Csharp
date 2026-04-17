@@ -104,17 +104,17 @@ END";
     var adminHash = PasswordHasher.Hash("admin123");
     var ownerHash = PasswordHasher.Hash("owner123");
 
-    await db.Database.ExecuteSqlRawAsync($@"
+    await db.Database.ExecuteSqlInterpolatedAsync($@"
 IF NOT EXISTS (SELECT 1 FROM UserAccounts WHERE Username = 'admin')
 BEGIN
     INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
-    VALUES ('admin', '{adminHash}', 'Admin', NULL, 1);
+    VALUES ('admin', {adminHash}, 'Admin', NULL, 1);
 END");
 
-    await db.Database.ExecuteSqlRawAsync($@"
+    await db.Database.ExecuteSqlInterpolatedAsync($@"
 IF NOT EXISTS (SELECT 1 FROM UserAccounts WHERE Username = 'owner1')
 BEGIN
     INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
-    VALUES ('owner1', '{ownerHash}', 'Owner', 1, 1);
+    VALUES ('owner1', {ownerHash}, 'Owner', 1, 1);
 END");
 }

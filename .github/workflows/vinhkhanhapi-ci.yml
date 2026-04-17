@@ -1,0 +1,33 @@
+name: VinhKhanhApi CI
+
+on:
+  push:
+    paths:
+      - "VinhKhanhApi/**"
+      - ".github/workflows/vinhkhanhapi-ci.yml"
+  pull_request:
+    paths:
+      - "VinhKhanhApi/**"
+      - ".github/workflows/vinhkhanhapi-ci.yml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore VinhKhanhApi/VinhKhanhApi.csproj
+
+      - name: Build (warnings as errors)
+        run: dotnet build VinhKhanhApi/VinhKhanhApi.csproj --configuration Release --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test VinhKhanhApi/VinhKhanhApi.csproj --configuration Release --no-build --verbosity normal
