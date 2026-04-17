@@ -10,7 +10,51 @@
     <Grid RowDefinitions="*,Auto">
         <maps:Map x:Name="BanDo" Grid.Row="0" IsShowingUser="False" />
 
+        <Grid x:Name="PoiPopupOverlay" Grid.Row="0" BackgroundColor="#66000000" IsVisible="False" Padding="20" ZIndex="20">
+            <Frame
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                WidthRequest="340"
+                MaximumWidthRequest="420"
+                MaximumHeightRequest="460"
+                Padding="16,14"
+                CornerRadius="12"
+                BackgroundColor="White">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+                    <Label Grid.Row="0" x:Name="PoiPopupTitle" FontSize="20" FontAttributes="Bold" TextColor="#1E1E1E" />
+                    <Image Grid.Row="1" x:Name="PoiPopupImage" IsVisible="False" Aspect="AspectFill" HeightRequest="170" />
+                    <ScrollView Grid.Row="2" HeightRequest="170">
+                        <Label
+                            x:Name="PoiPopupDescription"
+                            Margin="2,0"
+                            FontSize="13"
+                            LineHeight="1.4"
+                            CharacterSpacing="0.1"
+                            TextColor="#3F4552"
+                            LineBreakMode="WordWrap" />
+                    </ScrollView>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,0">
+                        <Label />
+                        <Border Grid.Column="1" BackgroundColor="#4B2CD3" Padding="18,10" StrokeShape="RoundRectangle 10">
+                            <Label Text="Đóng" TextColor="White" FontSize="15" />
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="DongPopup_Tapped" />
+                            </Border.GestureRecognizers>
+                        </Border>
+                        <Border Grid.Column="2" Margin="8,0,0,0" BackgroundColor="#4B2CD3" Padding="18,10" StrokeShape="RoundRectangle 10">
+                            <Label Text="Tracking" TextColor="White" FontSize="15" />
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="TrackingPopup_Tapped" />
+                            </Border.GestureRecognizers>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Frame>
+        </Grid>
+
         <Frame
+            x:Name="LegendFrame"
             Grid.Row="0"
             Margin="12"
             Padding="10,8"
@@ -18,7 +62,8 @@
             VerticalOptions="Start"
             BackgroundColor="#CCFFFFFF"
             BorderColor="#22000000"
-            CornerRadius="10">
+            CornerRadius="10"
+            ZIndex="5">
             <VerticalStackLayout Spacing="2">
                 <Label Text="{Binding [MapPage_LegendTitle], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" FontSize="12" />
                 <Label Text="{Binding [MapPage_LegendUser], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
@@ -28,7 +73,7 @@
             </VerticalStackLayout>
         </Frame>
 
-        <Frame Grid.Row="1" Margin="12" Padding="12">
+        <Frame Grid.Row="1" Margin="12" Padding="12" ZIndex="5">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" />
                 <Label Text="{Binding TenPoiGanNhat}" />
