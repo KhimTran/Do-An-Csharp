@@ -33,7 +33,7 @@ namespace App.ViewModels
         }
 
         [ObservableProperty]
-        private string tenPoiGanNhat = "Chưa có điểm gần";
+        private string tenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
 
         [ObservableProperty]
         private double khoangCachGanNhat = 0;
@@ -105,7 +105,7 @@ namespace App.ViewModels
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        TenPoiGanNhat = "Chưa có điểm gần";
+                        TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
                         KhoangCachGanNhat = 0;
                         CoPoiGanNhat = false;
                     });

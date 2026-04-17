@@ -21,8 +21,8 @@ public partial class SettingsPage : ContentPage
 
     private async Task TaiCaiDatAsync()
     {
-        string ngonNgu = await _db.LayCaiDatAsync("tts_language")
-                         ?? Preferences.Get("tts_language", "vi-VN");
+        string ngonNgu = await _db.LayCaiDatAsync("app_language")
+                         ?? Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
 
         int banKinh = int.TryParse(await _db.LayCaiDatAsync("geofence_radius"), out var bk)
             ? bk
@@ -66,15 +66,22 @@ public partial class SettingsPage : ContentPage
 
         // Lưu cả Preferences (dùng nhanh tại runtime) + SQLite (đáp ứng yêu cầu tuần 5)
         Preferences.Set("tts_language", maNgonNgu);
+        Preferences.Set("app_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
         Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", maNgonNgu);
+        await _db.LuuCaiDatAsync("app_language", maNgonNgu);
         await _db.LuuCaiDatAsync("geofence_radius", banKinh.ToString());
         await _db.LuuCaiDatAsync("offline_mode", offlineMode.ToString());
 
-        await DisplayAlert("Thành công", "Đã lưu cài đặt.", "OK");
+        LocalizationResourceManager.Instance.SetLanguage(maNgonNgu);
+
+        await DisplayAlert(
+            LocalizationResourceManager.Instance["SettingsPage_SaveSuccessTitle"],
+            LocalizationResourceManager.Instance["SettingsPage_SaveSuccessMessage"],
+            "OK");
     }
 
     private async void MacDinhButton_Clicked(object sender, EventArgs e)
@@ -84,14 +91,21 @@ public partial class SettingsPage : ContentPage
         OfflineSwitch.IsToggled = false;
 
         Preferences.Set("tts_language", "vi-VN");
+        Preferences.Set("app_language", "vi-VN");
         Preferences.Set("geofence_radius", 50);
         Preferences.Set("offline_mode", false);
         Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", "vi-VN");
+        await _db.LuuCaiDatAsync("app_language", "vi-VN");
         await _db.LuuCaiDatAsync("geofence_radius", "50");
         await _db.LuuCaiDatAsync("offline_mode", "False");
 
-        await DisplayAlert("Đã khôi phục", "Đã trả về cài đặt mặc định.", "OK");
+        LocalizationResourceManager.Instance.SetLanguage("vi-VN");
+
+        await DisplayAlert(
+            LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
+            LocalizationResourceManager.Instance["SettingsPage_ResetSuccessMessage"],
+            "OK");
     }
 }
