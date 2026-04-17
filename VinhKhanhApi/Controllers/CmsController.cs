@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using VinhKhanhApi.Data;
 using VinhKhanhApi.Models;
 using VinhKhanhApi.ViewModels;
@@ -70,6 +71,7 @@ namespace VinhKhanhApi.Controllers
             if (!ModelState.IsValid) return View(model);
 
             PoiModel poi;
+            var isNewPoi = model.Id == 0;
             if (model.Id == 0)
             {
                 poi = new PoiModel();
@@ -104,6 +106,11 @@ namespace VinhKhanhApi.Controllers
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
 
             await _db.SaveChangesAsync();
+
+            if (isNewPoi)
+                await ResequencePoiIdsAsync();
+
+            await DongBoQrCodeTheoIdAsync();
             return RedirectToAction(nameof(Index));
         }
 
@@ -121,6 +128,7 @@ namespace VinhKhanhApi.Controllers
 
                 poi.TrangThaiDuyet = "Approved";
                 poi.LyDoTuChoi = null;
+                poi.NoiDungDeXuat = null;
             }
             else
             {
@@ -144,6 +152,7 @@ namespace VinhKhanhApi.Controllers
             {
                 _db.POIs.Remove(poi);
                 await _db.SaveChangesAsync();
+                await ResequencePoiIdsAsync();
             }
             return RedirectToAction(nameof(Index));
         }
@@ -212,6 +221,67 @@ namespace VinhKhanhApi.Controllers
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);
             return tenMoi;
+        }
+
+        private async Task ResequencePoiIdsAsync()
+        {
+            var orderedIds = await _db.POIs
+                .OrderBy(x => x.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            if (orderedIds.Count == 0)
+                return;
+
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+
+            for (var i = 0; i < orderedIds.Count; i++)
+            {
+                var oldId = orderedIds[i];
+                var newId = i + 1;
+                if (oldId == newId)
+                    continue;
+
+                var tempId = -newId;
+                await CapNhatPoiIdAsync(oldId, tempId);
+            }
+
+            for (var i = 0; i < orderedIds.Count; i++)
+            {
+                var newId = i + 1;
+                await CapNhatPoiIdAsync(-newId, newId);
+            }
+
+            await transaction.CommitAsync();
+            _db.ChangeTracker.Clear();
+            await DongBoQrCodeTheoIdAsync();
+        }
+
+        private async Task CapNhatPoiIdAsync(int sourceId, int targetId)
+        {
+            var sourceParam = new SqlParameter("@sourceId", sourceId);
+            var targetParam = new SqlParameter("@targetId", targetId);
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE [POIs] SET [Id] = @targetId WHERE [Id] = @sourceId",
+                targetParam,
+                sourceParam);
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE [PlaybackLogs] SET [PoiId] = @targetId WHERE [PoiId] = @sourceId",
+                targetParam,
+                sourceParam);
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE [UserAccounts] SET [PoiId] = @targetId WHERE [PoiId] = @sourceId",
+                targetParam,
+                sourceParam);
+        }
+
+        private async Task DongBoQrCodeTheoIdAsync()
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%'");
         }
     }
 }

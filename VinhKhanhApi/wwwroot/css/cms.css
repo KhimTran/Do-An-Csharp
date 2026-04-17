@@ -18,7 +18,7 @@ body.cms-body {
 .cms-shell {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 220px minmax(0, 1fr);
 }
 
 .cms-sidebar {
@@ -28,7 +28,7 @@ body.cms-body {
 }
 
 .cms-sidebar .brand {
-    font-size: 40px;
+    font-size: clamp(26px, 2.6vw, 40px);
     font-weight: 800;
     margin-bottom: 26px;
 }
@@ -40,7 +40,7 @@ body.cms-body {
     padding: 12px 14px;
     border-radius: 12px;
     margin-bottom: 10px;
-    font-size: 24px;
+    font-size: clamp(18px, 1.4vw, 28px);
     font-weight: 700;
 }
 
@@ -50,11 +50,11 @@ body.cms-body {
 }
 
 .cms-main {
-    padding: 28px;
+    padding: clamp(16px, 2vw, 28px);
 }
 
 .page-title {
-    font-size: 48px;
+    font-size: clamp(32px, 3.2vw, 56px);
     font-weight: 800;
     margin-bottom: 20px;
 }
@@ -72,8 +72,8 @@ body.cms-body {
     padding: 18px 20px;
 }
 
-.stat-card .label { font-size: 24px; color: #5f6f8f; font-weight: 600; }
-.stat-card .value { font-size: 44px; font-weight: 800; }
+.stat-card .label { font-size: clamp(18px, 1.25vw, 24px); color: #5f6f8f; font-weight: 600; }
+.stat-card .value { font-size: clamp(34px, 2.8vw, 44px); font-weight: 800; }
 
 .vk-table-wrap {
     background: var(--card);
@@ -84,7 +84,7 @@ body.cms-body {
 .vk-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 30px;
+    font-size: clamp(16px, 1.55vw, 34px);
 }
 
 .vk-table th {
@@ -105,7 +105,7 @@ body.cms-body {
     padding: 6px 14px;
     font-weight: 700;
     display: inline-block;
-    font-size: 24px;
+    font-size: clamp(14px, 1.05vw, 24px);
 }
 
 .badge-id { background: #d8e6ff; color: #2853b6; }
@@ -123,7 +123,7 @@ body.cms-body {
     border-radius: 14px;
     padding: 12px 18px;
     color: #fff;
-    font-size: 24px;
+    font-size: clamp(16px, 1.15vw, 24px);
     font-weight: 700;
     text-decoration: none;
     display: inline-block;
@@ -142,18 +142,55 @@ body.cms-body {
 }
 
 .vk-form label {
-    font-size: 24px;
+    font-size: clamp(16px, 1.1vw, 24px);
     font-weight: 700;
     margin-bottom: 6px;
 }
 
 .vk-form .form-control {
-    font-size: 24px;
+    font-size: clamp(16px, 1.05vw, 24px);
     border-radius: 12px;
     padding: 10px 12px;
 }
 
-.muted { color: #6b7993; font-size: 20px; }
+.muted { color: #6b7993; font-size: clamp(14px, 0.95vw, 20px); }
 .badge-approved { background: #d9f4df; color: #1d7c39; }
 .badge-pending { background: #fff4cc; color: #8a6d00; }
 .badge-rejected { background: #ffe0de; color: #c62828; }
+
+.approve-reason {
+    min-width: 280px;
+}
+
+@media (max-width: 1200px) {
+    .cms-shell {
+        grid-template-columns: 180px minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .cms-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .cms-sidebar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .cms-sidebar .brand {
+        margin-bottom: 0;
+        margin-right: 16px;
+    }
+
+    .cms-sidebar .nav-link {
+        margin-bottom: 0;
+        padding: 10px 12px;
+    }
+
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
