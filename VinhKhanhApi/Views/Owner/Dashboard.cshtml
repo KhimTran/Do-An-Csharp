@@ -1,0 +1,41 @@
+@model VinhKhanhApi.ViewModels.OwnerShopViewModel
+@{
+    ViewData["Title"] = "Cổng Chủ quán";
+}
+
+<h1 class="page-title">Chủ quán - @Model.Ten</h1>
+@if (TempData["ok"] != null)
+{
+    <div class="alert alert-success">@TempData["ok"]</div>
+}
+
+<section class="stat-grid">
+    <div class="stat-card"><div class="label">Tổng lượt nghe</div><div class="value">@Model.TongLuotNghe</div></div>
+    <div class="stat-card"><div class="label">Lượt quét QR</div><div class="value">@Model.LuotQr</div></div>
+    <div class="stat-card"><div class="label">GPS auto</div><div class="value">@Model.LuotGps</div></div>
+</section>
+
+<form method="post" asp-action="Dashboard" class="vk-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="PoiId" />
+    <div class="mb-3"><label>Số điện thoại</label><input asp-for="SoDienThoai" class="form-control" /></div>
+    <div class="row">
+        <div class="col-md-6 mb-3"><label>Giờ mở cửa</label><input asp-for="GioMoCua" class="form-control" /></div>
+        <div class="col-md-6 mb-3"><label>Giờ đóng cửa</label><input asp-for="GioDongCua" class="form-control" /></div>
+    </div>
+    <div class="mb-3"><label>Món đặc trưng</label><input asp-for="MonDacTrung" class="form-control" /></div>
+    <div class="mb-3"><label>Gallery JSON URL</label><textarea asp-for="GalleryJson" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Đề xuất nội dung thuyết minh (chờ duyệt)</label><textarea asp-for="NoiDungDeXuat" class="form-control"></textarea></div>
+
+    <div class="mb-3">
+        <span class="badge-pill @(Model.TrangThaiDuyet == "Pending" ? "badge-pending" : Model.TrangThaiDuyet == "Rejected" ? "badge-rejected" : "badge-approved")">
+            Trạng thái: @Model.TrangThaiDuyet
+        </span>
+        @if (!string.IsNullOrWhiteSpace(Model.LyDoTuChoi))
+        {
+            <div class="text-danger mt-2">Lý do từ chối: @Model.LyDoTuChoi</div>
+        }
+    </div>
+
+    <button type="submit" class="vk-btn primary">Lưu & gửi duyệt</button>
+</form>
