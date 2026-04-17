@@ -6,7 +6,7 @@ namespace App
 {
     public partial class App : Application
     {
-        public App(SyncService sync)
+        public App(SyncService sync, IBackgroundTrackingService backgroundTracking)
         {
             InitializeComponent();
 
@@ -16,6 +16,9 @@ namespace App
             // Chạy đồng bộ POI ngầm khi app khởi động
             // Không await để không chặn UI
             Task.Run(async () => await sync.DongBoPoisAsync());
+
+            // Khởi động theo dõi nền (Android foreground service).
+            Task.Run(async () => await backgroundTracking.StartAsync());
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
