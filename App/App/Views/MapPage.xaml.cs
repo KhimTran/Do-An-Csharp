@@ -67,6 +67,7 @@ public partial class MapPage : ContentPage
         _daZoomLanDau = false;
         _daCanhKhungTheoPoi = false;
         PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
     }
 
     private void KhoiTaoBanDo()
@@ -379,6 +380,7 @@ public partial class MapPage : ContentPage
         }
 
         PoiPopupOverlay.IsVisible = true;
+        LegendFrame.IsVisible = false;
     }
 
     private static string? TaoUrlAnhMinhHoa(string? tenFileAnh)
@@ -400,6 +402,7 @@ public partial class MapPage : ContentPage
     private void DongPopup_Clicked(object? sender, EventArgs e)
     {
         PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
     }
 
     private void TrackingPopup_Clicked(object? sender, EventArgs e)
@@ -409,6 +412,7 @@ public partial class MapPage : ContentPage
 
         _poiDangTracking = _poiDangMoPopup;
         PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
 
         if (_viTriNguoiDungHienTai != null)
         {

@@ -10,7 +10,7 @@
     <Grid RowDefinitions="*,Auto">
         <maps:Map x:Name="BanDo" Grid.Row="0" IsShowingUser="False" />
 
-        <Grid x:Name="PoiPopupOverlay" Grid.Row="0" BackgroundColor="#66000000" IsVisible="False" Padding="20">
+        <Grid x:Name="PoiPopupOverlay" Grid.Row="0" BackgroundColor="#66000000" IsVisible="False" Padding="20" ZIndex="20">
             <Frame
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
@@ -20,23 +20,24 @@
                 Padding="16"
                 CornerRadius="8"
                 BackgroundColor="White">
-                <VerticalStackLayout Spacing="10">
-                    <Label x:Name="PoiPopupTitle" FontSize="24" FontAttributes="Bold" TextColor="#1E1E1E" />
-                    <Image x:Name="PoiPopupImage" IsVisible="False" Aspect="AspectFill" HeightRequest="170" />
-                    <ScrollView MaximumHeightRequest="180">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                    <Label Grid.Row="0" x:Name="PoiPopupTitle" FontSize="24" FontAttributes="Bold" TextColor="#1E1E1E" />
+                    <Image Grid.Row="1" x:Name="PoiPopupImage" IsVisible="False" Aspect="AspectFill" HeightRequest="170" />
+                    <ScrollView Grid.Row="2" HeightRequest="170">
                         <Label x:Name="PoiPopupDescription" FontSize="14" TextColor="#444444" LineBreakMode="WordWrap" />
                     </ScrollView>
 
-                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
                         <Label />
                         <Button Grid.Column="1" Text="Đóng" Clicked="DongPopup_Clicked" />
                         <Button Grid.Column="2" Margin="8,0,0,0" Text="Tracking" Clicked="TrackingPopup_Clicked" />
                     </Grid>
-                </VerticalStackLayout>
+                </Grid>
             </Frame>
         </Grid>
 
         <Frame
+            x:Name="LegendFrame"
             Grid.Row="0"
             Margin="12"
             Padding="10,8"
@@ -44,7 +45,8 @@
             VerticalOptions="Start"
             BackgroundColor="#CCFFFFFF"
             BorderColor="#22000000"
-            CornerRadius="10">
+            CornerRadius="10"
+            ZIndex="5">
             <VerticalStackLayout Spacing="2">
                 <Label Text="{Binding [MapPage_LegendTitle], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" FontSize="12" />
                 <Label Text="{Binding [MapPage_LegendUser], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
@@ -54,7 +56,7 @@
             </VerticalStackLayout>
         </Frame>
 
-        <Frame Grid.Row="1" Margin="12" Padding="12">
+        <Frame Grid.Row="1" Margin="12" Padding="12" ZIndex="5">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" />
                 <Label Text="{Binding TenPoiGanNhat}" />
