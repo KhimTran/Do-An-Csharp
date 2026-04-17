@@ -21,6 +21,7 @@ public partial class MapPage : ContentPage
     private Mapsui.Map _map = new();
 
     private bool _daZoomLanDau = false;
+    private bool _daCanhKhungTheoPoi = false;
     private readonly List<PoiModel> _danhSachPoiHienTai = new();
 
     public MapPage(MapViewModel vm)
@@ -46,6 +47,7 @@ public partial class MapPage : ContentPage
         base.OnDisappearing();
         _vm.DungGps();
         _daZoomLanDau = false;
+        _daCanhKhungTheoPoi = false;
     }
 
     private void KhoiTaoBanDo()
@@ -57,7 +59,7 @@ public partial class MapPage : ContentPage
         _map.Layers.Add(OpenStreetMap.CreateTileLayer());
 
         var center = SphericalMercator.FromLonLat(106.7002, 10.7605);
-        _map.Navigator.CenterOnAndZoomTo(new MPoint(center.x, center.y), 3200);
+        _map.Navigator.CenterOnAndZoomTo(new MPoint(center.x, center.y), _map.Navigator.Resolutions[14]);
 
         BanDo.Map = _map;
     }
@@ -120,6 +122,7 @@ public partial class MapPage : ContentPage
             };
 
             _map.Layers.Add(layer);
+            CanhKhungBanDoTheoDanhSachPoiNeuCan();
             BanDo.Refresh();
         });
     }
@@ -156,7 +159,7 @@ public partial class MapPage : ContentPage
             // Chỉ zoom mạnh lần đầu, những lần sau chỉ pan để tránh map giật và khó theo dõi.
             if (!_daZoomLanDau)
             {
-                _map.Navigator.CenterOnAndZoomTo(point, _map.Navigator.Resolutions[15]);
+                _map.Navigator.CenterOnAndZoomTo(point, _map.Navigator.Resolutions[17]);
                 _daZoomLanDau = true;
             }
             else
@@ -202,7 +205,7 @@ public partial class MapPage : ContentPage
         });
         routeFeature.Styles.Add(new VectorStyle
         {
-            Line = new Pen(new MapsuiColor(0, 120, 255), 6)
+            Line = new Pen(new MapsuiColor(0, 120, 255), 7)
         });
 
         // Đánh dấu POI mục tiêu của tuyến để khách du lịch dễ nhận biết đích đến.
@@ -222,5 +225,38 @@ public partial class MapPage : ContentPage
         };
 
         _map.Layers.Add(routeLayer);
+    }
+
+    private void CanhKhungBanDoTheoDanhSachPoiNeuCan()
+    {
+        if (_daCanhKhungTheoPoi || _danhSachPoiHienTai.Count == 0)
+            return;
+
+        var minLat = _danhSachPoiHienTai.Min(p => p.Lat);
+        var maxLat = _danhSachPoiHienTai.Max(p => p.Lat);
+        var minLng = _danhSachPoiHienTai.Min(p => p.Lng);
+        var maxLng = _danhSachPoiHienTai.Max(p => p.Lng);
+
+        // Nếu POI tập trung quá sát nhau thì chủ động mở rộng khung một chút để thấy rõ đường xung quanh.
+        const double minSpan = 0.0045; // ~500m
+        if ((maxLat - minLat) < minSpan)
+        {
+            var centerLat = (minLat + maxLat) / 2;
+            minLat = centerLat - minSpan / 2;
+            maxLat = centerLat + minSpan / 2;
+        }
+
+        if ((maxLng - minLng) < minSpan)
+        {
+            var centerLng = (minLng + maxLng) / 2;
+            minLng = centerLng - minSpan / 2;
+            maxLng = centerLng + minSpan / 2;
+        }
+
+        var centerLatFinal = (minLat + maxLat) / 2;
+        var centerLngFinal = (minLng + maxLng) / 2;
+        var (centerX, centerY) = SphericalMercator.FromLonLat(centerLngFinal, centerLatFinal);
+        _map.Navigator.CenterOnAndZoomTo(new MPoint(centerX, centerY), _map.Navigator.Resolutions[15]);
+        _daCanhKhungTheoPoi = true;
     }
 }

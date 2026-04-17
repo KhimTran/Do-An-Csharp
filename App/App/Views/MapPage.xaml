@@ -9,6 +9,24 @@
     <Grid RowDefinitions="*,Auto">
         <mapsui:MapControl x:Name="BanDo" Grid.Row="0" />
 
+        <Frame
+            Grid.Row="0"
+            Margin="12"
+            Padding="10,8"
+            HorizontalOptions="Start"
+            VerticalOptions="Start"
+            BackgroundColor="#CCFFFFFF"
+            BorderColor="#22000000"
+            CornerRadius="10">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="🗺️ Chú thích bản đồ" FontAttributes="Bold" FontSize="12" />
+                <Label Text="🔵 Bạn đang ở đây" FontSize="12" />
+                <Label Text="🔴 POI ẩm thực" FontSize="12" />
+                <Label Text="🟠 Điểm đến gần nhất" FontSize="12" />
+                <Label Text="🟦 Tuyến gợi ý" FontSize="12" />
+            </VerticalStackLayout>
+        </Frame>
+
         <Frame Grid.Row="1" Margin="12" Padding="12">
             <VerticalStackLayout Spacing="6">
                 <Label Text="Điểm gần nhất &amp; tuyến gợi ý" FontAttributes="Bold" />

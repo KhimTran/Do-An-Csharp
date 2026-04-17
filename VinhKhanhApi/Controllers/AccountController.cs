@@ -33,10 +33,16 @@ namespace VinhKhanhApi.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Username == model.Username && x.IsActive);
+            var user = await _db.UserAccounts.FirstOrDefaultAsync(x => x.Username == model.Username);
             if (user == null || !PasswordHasher.Verify(model.Password, user.PasswordHash))
             {
                 ModelState.AddModelError(string.Empty, "Sai tài khoản hoặc mật khẩu");
+                return View(model);
+            }
+
+            if (!user.IsActive)
+            {
+                ModelState.AddModelError(string.Empty, "Tài khoản đã bị khóa");
                 return View(model);
             }
 
