@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using VinhKhanhApi.Data;
 using VinhKhanhApi.Models;
 using VinhKhanhApi.ViewModels;
@@ -147,6 +148,7 @@ namespace VinhKhanhApi.Controllers
             {
                 _db.POIs.Remove(poi);
                 await _db.SaveChangesAsync();
+                await ResequencePoiIdsAsync();
             }
             return RedirectToAction(nameof(Index));
         }
