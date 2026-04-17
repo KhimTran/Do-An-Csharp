@@ -1,6 +1,9 @@
 using App.Models;
 using App.Services;
 using App.ViewModels;
+#if ANDROID
+using Android.App;
+#endif
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Maps;
