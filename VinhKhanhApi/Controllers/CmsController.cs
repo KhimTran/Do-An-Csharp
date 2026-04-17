@@ -106,11 +106,7 @@ namespace VinhKhanhApi.Controllers
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
 
             await _db.SaveChangesAsync();
-
-            if (isNewPoi)
-                await ResequencePoiIdsAsync();
-
-            await DongBoQrCodeTheoIdAsync();
+            await DongBoQrCodeTheoIdAsync(isNewPoi ? poi.Id : null);
             return RedirectToAction(nameof(Index));
         }
 
@@ -223,63 +219,15 @@ namespace VinhKhanhApi.Controllers
             return tenMoi;
         }
 
-        private async Task ResequencePoiIdsAsync()
+        private async Task DongBoQrCodeTheoIdAsync(int? poiId = null)
         {
-            var orderedIds = await _db.POIs
-                .OrderBy(x => x.Id)
-                .Select(x => x.Id)
-                .ToListAsync();
-
-            if (orderedIds.Count == 0)
+            if (poiId.HasValue)
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [Id] = {poiId.Value} AND ([QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%')");
                 return;
-
-            await using var transaction = await _db.Database.BeginTransactionAsync();
-
-            for (var i = 0; i < orderedIds.Count; i++)
-            {
-                var oldId = orderedIds[i];
-                var newId = i + 1;
-                if (oldId == newId)
-                    continue;
-
-                var tempId = -newId;
-                await CapNhatPoiIdAsync(oldId, tempId);
             }
 
-            for (var i = 0; i < orderedIds.Count; i++)
-            {
-                var newId = i + 1;
-                await CapNhatPoiIdAsync(-newId, newId);
-            }
-
-            await transaction.CommitAsync();
-            _db.ChangeTracker.Clear();
-            await DongBoQrCodeTheoIdAsync();
-        }
-
-        private async Task CapNhatPoiIdAsync(int sourceId, int targetId)
-        {
-            var sourceParam = new SqlParameter("@sourceId", sourceId);
-            var targetParam = new SqlParameter("@targetId", targetId);
-
-            await _db.Database.ExecuteSqlRawAsync(
-                "UPDATE [POIs] SET [Id] = @targetId WHERE [Id] = @sourceId",
-                targetParam,
-                sourceParam);
-
-            await _db.Database.ExecuteSqlRawAsync(
-                "UPDATE [PlaybackLogs] SET [PoiId] = @targetId WHERE [PoiId] = @sourceId",
-                targetParam,
-                sourceParam);
-
-            await _db.Database.ExecuteSqlRawAsync(
-                "UPDATE [UserAccounts] SET [PoiId] = @targetId WHERE [PoiId] = @sourceId",
-                targetParam,
-                sourceParam);
-        }
-
-        private async Task DongBoQrCodeTheoIdAsync()
-        {
             await _db.Database.ExecuteSqlRawAsync(
                 "UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%'");
         }
