@@ -10,6 +10,8 @@ namespace App
 {
     public static class MauiProgram
     {
+        public static IServiceProvider? Services { get; private set; }
+
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
@@ -30,6 +32,11 @@ namespace App
             builder.Services.AddSingleton<GeofenceService>();
             builder.Services.AddSingleton<ITtsService, TtsService>();
             builder.Services.AddSingleton<ILocationService, LocationService>();
+#if ANDROID
+            builder.Services.AddSingleton<IBackgroundTrackingService, AndroidBackgroundTrackingService>();
+#else
+            builder.Services.AddSingleton<IBackgroundTrackingService, NoopBackgroundTrackingService>();
+#endif
 
             builder.Services.AddTransient<PoiListViewModel>();
             builder.Services.AddTransient<MapViewModel>();
@@ -47,7 +54,9 @@ namespace App
             builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            var app = builder.Build();
+            Services = app.Services;
+            return app;
         }
     }
 }
