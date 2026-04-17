@@ -70,6 +70,7 @@ namespace VinhKhanhApi.Controllers
             if (!ModelState.IsValid) return View(model);
 
             PoiModel poi;
+            var isNewPoi = model.Id == 0;
             if (model.Id == 0)
             {
                 poi = new PoiModel();
@@ -104,6 +105,7 @@ namespace VinhKhanhApi.Controllers
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
 
             await _db.SaveChangesAsync();
+            await DongBoQrCodeTheoIdAsync(isNewPoi ? poi.Id : null);
             return RedirectToAction(nameof(Index));
         }
 
@@ -121,6 +123,7 @@ namespace VinhKhanhApi.Controllers
 
                 poi.TrangThaiDuyet = "Approved";
                 poi.LyDoTuChoi = null;
+                poi.NoiDungDeXuat = null;
             }
             else
             {
@@ -212,6 +215,19 @@ namespace VinhKhanhApi.Controllers
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);
             return tenMoi;
+        }
+
+        private async Task DongBoQrCodeTheoIdAsync(int? poiId = null)
+        {
+            if (poiId.HasValue)
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [Id] = {poiId.Value} AND ([QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%')");
+                return;
+            }
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%'");
         }
     }
 }

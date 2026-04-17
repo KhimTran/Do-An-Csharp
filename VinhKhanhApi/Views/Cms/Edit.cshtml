@@ -53,9 +53,13 @@
         <small class="muted">@Model.TenFileAudio_Zh</small>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(Model.NoiDungDeXuat))
-    {
-        <hr />
+    <button type="submit" class="vk-btn primary">Lưu</button>
+    <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.NoiDungDeXuat))
+{
+    <section class="vk-form mt-3">
         <h4>Yêu cầu duyệt từ chủ quán</h4>
         <div class="alert alert-warning">
             <div><strong>Trạng thái:</strong> @Model.TrangThaiDuyet</div>
@@ -65,23 +69,22 @@
                 <div><strong>Lý do từ chối:</strong> @Model.LyDoTuChoi</div>
             }
         </div>
-        <div class="d-flex gap-2">
+
+        <div class="d-flex gap-2 flex-wrap">
             <form asp-action="Approve" asp-controller="Cms" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <input type="hidden" name="approve" value="true" />
                 <button type="submit" class="vk-btn primary">Duyệt nội dung</button>
             </form>
-            <form asp-action="Approve" asp-controller="Cms" method="post" class="d-flex gap-2">
+
+            <form asp-action="Approve" asp-controller="Cms" method="post" class="d-flex gap-2 flex-wrap">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <input type="hidden" name="approve" value="false" />
-                <input type="text" name="lyDoTuChoi" class="form-control" placeholder="Lý do từ chối" />
+                <input type="text" name="lyDoTuChoi" class="form-control approve-reason" placeholder="Lý do từ chối" />
                 <button type="submit" class="vk-btn danger">Từ chối</button>
             </form>
         </div>
-    }
-
-    <button type="submit" class="vk-btn primary">Lưu</button>
-    <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
-</form>
+    </section>
+}

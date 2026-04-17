@@ -21,6 +21,7 @@
 
 ## Mục lục
 
+0. [Quy trình kiểm tra trước khi gửi code (bắt buộc)](#0-quy-trinh-kiem-tra-truoc-khi-gui-code-bat-buoc)
 1. [Executive Summary](#1-executive-summary)
 2. [Scope Definition](#2-scope-definition)
 3. [User Personas & Roles](#3-user-personas--roles)
@@ -40,6 +41,35 @@
 17. [Appendix — Glossary](#17-appendix--glossary)
 
 ---
+
+## 0. Quy trình kiểm tra trước khi gửi code (bắt buộc)
+
+> Áp dụng cho backend `VinhKhanhApi` để tránh gửi code lỗi build/test cơ bản.
+
+### 0.1 Chạy local trước khi commit
+
+- **Windows (PowerShell):**
+
+```powershell
+.\VinhKhanhApi\scripts\validate.ps1
+```
+
+- **Linux/macOS (bash):**
+
+```bash
+bash ./VinhKhanhApi/scripts/validate.sh
+```
+
+Script sẽ chạy theo thứ tự:
+1. `dotnet restore`
+2. `dotnet build --configuration Release -warnaserror`
+3. `dotnet test --configuration Release`
+
+Nếu bất kỳ bước nào fail thì **không được gửi code**.
+
+### 0.2 CI tự động trên GitHub Actions
+
+Repo đã có workflow `VinhKhanhApi CI` (`.github/workflows/vinhkhanhapi-ci.yml`) để chạy lại restore/build/test ở mọi `push` và `pull_request`.
 
 ## 1. Executive Summary
 
@@ -557,4 +587,3 @@ stateDiagram-v2
 | **Offline-first** | Thiết kế ưu tiên hoạt động không cần internet, đồng bộ khi có mạng. |
 
 ---
-
