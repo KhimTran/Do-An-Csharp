@@ -11,11 +11,30 @@
     <div class="cms-shell">
         <aside class="cms-sidebar">
             <div class="brand">VK CMS</div>
-            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
-               href="@Url.Action("Index", "Cms")">Quản lý POI</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Stats" ? "active" : "")"
-               href="@Url.Action("Stats", "Cms")">Xem thống kê</a>
-            <a class="nav-link" href="@Url.Action("GetAll", "Pois")" target="_blank">Xem API JSON</a>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="nav-link" href="@Url.Action("Index", "Cms")">Quản lý POI</a>
+                    <a class="nav-link" href="@Url.Action("Stats", "Cms")">Thống kê tổng</a>
+                    <a class="nav-link" href="@Url.Action("Users", "Cms")">Tài khoản</a>
+                }
+
+                @if (User.IsInRole("Owner"))
+                {
+                    <a class="nav-link" href="@Url.Action("Dashboard", "Owner")">Quán của tôi</a>
+                }
+
+                <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:16px;">
+                    @Html.AntiForgeryToken()
+                    <button class="vk-btn secondary" type="submit">Đăng xuất</button>
+                </form>
+            }
+            else
+            {
+                <a class="nav-link" href="@Url.Action("Login", "Account")">Đăng nhập</a>
+            }
         </aside>
 
         <main class="cms-main">

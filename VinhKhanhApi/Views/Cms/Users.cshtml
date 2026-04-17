@@ -1,0 +1,45 @@
+@model List<VinhKhanhApi.Models.UserAccountModel>
+@{
+    ViewData["Title"] = "Quản lý tài khoản";
+    var pois = ViewData["Pois"] as List<VinhKhanhApi.Models.PoiModel> ?? new();
+}
+
+<h1 class="page-title">Tài khoản hệ thống</h1>
+@if (TempData["ok"] != null) { <div class="alert alert-success">@TempData["ok"]</div> }
+@if (TempData["err"] != null) { <div class="alert alert-danger">@TempData["err"]</div> }
+
+<div class="vk-form mb-4">
+    <h4>Tạo tài khoản chủ quán</h4>
+    <form asp-action="CreateOwnerAccount" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-4"><input name="username" class="form-control" placeholder="Username" /></div>
+        <div class="col-md-3"><input name="password" class="form-control" placeholder="Password" type="password" /></div>
+        <div class="col-md-3">
+            <select name="poiId" class="form-control">
+                @foreach (var poi in pois)
+                {
+                    <option value="@poi.Id">@poi.Ten</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2"><button class="vk-btn primary" type="submit">Tạo</button></div>
+    </form>
+</div>
+
+<div class="vk-table-wrap">
+    <table class="vk-table">
+        <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>POI</th><th>Active</th></tr></thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td>@u.Id</td>
+                    <td>@u.Username</td>
+                    <td>@u.Role</td>
+                    <td>@u.PoiId</td>
+                    <td>@u.IsActive</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

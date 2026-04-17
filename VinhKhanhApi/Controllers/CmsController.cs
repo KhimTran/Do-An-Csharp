@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VinhKhanhApi.Data;
@@ -6,6 +7,7 @@ using VinhKhanhApi.ViewModels;
 
 namespace VinhKhanhApi.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class CmsController : Controller
     {
         private readonly AppDbContext _db;
@@ -144,6 +146,42 @@ namespace VinhKhanhApi.Controllers
                 await _db.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> Users()
+        {
+            var users = await _db.UserAccounts.OrderBy(x => x.Role).ThenBy(x => x.Username).ToListAsync();
+            ViewData["Pois"] = await _db.POIs.OrderBy(x => x.Ten).ToListAsync();
+            return View(users);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateOwnerAccount(string username, string password, int poiId)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                return RedirectToAction(nameof(Users));
+
+            if (await _db.UserAccounts.AnyAsync(x => x.Username == username))
+            {
+                TempData["err"] = "Username đã tồn tại";
+                return RedirectToAction(nameof(Users));
+            }
+
+            _db.UserAccounts.Add(new Models.UserAccountModel
+            {
+                Username = username.Trim(),
+                PasswordHash = Services.PasswordHasher.Hash(password),
+                Role = "Owner",
+                PoiId = poiId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+            TempData["ok"] = "Đã tạo tài khoản chủ quán";
+            return RedirectToAction(nameof(Users));
         }
 
         [HttpGet]

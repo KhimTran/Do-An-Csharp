@@ -1,11 +1,22 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using VinhKhanhApi.Data;
+using VinhKhanhApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+    });
+
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
 builder.Services.AddOpenApi();
@@ -30,6 +41,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
     await DamBaoCotPoiMoiAsync(db);
+    await DamBaoBangTaiKhoanAsync(db);
 }
 
 app.UseCors("AllowAll");
@@ -38,18 +50,18 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseStaticFiles();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Cms}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();
 
 static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
 {
-    // Fallback an toàn cho DB cũ: nếu cột chưa có thì thêm bằng SQL.
     var scripts = new[]
     {
         "IF COL_LENGTH('POIs','SoDienThoai') IS NULL ALTER TABLE POIs ADD SoDienThoai NVARCHAR(MAX) NULL;",
@@ -69,4 +81,40 @@ static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
 
     foreach (var sql in scripts)
         await db.Database.ExecuteSqlRawAsync(sql);
+}
+
+static async Task DamBaoBangTaiKhoanAsync(AppDbContext db)
+{
+    var createTableSql = @"
+IF OBJECT_ID('UserAccounts', 'U') IS NULL
+BEGIN
+    CREATE TABLE UserAccounts (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        Username NVARCHAR(100) NOT NULL UNIQUE,
+        PasswordHash NVARCHAR(200) NOT NULL,
+        Role NVARCHAR(20) NOT NULL,
+        PoiId INT NULL,
+        IsActive BIT NOT NULL DEFAULT(1),
+        CreatedAt DATETIME2 NOT NULL DEFAULT(GETUTCDATE())
+    );
+END";
+
+    await db.Database.ExecuteSqlRawAsync(createTableSql);
+
+    var adminHash = PasswordHasher.Hash("admin123");
+    var ownerHash = PasswordHasher.Hash("owner123");
+
+    await db.Database.ExecuteSqlRawAsync($@"
+IF NOT EXISTS (SELECT 1 FROM UserAccounts WHERE Username = 'admin')
+BEGIN
+    INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
+    VALUES ('admin', '{adminHash}', 'Admin', NULL, 1);
+END");
+
+    await db.Database.ExecuteSqlRawAsync($@"
+IF NOT EXISTS (SELECT 1 FROM UserAccounts WHERE Username = 'owner1')
+BEGIN
+    INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
+    VALUES ('owner1', '{ownerHash}', 'Owner', 1, 1);
+END");
 }
