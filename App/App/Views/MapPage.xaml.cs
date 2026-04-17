@@ -5,6 +5,7 @@ using App.ViewModels;
 using Android.App;
 #endif
 using Microsoft.Maui.Controls.Maps;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Maps;
 using Microsoft.Maui.Storage;
@@ -15,6 +16,13 @@ public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
     private static bool _daCanhBaoGoogleMapsKey;
+    private static readonly string[] BaseImageUrls =
+    {
+        "http://10.0.2.2:5099",
+        "http://localhost:5099",
+        "https://10.0.2.2:7099",
+        "https://localhost:7099"
+    };
 
     private bool _daZoomLanDau;
     private bool _daCanhKhungTheoPoi;
@@ -28,6 +36,7 @@ public partial class MapPage : ContentPage
     private Polyline? _tuyenDuongNen;
     private Polyline? _tuyenDuongChinh;
     private PoiModel? _poiDangTracking;
+    private PoiModel? _poiDangMoPopup;
     private Location? _viTriNguoiDungHienTai;
 
     public MapPage(MapViewModel vm)
@@ -57,6 +66,8 @@ public partial class MapPage : ContentPage
         _vm.DungGps();
         _daZoomLanDau = false;
         _daCanhKhungTheoPoi = false;
+        PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
     }
 
     private void KhoiTaoBanDo()
@@ -120,27 +131,14 @@ public partial class MapPage : ContentPage
     {
         e.HideInfoWindow = true;
 
-        if (sender is not Pin pin || string.IsNullOrWhiteSpace(pin.Address))
+        if (sender is not Pin pin)
             return;
 
         var poiDuocChon = TimPoiTheoPin(pin);
-
-        bool muonTracking = await DisplayAlert(
-            string.IsNullOrWhiteSpace(pin.Label) ? "POI" : pin.Label,
-            pin.Address,
-            "Tracking",
-            LocalizationResourceManager.Instance["Common_Close"]);
-
-        if (!muonTracking || poiDuocChon == null)
+        if (poiDuocChon == null)
             return;
 
-        _poiDangTracking = poiDuocChon;
-
-        if (_viTriNguoiDungHienTai != null)
-        {
-            VeTuyenDuongDenPoi(_viTriNguoiDungHienTai, poiDuocChon);
-            CanhKhungTheoNguoiDungVaPoi(_viTriNguoiDungHienTai, poiDuocChon);
-        }
+        HienThiPopupPoi(poiDuocChon);
     }
 
     private void LamMoiMoTaPoiTheoNgonNgu()
@@ -361,5 +359,65 @@ public partial class MapPage : ContentPage
 
         var center = new Location((minLat + maxLat) / 2, (minLng + maxLng) / 2);
         BanDo.MoveToRegion(new MapSpan(center, latSpan, lngSpan));
+    }
+
+    private void HienThiPopupPoi(PoiModel poi)
+    {
+        _poiDangMoPopup = poi;
+        PoiPopupTitle.Text = poi.Ten;
+        PoiPopupDescription.Text = ChonMoTaTheoNgonNgu(poi);
+
+        var urlAnh = TaoUrlAnhMinhHoa(poi.TenFileAnhMinhHoa);
+        if (!string.IsNullOrWhiteSpace(urlAnh))
+        {
+            PoiPopupImage.Source = ImageSource.FromUri(new Uri(urlAnh));
+            PoiPopupImage.IsVisible = true;
+        }
+        else
+        {
+            PoiPopupImage.Source = null;
+            PoiPopupImage.IsVisible = false;
+        }
+
+        PoiPopupOverlay.IsVisible = true;
+        LegendFrame.IsVisible = false;
+    }
+
+    private static string? TaoUrlAnhMinhHoa(string? tenFileAnh)
+    {
+        if (string.IsNullOrWhiteSpace(tenFileAnh))
+            return null;
+
+        var tenDaChuanHoa = tenFileAnh.Trim();
+        if (Uri.TryCreate(tenDaChuanHoa, UriKind.Absolute, out var uri))
+            return uri.ToString();
+
+        var baseUrl = DeviceInfo.Platform == DevicePlatform.Android
+            ? BaseImageUrls.First()
+            : BaseImageUrls.Skip(1).First();
+
+        return $"{baseUrl.TrimEnd('/')}/images/poi/{tenDaChuanHoa}";
+    }
+
+    private void DongPopup_Clicked(object? sender, EventArgs e)
+    {
+        PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
+    }
+
+    private void TrackingPopup_Clicked(object? sender, EventArgs e)
+    {
+        if (_poiDangMoPopup == null)
+            return;
+
+        _poiDangTracking = _poiDangMoPopup;
+        PoiPopupOverlay.IsVisible = false;
+        LegendFrame.IsVisible = true;
+
+        if (_viTriNguoiDungHienTai != null)
+        {
+            VeTuyenDuongDenPoi(_viTriNguoiDungHienTai, _poiDangTracking);
+            CanhKhungTheoNguoiDungVaPoi(_viTriNguoiDungHienTai, _poiDangTracking);
+        }
     }
 }

@@ -13,6 +13,17 @@
     <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
+    <div class="mb-3">
+        <label>Ảnh minh họa POI</label>
+        <input asp-for="AnhMinhHoa" type="file" class="form-control" accept="image/*" />
+        @if (!string.IsNullOrWhiteSpace(Model.TenFileAnhMinhHoa))
+        {
+            <div class="mt-2">
+                <img src="~/images/poi/@Model.TenFileAnhMinhHoa" alt="Ảnh minh họa @Model.Ten" class="poi-preview-image" />
+            </div>
+            <small class="muted">@Model.TenFileAnhMinhHoa</small>
+        }
+    </div>
 
     <div class="row">
         <div class="col-md-6 mb-3"><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
