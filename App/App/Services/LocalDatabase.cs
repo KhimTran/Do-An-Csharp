@@ -35,6 +35,7 @@ namespace App.Services
                 "ALTER TABLE POIs ADD COLUMN GioDongCua TEXT",
                 "ALTER TABLE POIs ADD COLUMN MonDacTrung TEXT",
                 "ALTER TABLE POIs ADD COLUMN GalleryJson TEXT",
+                "ALTER TABLE POIs ADD COLUMN TenFileAnhMinhHoa TEXT",
                 "ALTER TABLE POIs ADD COLUMN QrCodeNoiDung TEXT",
                 "ALTER TABLE POIs ADD COLUMN TtsVoiceCode TEXT",
                 "ALTER TABLE POIs ADD COLUMN TrangThaiDuyet TEXT",

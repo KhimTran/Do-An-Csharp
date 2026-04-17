@@ -2,13 +2,32 @@
 {
     public class LocationService : ILocationService
     {
+        private readonly IBackgroundTrackingService _backgroundTracking;
         private CancellationTokenSource? _cts;
+
+        public LocationService(IBackgroundTrackingService backgroundTracking)
+        {
+            _backgroundTracking = backgroundTracking;
+        }
 
         public async Task BatDauTheoDoiAsync(Action<double, double> khiCoViTri)
         {
             var trangThai = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
             if (trangThai != PermissionStatus.Granted)
                 throw new Exception("Không có quyền truy cập GPS.");
+
+            // Chỉ bật foreground service sau khi có quyền, tránh crash lúc app vừa mở.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _backgroundTracking.StartAsync();
+                }
+                catch
+                {
+                    // Không làm hỏng luồng GPS foreground nếu service nền không khởi động được.
+                }
+            });
 
             // Nếu đang chạy rồi thì không chạy thêm lần nữa
             if (_cts != null && !_cts.IsCancellationRequested)
