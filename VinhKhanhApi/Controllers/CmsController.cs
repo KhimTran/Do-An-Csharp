@@ -92,8 +92,6 @@ namespace VinhKhanhApi.Controllers
             poi.BanKinh = model.BanKinh;
             poi.UuTien = model.UuTien;
 
-            poi.QrCodeNoiDung = model.QrCodeNoiDung;
-            poi.TtsVoiceCode = string.IsNullOrWhiteSpace(model.TtsVoiceCode) ? "vi-VN" : model.TtsVoiceCode;
             poi.NguoiCapNhat = "admin";
 
             poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, model.TenFileAudio_Vi);
