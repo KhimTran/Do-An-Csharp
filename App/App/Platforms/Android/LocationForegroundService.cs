@@ -2,6 +2,7 @@
 using Android.App;
 using Android.Content;
 using Android.OS;
+using AndroidX.Core.App;
 using App.Models;
 using App.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,10 +27,19 @@ namespace App
 
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
-            BatDauNotificationNen("Đang theo dõi vị trí nền...");
-            KhoiDongDependencyNeuCan();
-            KhoiDongVongLapNenNeuCan();
-            return StartCommandResult.Sticky;
+            try
+            {
+                BatDauNotificationNen("Đang theo dõi vị trí nền...");
+                KhoiDongDependencyNeuCan();
+                KhoiDongVongLapNenNeuCan();
+                return StartCommandResult.Sticky;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[BG-SERVICE] Start lỗi: {ex.Message}");
+                StopSelf();
+                return StartCommandResult.NotSticky;
+            }
         }
 
         public override void OnDestroy()
@@ -129,10 +139,11 @@ namespace App
             var channel = new NotificationChannel(ChannelId, "Theo dõi vị trí nền", NotificationImportance.Low);
             manager.CreateNotificationChannel(channel);
 
-            var notification = new Notification.Builder(this, ChannelId)
+            var notification = new NotificationCompat.Builder(this, ChannelId)
                 .SetContentTitle("Vĩnh Khánh Audio Guide")
                 .SetContentText(contentText)
                 .SetSmallIcon(Android.Resource.Drawable.IcDialogInfo)
+                .SetPriority((int)NotificationPriority.Low)
                 .SetOngoing(true)
                 .Build();
 
