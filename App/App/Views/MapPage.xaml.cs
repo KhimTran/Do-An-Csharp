@@ -7,6 +7,7 @@ using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling;
+using Microsoft.Maui.Storage;
 using NetTopologySuite.Geometries;
 
 using MapsuiBrush = Mapsui.Styles.Brush;
@@ -32,6 +33,7 @@ public partial class MapPage : ContentPage
 
         _vm.OnDaCoiPoi += ThemPinLenBanDo;
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
+        BanDo.Info += async (s, e) => await HienThiThongTinPoiKhiBamAsync(e.MapInfo?.Feature);
 
         KhoiTaoBanDo();
     }
@@ -39,12 +41,14 @@ public partial class MapPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        LocalizationResourceManager.Instance.PropertyChanged += OnLocalizationChanged;
         await _vm.KhoiDongAsync();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        LocalizationResourceManager.Instance.PropertyChanged -= OnLocalizationChanged;
         _vm.DungGps();
         _daZoomLanDau = false;
         _daCanhKhungTheoPoi = false;
@@ -85,7 +89,8 @@ public partial class MapPage : ContentPage
                 var pinFeature = new PointFeature(point)
                 {
                     ["Ten"] = poi.Ten,
-                    ["MoTa"] = poi.MoTa_Vi
+                    ["Loai"] = "POI",
+                    ["MoTa"] = ChonMoTaTheoNgonNgu(poi)
                 };
 
                 // Pin POI có viền trắng dày để nổi bật trên nền bản đồ nhiều chi tiết.
@@ -125,6 +130,62 @@ public partial class MapPage : ContentPage
             CanhKhungBanDoTheoDanhSachPoiNeuCan();
             BanDo.Refresh();
         });
+    }
+
+    private async Task HienThiThongTinPoiKhiBamAsync(IFeature? feature)
+    {
+        if (feature == null) return;
+        string loai = DocThuocTinhFeature(feature, "Loai");
+        if (!string.Equals(loai, "POI", StringComparison.OrdinalIgnoreCase)) return;
+
+        string ten = DocThuocTinhFeature(feature, "Ten");
+        string moTa = DocThuocTinhFeature(feature, "MoTa");
+        if (string.IsNullOrWhiteSpace(ten)) ten = "POI";
+        if (string.IsNullOrWhiteSpace(moTa)) return;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await DisplayAlert(
+                ten,
+                moTa,
+                LocalizationResourceManager.Instance["Common_Close"]);
+        });
+    }
+
+    private void LamMoiMoTaPoiTheoNgonNgu()
+    {
+        if (_danhSachPoiHienTai.Count == 0) return;
+        ThemPinLenBanDo(_danhSachPoiHienTai.ToList());
+    }
+
+    private static string DocThuocTinhFeature(IFeature feature, string key)
+    {
+        try
+        {
+            return feature[key]?.ToString() ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string ChonMoTaTheoNgonNgu(PoiModel poi)
+    {
+        string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
+
+        if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
+
+        if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
+
+        return poi.MoTa_Vi;
+    }
+
+    private void OnLocalizationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        LamMoiMoTaPoiTheoNgonNgu();
     }
 
     private void CapNhatViTriBanDo(double lat, double lng)

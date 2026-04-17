@@ -65,7 +65,8 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
             ["PoiSync_Start"] = "Đang đồng bộ dữ liệu từ Server...",
             ["PoiSync_Done"] = "Đã tải {0} điểm thuyết minh (đã đồng bộ server)",
             ["PoiSync_Offline"] = "Đã tải {0} điểm thuyết minh (offline/API lỗi: {1})",
-            ["Common_Error"] = "Lỗi: {0}"
+            ["Common_Error"] = "Lỗi: {0}",
+            ["Common_Close"] = "Đóng"
         },
         ["en"] = new()
         {
@@ -117,7 +118,8 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
             ["PoiSync_Start"] = "Syncing data from server...",
             ["PoiSync_Done"] = "Loaded {0} audio points (server sync completed)",
             ["PoiSync_Offline"] = "Loaded {0} audio points (offline/API error: {1})",
-            ["Common_Error"] = "Error: {0}"
+            ["Common_Error"] = "Error: {0}",
+            ["Common_Close"] = "Close"
         },
         ["zh"] = new()
         {
@@ -169,7 +171,8 @@ public sealed class LocalizationResourceManager : INotifyPropertyChanged
             ["PoiSync_Start"] = "正在从服务器同步数据...",
             ["PoiSync_Done"] = "已加载 {0} 个讲解点（已同步服务器）",
             ["PoiSync_Offline"] = "已加载 {0} 个讲解点（离线/API 错误：{1}）",
-            ["Common_Error"] = "错误：{0}"
+            ["Common_Error"] = "错误：{0}",
+            ["Common_Close"] = "关闭"
         }
     };
 
