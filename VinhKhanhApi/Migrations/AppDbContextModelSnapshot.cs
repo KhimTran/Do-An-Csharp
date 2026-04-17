@@ -96,6 +96,9 @@ namespace VinhKhanhApi.Migrations
                     b.Property<string>("TenFileAudio_Zh")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("TenFileAnhMinhHoa")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TrangThaiDuyet")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

@@ -70,6 +70,7 @@ static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
         "IF COL_LENGTH('POIs','GioDongCua') IS NULL ALTER TABLE POIs ADD GioDongCua NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','MonDacTrung') IS NULL ALTER TABLE POIs ADD MonDacTrung NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','GalleryJson') IS NULL ALTER TABLE POIs ADD GalleryJson NVARCHAR(MAX) NULL;",
+        "IF COL_LENGTH('POIs','TenFileAnhMinhHoa') IS NULL ALTER TABLE POIs ADD TenFileAnhMinhHoa NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','QrCodeNoiDung') IS NULL ALTER TABLE POIs ADD QrCodeNoiDung NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','TtsVoiceCode') IS NULL ALTER TABLE POIs ADD TtsVoiceCode NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','NguoiCapNhat') IS NULL ALTER TABLE POIs ADD NguoiCapNhat NVARCHAR(MAX) NULL;",

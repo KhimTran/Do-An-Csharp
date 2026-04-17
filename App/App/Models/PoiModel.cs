@@ -20,6 +20,7 @@ namespace App.Models
         public string? TenFileAudio_Vi { get; set; }
         public string? TenFileAudio_En { get; set; }
         public string? TenFileAudio_Zh { get; set; }
+        public string? TenFileAnhMinhHoa { get; set; }
 
         // Đồng bộ từ CMS/Admin để app hiển thị thông tin chi tiết đầy đủ.
         public string? SoDienThoai { get; set; }
