@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using VinhKhanhApi.Data;
 using VinhKhanhApi.Models;
 using VinhKhanhApi.ViewModels;
@@ -91,11 +92,6 @@ namespace VinhKhanhApi.Controllers
             poi.BanKinh = model.BanKinh;
             poi.UuTien = model.UuTien;
 
-            poi.SoDienThoai = model.SoDienThoai;
-            poi.GioMoCua = model.GioMoCua;
-            poi.GioDongCua = model.GioDongCua;
-            poi.MonDacTrung = model.MonDacTrung;
-            poi.GalleryJson = model.GalleryJson;
             poi.QrCodeNoiDung = model.QrCodeNoiDung;
             poi.TtsVoiceCode = string.IsNullOrWhiteSpace(model.TtsVoiceCode) ? "vi-VN" : model.TtsVoiceCode;
             poi.NguoiCapNhat = "admin";
@@ -156,6 +152,75 @@ namespace VinhKhanhApi.Controllers
             });
             await _db.SaveChangesAsync();
             TempData["ok"] = "Đã tạo tài khoản chủ quán";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateAdminAccount(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                return RedirectToAction(nameof(Users));
+
+            if (await _db.UserAccounts.AnyAsync(x => x.Username == username))
+            {
+                TempData["err"] = "Username đã tồn tại";
+                return RedirectToAction(nameof(Users));
+            }
+
+            _db.UserAccounts.Add(new UserAccountModel
+            {
+                Username = username.Trim(),
+                PasswordHash = Services.PasswordHasher.Hash(password),
+                Role = "Admin",
+                PoiId = null,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+            TempData["ok"] = "Đã tạo tài khoản quản trị viên";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleUserLock(int id)
+        {
+            var user = await _db.UserAccounts.FindAsync(id);
+            if (user == null) return NotFound();
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (currentUserId == user.Id.ToString())
+            {
+                TempData["err"] = "Không thể tự khóa tài khoản đang đăng nhập";
+                return RedirectToAction(nameof(Users));
+            }
+
+            user.IsActive = !user.IsActive;
+            await _db.SaveChangesAsync();
+
+            TempData["ok"] = user.IsActive ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var user = await _db.UserAccounts.FindAsync(id);
+            if (user == null) return NotFound();
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (currentUserId == user.Id.ToString())
+            {
+                TempData["err"] = "Không thể xóa tài khoản đang đăng nhập";
+                return RedirectToAction(nameof(Users));
+            }
+
+            _db.UserAccounts.Remove(user);
+            await _db.SaveChangesAsync();
+
+            TempData["ok"] = "Đã xóa tài khoản";
             return RedirectToAction(nameof(Users));
         }
 
