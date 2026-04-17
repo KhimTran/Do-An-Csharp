@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -52,14 +53,17 @@ namespace App.Services
 
                         var tuyChinh = new SpeechOptions
                         {
-                            // Giảm nhẹ volume/pitch để hạn chế hiện tượng rè trên loa điện thoại.
-                            Volume = 0.9f,
-                            Pitch = 0.95f,
+                            // Đưa về mức an toàn để tránh méo tiếng/rè trên loa ngoài.
+                            Volume = 0.72f,
+                            Pitch = 1.0f,
                             Locale = giongPhuHop
                         };
 
-                        await TextToSpeech.SpeakAsync(vanBanDaLamSach, tuyChinh, _cts.Token);
-                        await Task.Delay(120, _cts.Token);
+                        foreach (var doan in TachDoanVanBan(vanBanDaLamSach))
+                        {
+                            await TextToSpeech.SpeakAsync(doan, tuyChinh, _cts.Token);
+                            await Task.Delay(180, _cts.Token);
+                        }
                     }
                     catch (OperationCanceledException)
                     {
@@ -114,6 +118,39 @@ namespace App.Services
             ketQua = Regex.Replace(ketQua, @"\s+", " ");
             ketQua = Regex.Replace(ketQua, @"[^\p{L}\p{N}\p{P}\p{Zs}]", string.Empty);
             return ketQua.Trim();
+        }
+
+        private static IEnumerable<string> TachDoanVanBan(string vanBan, int gioiHanKyTu = 140)
+        {
+            if (string.IsNullOrWhiteSpace(vanBan))
+                yield break;
+
+            var cau = Regex.Split(vanBan, @"(?<=[\.\!\?。！？])\s+")
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim());
+
+            string doanHienTai = string.Empty;
+            foreach (var item in cau)
+            {
+                if (string.IsNullOrEmpty(doanHienTai))
+                {
+                    doanHienTai = item;
+                    continue;
+                }
+
+                if (doanHienTai.Length + item.Length + 1 <= gioiHanKyTu)
+                {
+                    doanHienTai = $"{doanHienTai} {item}";
+                }
+                else
+                {
+                    yield return doanHienTai;
+                    doanHienTai = item;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(doanHienTai))
+                yield return doanHienTai;
         }
     }
 }
