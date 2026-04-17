@@ -9,6 +9,7 @@ namespace App.ViewModels
     public partial class MapViewModel : ObservableObject
     {
         private readonly LocalDatabase _db;
+        private readonly SyncService _sync;
         private readonly ILocationService _gps;
         private readonly GeofenceService _geofence;
         private readonly ITtsService _tts;
@@ -20,12 +21,14 @@ namespace App.ViewModels
 
         public MapViewModel(
             LocalDatabase db,
+            SyncService sync,
             ILocationService gps,
             GeofenceService geofence,
             ITtsService tts,
             AnalyticsService analytics)
         {
             _db = db;
+            _sync = sync;
             _gps = gps;
             _geofence = geofence;
             _tts = tts;
@@ -49,6 +52,7 @@ namespace App.ViewModels
             if (_daKhoiDong) return;
             _daKhoiDong = true;
 
+            await _sync.DongBoPoisAsync();
             _danhSachPoi = await _db.LayTatCaPoiAsync();
             OnDaCoiPoi?.Invoke(_danhSachPoi);
 

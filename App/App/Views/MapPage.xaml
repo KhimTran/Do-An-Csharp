@@ -14,15 +14,18 @@
             <Frame
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                WidthRequest="360"
+                WidthRequest="340"
                 MaximumWidthRequest="420"
+                MaximumHeightRequest="460"
                 Padding="16"
-                CornerRadius="0"
+                CornerRadius="8"
                 BackgroundColor="White">
                 <VerticalStackLayout Spacing="10">
-                    <Label x:Name="PoiPopupTitle" FontSize="32" FontAttributes="Bold" TextColor="#1E1E1E" />
+                    <Label x:Name="PoiPopupTitle" FontSize="24" FontAttributes="Bold" TextColor="#1E1E1E" />
                     <Image x:Name="PoiPopupImage" IsVisible="False" Aspect="AspectFill" HeightRequest="170" />
-                    <Label x:Name="PoiPopupDescription" FontSize="26" TextColor="#444444" LineBreakMode="WordWrap" />
+                    <ScrollView MaximumHeightRequest="180">
+                        <Label x:Name="PoiPopupDescription" FontSize="14" TextColor="#444444" LineBreakMode="WordWrap" />
+                    </ScrollView>
 
                     <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">
                         <Label />

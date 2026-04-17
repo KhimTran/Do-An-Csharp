@@ -19,7 +19,9 @@ public partial class MapPage : ContentPage
     private static readonly string[] BaseImageUrls =
     {
         "http://10.0.2.2:5099",
-        "http://localhost:5099"
+        "http://localhost:5099",
+        "https://10.0.2.2:7099",
+        "https://localhost:7099"
     };
 
     private bool _daZoomLanDau;
@@ -389,10 +391,10 @@ public partial class MapPage : ContentPage
             return uri.ToString();
 
         var baseUrl = DeviceInfo.Platform == DevicePlatform.Android
-            ? BaseImageUrls[0]
-            : BaseImageUrls[1];
+            ? BaseImageUrls.First()
+            : BaseImageUrls.Skip(1).First();
 
-        return $"{baseUrl}/images/poi/{tenDaChuanHoa}";
+        return $"{baseUrl.TrimEnd('/')}/images/poi/{tenDaChuanHoa}";
     }
 
     private void DongPopup_Clicked(object? sender, EventArgs e)
