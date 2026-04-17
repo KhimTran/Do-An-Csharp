@@ -58,5 +58,48 @@ namespace VinhKhanhApi.Controllers
                 ThoiLuongTrungBinh = avgDuration
             });
         }
+
+        // Global analytics cho Admin: heatmap tuyến phố.
+        [HttpGet("heatmap")]
+        public async Task<IActionResult> Heatmap()
+        {
+            var points = await _db.PlaybackLogs
+                .Join(_db.POIs, l => l.PoiId, p => p.Id, (l, p) => new { p.Lat, p.Lng })
+                .GroupBy(x => new
+                {
+                    Lat = Math.Round(x.Lat, 4),
+                    Lng = Math.Round(x.Lng, 4)
+                })
+                .Select(g => new
+                {
+                    g.Key.Lat,
+                    g.Key.Lng,
+                    Count = g.Count()
+                })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+
+            return Ok(points);
+        }
+
+        // Local analytics cho chủ quán.
+        [HttpGet("local/{poiId:int}")]
+        public async Task<IActionResult> LocalAnalytics(int poiId)
+        {
+            var logs = await _db.PlaybackLogs.Where(x => x.PoiId == poiId).ToListAsync();
+            var total = logs.Count;
+            var qrScans = logs.Count(x => x.Nguon == "QR");
+            var gpsAuto = logs.Count(x => x.Nguon == "GPS");
+            var avgDuration = total == 0 ? 0 : logs.Average(x => x.ThoiLuongGiay);
+
+            return Ok(new
+            {
+                PoiId = poiId,
+                TongLuotNghe = total,
+                LuotQr = qrScans,
+                LuotGps = gpsAuto,
+                ThoiLuongTrungBinh = avgDuration
+            });
+        }
     }
 }

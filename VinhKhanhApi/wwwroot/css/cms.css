@@ -154,3 +154,6 @@ body.cms-body {
 }
 
 .muted { color: #6b7993; font-size: 20px; }
+.badge-approved { background: #d9f4df; color: #1d7c39; }
+.badge-pending { background: #fff4cc; color: #8a6d00; }
+.badge-rejected { background: #ffe0de; color: #c62828; }

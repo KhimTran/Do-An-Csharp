@@ -12,6 +12,7 @@ namespace App.Services
     {
         private CancellationTokenSource? _cts;
         private readonly ConcurrentQueue<(string VanBan, string MaNgonNgu)> _hangDoi = new();
+        private readonly SemaphoreSlim _khoaXuLyHangDoi = new(1, 1);
 
         public bool DangPhat { get; private set; } = false;
 
@@ -32,39 +33,46 @@ namespace App.Services
 
         private async Task XuLyHangDoi()
         {
-            DangPhat = true;
-            _cts = new CancellationTokenSource();
-
-            while (_hangDoi.TryDequeue(out var item))
+            await _khoaXuLyHangDoi.WaitAsync();
+            try
             {
-                try
-                {
-                    var tatCaGiong = await TextToSpeech.GetLocalesAsync();
-                    var giongPhuHop = tatCaGiong.FirstOrDefault(g =>
-                        g.Language.StartsWith(
-                            item.MaNgonNgu.Split('-')[0],
-                            StringComparison.OrdinalIgnoreCase));
+                DangPhat = true;
+                _cts = new CancellationTokenSource();
 
-                    var tuyChinh = new SpeechOptions
+                while (_hangDoi.TryDequeue(out var item))
+                {
+                    try
                     {
-                        Volume = 1.0f,
-                        Pitch = 1.0f,
-                        Locale = giongPhuHop
-                    };
+                        var tatCaGiong = await TextToSpeech.GetLocalesAsync();
+                        var giongPhuHop = tatCaGiong.FirstOrDefault(g =>
+                            g.Language.StartsWith(
+                                item.MaNgonNgu.Split('-')[0],
+                                StringComparison.OrdinalIgnoreCase));
 
-                    await TextToSpeech.SpeakAsync(item.VanBan, tuyChinh, _cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[TTS] Lỗi: {ex.Message}");
+                        var tuyChinh = new SpeechOptions
+                        {
+                            Volume = 1.0f,
+                            Pitch = 1.0f,
+                            Locale = giongPhuHop
+                        };
+
+                        await TextToSpeech.SpeakAsync(item.VanBan, tuyChinh, _cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TTS] Lỗi: {ex.Message}");
+                    }
                 }
             }
-
-            DangPhat = false;
+            finally
+            {
+                DangPhat = false;
+                _khoaXuLyHangDoi.Release();
+            }
         }
 
         public void DungPhat()

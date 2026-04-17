@@ -26,5 +26,23 @@ namespace VinhKhanhApi.ViewModels
         public IFormFile? AudioVi { get; set; }
         public IFormFile? AudioEn { get; set; }
         public IFormFile? AudioZh { get; set; }
+
+        // Chủ quán cập nhật thông tin cơ bản.
+        public string? SoDienThoai { get; set; }
+        public string? GioMoCua { get; set; }
+        public string? GioDongCua { get; set; }
+        public string? MonDacTrung { get; set; }
+        public string? GalleryJson { get; set; }
+        public string? QrCodeNoiDung { get; set; }
+
+        // Admin cấu hình giọng đọc mặc định.
+        public string? TtsVoiceCode { get; set; } = "vi-VN";
+
+        // Trạng thái kiểm duyệt.
+        public string TrangThaiDuyet { get; set; } = "Approved";
+        public string? NoiDungDeXuat { get; set; }
+        public DateTime? NgayDeXuat { get; set; }
+        public DateTime? NgayDuyet { get; set; }
+        public string? LyDoTuChoi { get; set; }
     }
 }
