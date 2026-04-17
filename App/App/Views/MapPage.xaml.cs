@@ -1,6 +1,7 @@
 using App.Models;
 using App.Services;
 using App.ViewModels;
+using System.Collections;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Nts;
@@ -33,7 +34,7 @@ public partial class MapPage : ContentPage
 
         _vm.OnDaCoiPoi += ThemPinLenBanDo;
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
-        BanDo.Info += async (s, e) => await HienThiThongTinPoiKhiBamAsync(e.Feature);
+        BanDo.Info += async (s, e) => await HienThiThongTinPoiTuSuKienAsync(e);
 
         KhoiTaoBanDo();
     }
@@ -150,6 +151,39 @@ public partial class MapPage : ContentPage
                 moTa,
                 LocalizationResourceManager.Instance["Common_Close"]);
         });
+    }
+
+    private async Task HienThiThongTinPoiTuSuKienAsync(object? eventArgs)
+    {
+        if (eventArgs == null) return;
+        var feature = LayFeatureTuInfoEvent(eventArgs);
+        await HienThiThongTinPoiKhiBamAsync(feature);
+    }
+
+    private static IFeature? LayFeatureTuInfoEvent(object eventArgs)
+    {
+        var eventType = eventArgs.GetType();
+
+        // Một số phiên bản Mapsui có eventArgs.Feature
+        if (eventType.GetProperty("Feature")?.GetValue(eventArgs) is IFeature featureTrucTiep)
+            return featureTrucTiep;
+
+        // Một số phiên bản Mapsui có eventArgs.MapInfo.Feature
+        var mapInfo = eventType.GetProperty("MapInfo")?.GetValue(eventArgs);
+        if (mapInfo != null && mapInfo.GetType().GetProperty("Feature")?.GetValue(mapInfo) is IFeature featureTrongMapInfo)
+            return featureTrongMapInfo;
+
+        // Một số phiên bản trả tập hợp eventArgs.MapInfos[]
+        if (eventType.GetProperty("MapInfos")?.GetValue(eventArgs) is IEnumerable mapInfos)
+        {
+            foreach (var item in mapInfos)
+            {
+                if (item?.GetType().GetProperty("Feature")?.GetValue(item) is IFeature featureTuDanhSach)
+                    return featureTuDanhSach;
+            }
+        }
+
+        return null;
     }
 
     private void LamMoiMoTaPoiTheoNgonNgu()
