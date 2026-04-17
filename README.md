@@ -597,3 +597,32 @@ stateDiagram-v2
 | **Offline-first** | Thiết kế ưu tiên hoạt động không cần internet, đồng bộ khi có mạng. |
 
 ---
+
+---
+
+## Phụ lục A — Gap analysis theo đề tài PoC (cập nhật 17/04/2026)
+
+Bảng dưới đây so sánh nhanh giữa yêu cầu đồ án bạn gửi và trạng thái code hiện tại trong repo:
+
+| Nhóm yêu cầu | Trạng thái | Ghi chú triển khai |
+|---|---|---|
+| GPS tracking foreground/background | ✅ Đã có PoC | `LocationService` + Android Foreground Service, cập nhật vị trí định kỳ. |
+| Geofence + debounce/cooldown | ✅ Đã có PoC | `GeofenceService` có cache vùng vào/ra + cooldown bộ nhớ + SQLite. |
+| Thuyết minh đa ngôn ngữ (TTS) + queue | ✅ Đã có PoC | `TtsService` dùng hàng đợi, chống phát chồng luồng, hỗ trợ locale. |
+| QR quét là nghe ngay | ✅ Đã bổ sung | ViewModel QR nay hỗ trợ 3 định dạng: `12`, `poi:12`, URL có `poiId`. |
+| Bản đồ hiển thị POI + điểm gần nhất | ✅ Đã có PoC | `MapViewModel` cập nhật vị trí và POI gần nhất theo thời gian thực. |
+| CMS quản lý POI/audio/bản dịch/lịch sử | ✅ Đã có PoC cơ bản | Có màn hình CMS POI, quản lý audio đa ngôn ngữ, thống kê lượt nghe. |
+| Analytics: top POI + thời lượng TB | ✅ Đã có PoC | `AnalyticsController` có `top-pois`, `summary`, `heatmap`. |
+| Analytics: lưu tuyến di chuyển ẩn danh | ⚠️ Chưa đầy đủ | Mới log theo sự kiện nghe tại POI, chưa có session track polyline liên tục. |
+| Heatmap người dùng trên web CMS | ⚠️ Chưa đầy đủ | API `heatmap` đã có nhưng chưa có view trực quan (map layer) trong CMS. |
+| Chuyển SQLite offline / SQL Server online theo cấu hình thiết bị | ⚠️ Một phần | App dùng SQLite; backend dùng EF Core SQL Server, nhưng chưa có cơ chế runtime auto-switch ở app. |
+
+### Các hạng mục nên làm tiếp để “khớp đề” hơn
+
+1. **Anonymous route tracking**: thêm bảng `RoutePing` (sessionId, lat, lng, ts) và gửi nền theo batch để dựng tuyến di chuyển thật sự.
+2. **CMS heatmap trực quan**: tích hợp Leaflet/Google Maps vào trang Stats, render điểm từ API `/api/analytics/heatmap`.
+3. **Offline package manager**: tải trước gói ảnh/audio theo khu vực, hiển thị dung lượng + tiến trình tải.
+4. **Dual-audio mode**: cho phép ưu tiên “file audio thu sẵn”, fallback về TTS khi thiếu file hoặc offline gói chưa đủ.
+5. **Chuẩn hóa QR deployment**: sinh bộ QR theo phường (Khánh Hội, Xóm Chiếu, Vĩnh Hội) + checklist điểm đặt thực địa.
+
+> Gợi ý phạm vi báo cáo: xem các mục đánh dấu ⚠️ là “MVP extension” để giảng viên thấy rõ roadmap sau PoC.

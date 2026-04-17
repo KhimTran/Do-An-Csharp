@@ -49,6 +49,7 @@ namespace VinhKhanhApi.Controllers
                 TenFileAudio_Vi = poi.TenFileAudio_Vi,
                 TenFileAudio_En = poi.TenFileAudio_En,
                 TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
                 SoDienThoai = poi.SoDienThoai,
                 GioMoCua = poi.GioMoCua,
                 GioDongCua = poi.GioDongCua,
@@ -97,6 +98,7 @@ namespace VinhKhanhApi.Controllers
             poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, model.TenFileAudio_Vi);
             poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, model.TenFileAudio_En);
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
+            poi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, model.TenFileAnhMinhHoa);
 
             await _db.SaveChangesAsync();
             await DongBoQrCodeTheoIdAsync(isNewPoi ? poi.Id : null);
@@ -232,8 +234,38 @@ namespace VinhKhanhApi.Controllers
                 .Take(10)
                 .ToList();
 
+            var lichSuSuDung = logs
+                .OrderByDescending(x => x.ThoiGianNghe)
+                .Take(100)
+                .Select(x => new
+                {
+                    x.PoiTen,
+                    x.Nguon,
+                    x.ThoiLuongGiay,
+                    x.ThoiGianNghe
+                })
+                .ToList();
+
+            var heatmap = await _db.RoutePings
+                .GroupBy(x => new
+                {
+                    Lat = Math.Round(x.Lat, 4),
+                    Lng = Math.Round(x.Lng, 4)
+                })
+                .Select(g => new
+                {
+                    g.Key.Lat,
+                    g.Key.Lng,
+                    SoLuot = g.Count()
+                })
+                .OrderByDescending(x => x.SoLuot)
+                .Take(100)
+                .ToListAsync();
+
             ViewData["TongLuotNghe"] = logs.Count;
             ViewData["ThoiLuongTrungBinh"] = logs.Count == 0 ? 0 : logs.Average(x => x.ThoiLuongGiay);
+            ViewData["LichSuSuDung"] = lichSuSuDung;
+            ViewData["Heatmap"] = heatmap;
             return View(topPoi);
         }
 
@@ -246,6 +278,21 @@ namespace VinhKhanhApi.Controllers
 
             var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
             var duongDan = Path.Combine(thuMucAudio, tenMoi);
+
+            await using var stream = System.IO.File.Create(duongDan);
+            await file.CopyToAsync(stream);
+            return tenMoi;
+        }
+
+        private async Task<string?> LuuFileAnhNeuCo(IFormFile? file, string? fileNameCu)
+        {
+            if (file == null || file.Length == 0) return fileNameCu;
+
+            var thuMucAnh = Path.Combine(_env.WebRootPath, "images", "poi");
+            Directory.CreateDirectory(thuMucAnh);
+
+            var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
+            var duongDan = Path.Combine(thuMucAnh, tenMoi);
 
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);

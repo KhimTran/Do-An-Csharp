@@ -63,8 +63,7 @@ namespace VinhKhanhApi.Controllers
         [HttpGet("heatmap")]
         public async Task<IActionResult> Heatmap()
         {
-            var points = await _db.PlaybackLogs
-                .Join(_db.POIs, l => l.PoiId, p => p.Id, (l, p) => new { p.Lat, p.Lng })
+            var points = await _db.RoutePings
                 .GroupBy(x => new
                 {
                     Lat = Math.Round(x.Lat, 4),
@@ -80,6 +79,24 @@ namespace VinhKhanhApi.Controllers
                 .ToListAsync();
 
             return Ok(points);
+        }
+
+        [HttpPost("route-pings")]
+        public async Task<IActionResult> CreateRoutePings([FromBody] List<RoutePingModel>? pings)
+        {
+            if (pings == null || pings.Count == 0)
+                return BadRequest("Danh sách route ping rỗng.");
+
+            foreach (var ping in pings.Where(p => p is not null))
+            {
+                ping.SessionId = string.IsNullOrWhiteSpace(ping.SessionId) ? "unknown" : ping.SessionId.Trim();
+                ping.ThoiGian = ping.ThoiGian == default ? DateTime.UtcNow : ping.ThoiGian;
+                ping.Nguon = string.IsNullOrWhiteSpace(ping.Nguon) ? "GPS" : ping.Nguon.Trim().ToUpperInvariant();
+            }
+
+            _db.RoutePings.AddRange(pings);
+            await _db.SaveChangesAsync();
+            return Ok(new { Saved = pings.Count });
         }
 
         // Local analytics cho chủ quán.

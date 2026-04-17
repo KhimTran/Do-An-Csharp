@@ -10,6 +10,7 @@ namespace VinhKhanhApi.Data
 
         public DbSet<PoiModel> POIs { get; set; }
         public DbSet<PlaybackLogModel> PlaybackLogs { get; set; }
+        public DbSet<RoutePingModel> RoutePings { get; set; }
         public DbSet<UserAccountModel> UserAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
