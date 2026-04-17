@@ -33,7 +33,7 @@ public partial class MapPage : ContentPage
 
         _vm.OnDaCoiPoi += ThemPinLenBanDo;
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
-        BanDo.Info += async (s, e) => await HienThiThongTinPoiKhiBamAsync(e.MapInfo?.Feature);
+        BanDo.Info += async (s, e) => await HienThiThongTinPoiKhiBamAsync(e.Feature);
 
         KhoiTaoBanDo();
     }
