@@ -38,8 +38,10 @@ namespace VinhKhanhApi.Migrations
                 columns: new[] { "Id", "BanKinh", "Lat", "Lng", "MoTa_En", "MoTa_Vi", "MoTa_Zh", "Ten", "TenFileAudio_Vi", "UuTien" },
                 values: new object[,]
                 {
-                    { 1, 50.0, 10.756500000000001, 106.6896, "Famous bun bo Hue restaurant with 30-year history.", "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.", "著名的顺化牛肉米线餐厅，拥有30年历史。", "Quán Bún Bò Huế Vĩnh Khánh", null, 1 },
-                    { 2, 80.0, 10.757999999999999, 106.691, "Traditional market of District 4.", "Khu chợ truyền thống lâu đời của quận 4.", "第四郡传统市场。", "Chợ Xóm Chiếu", null, 2 }
+                    { 1, 50.0, 10.76147422883112, 106.70258525764435, "A long-standing famous seafood/snail restaurant on Vinh Khanh food street.", "Quán ốc nổi tiếng lâu năm trên phố ẩm thực Vĩnh Khánh.", "位于永庆美食街的知名老牌海鲜店。", "Ốc Oanh", null, 1 },
+                    { 2, 65.0, 10.76098, 106.70342, "A popular seafood spot on Vinh Khanh street.", "Quán ốc đông khách trên đường Vĩnh Khánh.", "永庆街上的人气海鲜店。", "Ốc Thảo", null, 2 },
+                    { 3, 65.0, 10.76076, 106.70368, "A late-night seafood place in Vinh Khanh food area.", "Quán ốc mở khuya trong khu ẩm thực Vĩnh Khánh.", "永庆美食区内营业到深夜的海鲜店。", "Ốc Vũ", null, 3 },
+                    { 4, 65.0, 10.76042, 106.70408, "A familiar seafood eatery for locals.", "Quán ốc quen thuộc với thực khách địa phương.", "本地食客常去的海鲜店。", "Ốc Phát", null, 4 }
                 });
         }
 

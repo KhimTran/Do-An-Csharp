@@ -3,7 +3,6 @@ using App.ViewModels;
 using App.Views;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using SkiaSharp.Views.Maui.Controls.Hosting;
 using ZXing.Net.Maui.Controls;
 
 
@@ -18,7 +17,6 @@ namespace App
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
-                .UseSkiaSharp()
                 .UseBarcodeReader()
                 .UseMauiMaps()
                 .ConfigureFonts(fonts =>

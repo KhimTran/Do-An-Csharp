@@ -72,25 +72,49 @@ namespace VinhKhanhApi.Migrations
                         {
                             Id = 1,
                             BanKinh = 50.0,
-                            Lat = 10.756500000000001,
-                            Lng = 106.6896,
-                            MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                            MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
-                            MoTa_Zh = "著名的顺化牛肉米线餐厅，拥有30年历史。",
-                            Ten = "Quán Bún Bò Huế Vĩnh Khánh",
+                            Lat = 10.76147422883112,
+                            Lng = 106.70258525764435,
+                            MoTa_En = "A long-standing famous seafood/snail restaurant on Vinh Khanh food street.",
+                            MoTa_Vi = "Quán ốc nổi tiếng lâu năm trên phố ẩm thực Vĩnh Khánh.",
+                            MoTa_Zh = "位于永庆美食街的知名老牌海鲜店。",
+                            Ten = "Ốc Oanh",
                             UuTien = 1
                         },
                         new
                         {
                             Id = 2,
-                            BanKinh = 80.0,
-                            Lat = 10.757999999999999,
-                            Lng = 106.691,
-                            MoTa_En = "Traditional market of District 4.",
-                            MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
-                            MoTa_Zh = "第四郡传统市场。",
-                            Ten = "Chợ Xóm Chiếu",
+                            BanKinh = 65.0,
+                            Lat = 10.76098,
+                            Lng = 106.70342,
+                            MoTa_En = "A popular seafood spot on Vinh Khanh street.",
+                            MoTa_Vi = "Quán ốc đông khách trên đường Vĩnh Khánh.",
+                            MoTa_Zh = "永庆街上的人气海鲜店。",
+                            Ten = "Ốc Thảo",
                             UuTien = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            BanKinh = 65.0,
+                            Lat = 10.76076,
+                            Lng = 106.70368,
+                            MoTa_En = "A late-night seafood place in Vinh Khanh food area.",
+                            MoTa_Vi = "Quán ốc mở khuya trong khu ẩm thực Vĩnh Khánh.",
+                            MoTa_Zh = "永庆美食区内营业到深夜的海鲜店。",
+                            Ten = "Ốc Vũ",
+                            UuTien = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            BanKinh = 65.0,
+                            Lat = 10.76042,
+                            Lng = 106.70408,
+                            MoTa_En = "A familiar seafood eatery for locals.",
+                            MoTa_Vi = "Quán ốc quen thuộc với thực khách địa phương.",
+                            MoTa_Zh = "本地食客常去的海鲜店。",
+                            Ten = "Ốc Phát",
+                            UuTien = 4
                         });
                 });
 #pragma warning restore 612, 618
