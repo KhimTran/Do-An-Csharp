@@ -3,27 +3,28 @@
     x:Class="App.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:services="clr-namespace:App.Services"
     xmlns:views="clr-namespace:App.Views">
 
     <TabBar>
         <ShellContent
-            Title="Danh sách"
+            Title="{Binding [Shell_List], Source={x:Static services:LocalizationResourceManager.Instance}}"
             ContentTemplate="{DataTemplate views:PoiListPage}" />
 
         <ShellContent
-            Title="Bản đồ"
+            Title="{Binding [Shell_Map], Source={x:Static services:LocalizationResourceManager.Instance}}"
             ContentTemplate="{DataTemplate views:MapPage}" />
 
         <ShellContent
-            Title="QR"
+            Title="{Binding [Shell_QR], Source={x:Static services:LocalizationResourceManager.Instance}}"
             ContentTemplate="{DataTemplate views:QrScanPage}" />
 
         <ShellContent
-            Title="Lịch sử"
+            Title="{Binding [Shell_History], Source={x:Static services:LocalizationResourceManager.Instance}}"
             ContentTemplate="{DataTemplate views:HistoryPage}" />
 
         <ShellContent
-            Title="Cài đặt"
+            Title="{Binding [Shell_Settings], Source={x:Static services:LocalizationResourceManager.Instance}}"
             ContentTemplate="{DataTemplate views:SettingsPage}" />
     </TabBar>
 </Shell>
