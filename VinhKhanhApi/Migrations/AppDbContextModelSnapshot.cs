@@ -171,6 +171,36 @@ namespace VinhKhanhApi.Migrations
                     b.ToTable("PlaybackLogs");
                 });
 
+            modelBuilder.Entity("VinhKhanhApi.Models.RoutePingModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("Lat")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Lng")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Nguon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ThoiGian")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoutePings");
+                });
+
             modelBuilder.Entity("VinhKhanhApi.Models.UserAccountModel", b =>
                 {
                     b.Property<int>("Id")
