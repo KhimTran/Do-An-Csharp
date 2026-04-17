@@ -1,6 +1,9 @@
+@using System.Linq
 @model IEnumerable<dynamic>
 @{
     ViewData["Title"] = "Thống kê";
+    var lichSu = ViewData["LichSuSuDung"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var heatmap = ViewData["Heatmap"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 <h1 class="page-title">Thống kê nghe thuyết minh</h1>
@@ -35,6 +38,68 @@
                     <td>@row.TenPoi</td>
                     <td><span class="badge-pill badge-priority">@row.SoLan</span></td>
                 </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="page-title" style="font-size:1.2rem;margin-top:18px;">Lịch sử sử dụng (100 lượt gần nhất)</h2>
+<div class="vk-table-wrap">
+    <table class="vk-table">
+        <thead>
+            <tr>
+                <th>Thời gian (UTC)</th>
+                <th>POI</th>
+                <th>Nguồn</th>
+                <th>Thời lượng (giây)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!lichSu.Any())
+            {
+                <tr><td colspan="4">Chưa có dữ liệu lịch sử nghe.</td></tr>
+            }
+            else
+            {
+                foreach (var row in lichSu)
+                {
+                    <tr>
+                        <td>@row.ThoiGianNghe</td>
+                        <td>@row.PoiTen</td>
+                        <td>@row.Nguon</td>
+                        <td>@row.ThoiLuongGiay</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="page-title" style="font-size:1.2rem;margin-top:18px;">Heatmap điểm di chuyển ẩn danh</h2>
+<div class="vk-table-wrap">
+    <table class="vk-table">
+        <thead>
+            <tr>
+                <th>Lat</th>
+                <th>Lng</th>
+                <th>Số lượt xuất hiện</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!heatmap.Any())
+            {
+                <tr><td colspan="3">Chưa có dữ liệu route ping.</td></tr>
+            }
+            else
+            {
+                foreach (var row in heatmap)
+                {
+                    <tr>
+                        <td>@row.Lat</td>
+                        <td>@row.Lng</td>
+                        <td><span class="badge-pill badge-priority">@row.SoLuot</span></td>
+                    </tr>
+                }
             }
         </tbody>
     </table>
