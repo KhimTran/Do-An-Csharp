@@ -14,6 +14,7 @@
         public string? TenFileAudio_Vi { get; set; }
         public string? TenFileAudio_En { get; set; }
         public string? TenFileAudio_Zh { get; set; }
+        public string? TenFileAnhMinhHoa { get; set; }
 
         // --- Dữ liệu chủ quán cập nhật (local user scope) ---
         public string? SoDienThoai { get; set; }

@@ -37,7 +37,8 @@ namespace VinhKhanhApi.Controllers
                 MoTa_Zh = poi.MoTa_Zh,
                 TenFileAudio_Vi = poi.TenFileAudio_Vi,
                 TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa
             };
 
             return View(vm);
@@ -59,6 +60,7 @@ namespace VinhKhanhApi.Controllers
             poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, poi.TenFileAudio_Vi);
             poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, poi.TenFileAudio_En);
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, poi.TenFileAudio_Zh);
+            poi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.TenFileAnhMinhHoa);
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync();
@@ -76,6 +78,21 @@ namespace VinhKhanhApi.Controllers
 
             var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
             var duongDan = Path.Combine(thuMucAudio, tenMoi);
+
+            await using var stream = System.IO.File.Create(duongDan);
+            await file.CopyToAsync(stream);
+            return tenMoi;
+        }
+
+        private async Task<string?> LuuFileAnhNeuCo(IFormFile? file, string? fileNameCu)
+        {
+            if (file == null || file.Length == 0) return fileNameCu;
+
+            var thuMucAnh = Path.Combine(_env.WebRootPath, "images", "poi");
+            Directory.CreateDirectory(thuMucAnh);
+
+            var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
+            var duongDan = Path.Combine(thuMucAnh, tenMoi);
 
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);
