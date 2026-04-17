@@ -38,6 +38,39 @@ namespace VinhKhanhApi.Migrations
                     b.Property<double>("Lng")
                         .HasColumnType("float");
 
+                    b.Property<string>("GalleryJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GioDongCua")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GioMoCua")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LyDoTuChoi")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MonDacTrung")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("NgayDeXuat")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NgayDuyet")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NguoiCapNhat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NoiDungDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QrCodeNoiDung")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SoDienThoai")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("MoTa_En")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -63,6 +96,13 @@ namespace VinhKhanhApi.Migrations
                     b.Property<string>("TenFileAudio_Zh")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("TrangThaiDuyet")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TtsVoiceCode")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("UuTien")
                         .HasColumnType("int");
 
@@ -81,6 +121,8 @@ namespace VinhKhanhApi.Migrations
                             MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
                             MoTa_Zh = "著名的顺化牛肉米线餐厅，拥有30年历史。",
                             Ten = "Quán Bún Bò Huế Vĩnh Khánh",
+                            TrangThaiDuyet = "Approved",
+                            TtsVoiceCode = "vi-VN",
                             UuTien = 1
                         },
                         new
@@ -93,6 +135,8 @@ namespace VinhKhanhApi.Migrations
                             MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
                             MoTa_Zh = "第四郡传统市场。",
                             Ten = "Chợ Xóm Chiếu",
+                            TrangThaiDuyet = "Approved",
+                            TtsVoiceCode = "vi-VN",
                             UuTien = 2
                         });
                 });
@@ -125,6 +169,40 @@ namespace VinhKhanhApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PlaybackLogs");
+                });
+
+            modelBuilder.Entity("VinhKhanhApi.Models.UserAccountModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PoiId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserAccounts");
                 });
 #pragma warning restore 612, 618
         }

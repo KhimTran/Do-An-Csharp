@@ -10,6 +10,7 @@ namespace VinhKhanhApi.Data
 
         public DbSet<PoiModel> POIs { get; set; }
         public DbSet<PlaybackLogModel> PlaybackLogs { get; set; }
+        public DbSet<UserAccountModel> UserAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,7 +25,9 @@ namespace VinhKhanhApi.Data
                     Lat = 10.7565,
                     Lng = 106.6896,
                     BanKinh = 50,
-                    UuTien = 1
+                    UuTien = 1,
+                    TrangThaiDuyet = "Approved",
+                    TtsVoiceCode = "vi-VN"
                 },
                 new PoiModel
                 {
@@ -36,7 +39,9 @@ namespace VinhKhanhApi.Data
                     Lat = 10.7580,
                     Lng = 106.6910,
                     BanKinh = 80,
-                    UuTien = 2
+                    UuTien = 2,
+                    TrangThaiDuyet = "Approved",
+                    TtsVoiceCode = "vi-VN"
                 }
             );
         }

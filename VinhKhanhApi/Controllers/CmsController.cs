@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VinhKhanhApi.Data;
@@ -6,6 +7,7 @@ using VinhKhanhApi.ViewModels;
 
 namespace VinhKhanhApi.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class CmsController : Controller
     {
         private readonly AppDbContext _db;
@@ -45,7 +47,19 @@ namespace VinhKhanhApi.Controllers
                 UuTien = poi.UuTien,
                 TenFileAudio_Vi = poi.TenFileAudio_Vi,
                 TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                SoDienThoai = poi.SoDienThoai,
+                GioMoCua = poi.GioMoCua,
+                GioDongCua = poi.GioDongCua,
+                MonDacTrung = poi.MonDacTrung,
+                GalleryJson = poi.GalleryJson,
+                QrCodeNoiDung = poi.QrCodeNoiDung,
+                TtsVoiceCode = poi.TtsVoiceCode,
+                TrangThaiDuyet = poi.TrangThaiDuyet,
+                NoiDungDeXuat = poi.NoiDungDeXuat,
+                NgayDeXuat = poi.NgayDeXuat,
+                NgayDuyet = poi.NgayDuyet,
+                LyDoTuChoi = poi.LyDoTuChoi
             });
         }
 
@@ -76,12 +90,49 @@ namespace VinhKhanhApi.Controllers
             poi.BanKinh = model.BanKinh;
             poi.UuTien = model.UuTien;
 
+            poi.SoDienThoai = model.SoDienThoai;
+            poi.GioMoCua = model.GioMoCua;
+            poi.GioDongCua = model.GioDongCua;
+            poi.MonDacTrung = model.MonDacTrung;
+            poi.GalleryJson = model.GalleryJson;
+            poi.QrCodeNoiDung = model.QrCodeNoiDung;
+            poi.TtsVoiceCode = string.IsNullOrWhiteSpace(model.TtsVoiceCode) ? "vi-VN" : model.TtsVoiceCode;
+            poi.NguoiCapNhat = "admin";
+
             poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, model.TenFileAudio_Vi);
             poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, model.TenFileAudio_En);
             poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
 
             await _db.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Approve(int id, bool approve, string? lyDoTuChoi)
+        {
+            var poi = await _db.POIs.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            if (approve)
+            {
+                if (!string.IsNullOrWhiteSpace(poi.NoiDungDeXuat))
+                    poi.MoTa_Vi = poi.NoiDungDeXuat;
+
+                poi.TrangThaiDuyet = "Approved";
+                poi.LyDoTuChoi = null;
+            }
+            else
+            {
+                poi.TrangThaiDuyet = "Rejected";
+                poi.LyDoTuChoi = lyDoTuChoi;
+            }
+
+            poi.NgayDuyet = DateTime.UtcNow;
+            poi.NguoiCapNhat = "admin";
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Edit), new { id });
         }
 
         [HttpPost]
@@ -95,6 +146,42 @@ namespace VinhKhanhApi.Controllers
                 await _db.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> Users()
+        {
+            var users = await _db.UserAccounts.OrderBy(x => x.Role).ThenBy(x => x.Username).ToListAsync();
+            ViewData["Pois"] = await _db.POIs.OrderBy(x => x.Ten).ToListAsync();
+            return View(users);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateOwnerAccount(string username, string password, int poiId)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                return RedirectToAction(nameof(Users));
+
+            if (await _db.UserAccounts.AnyAsync(x => x.Username == username))
+            {
+                TempData["err"] = "Username đã tồn tại";
+                return RedirectToAction(nameof(Users));
+            }
+
+            _db.UserAccounts.Add(new Models.UserAccountModel
+            {
+                Username = username.Trim(),
+                PasswordHash = Services.PasswordHasher.Hash(password),
+                Role = "Owner",
+                PoiId = poiId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+            TempData["ok"] = "Đã tạo tài khoản chủ quán";
+            return RedirectToAction(nameof(Users));
         }
 
         [HttpGet]
