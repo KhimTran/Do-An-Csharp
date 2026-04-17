@@ -29,26 +29,6 @@ namespace App.Services
 
         private static IEnumerable<string> LayDanhSachBaseUrlCanThu()
         {
-            var customPoiUrl = Preferences.Get("api_poi_url", string.Empty);
-
-            if (!string.IsNullOrWhiteSpace(customPoiUrl))
-            {
-                Uri? uri = null;
-
-                try
-                {
-                    uri = new Uri(customPoiUrl.Trim());
-                }
-                catch
-                {
-                }
-
-                if (uri != null)
-                {
-                    yield return ChuanHoaBaseUrl($"{uri.Scheme}://{uri.Authority}");
-                }
-            }
-
             foreach (var url in DefaultBaseUrls)
                 yield return ChuanHoaBaseUrl(url);
         }
