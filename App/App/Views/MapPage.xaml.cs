@@ -1,12 +1,14 @@
 using App.Models;
 using App.Services;
 using App.ViewModels;
+using System.Collections;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling;
+using Microsoft.Maui.Storage;
 using NetTopologySuite.Geometries;
 
 using MapsuiBrush = Mapsui.Styles.Brush;
@@ -32,6 +34,7 @@ public partial class MapPage : ContentPage
 
         _vm.OnDaCoiPoi += ThemPinLenBanDo;
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
+        BanDo.Info += async (s, e) => await HienThiThongTinPoiTuSuKienAsync(e);
 
         KhoiTaoBanDo();
     }
@@ -39,12 +42,14 @@ public partial class MapPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        LocalizationResourceManager.Instance.PropertyChanged += OnLocalizationChanged;
         await _vm.KhoiDongAsync();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        LocalizationResourceManager.Instance.PropertyChanged -= OnLocalizationChanged;
         _vm.DungGps();
         _daZoomLanDau = false;
         _daCanhKhungTheoPoi = false;
@@ -85,7 +90,8 @@ public partial class MapPage : ContentPage
                 var pinFeature = new PointFeature(point)
                 {
                     ["Ten"] = poi.Ten,
-                    ["MoTa"] = poi.MoTa_Vi
+                    ["Loai"] = "POI",
+                    ["MoTa"] = ChonMoTaTheoNgonNgu(poi)
                 };
 
                 // Pin POI có viền trắng dày để nổi bật trên nền bản đồ nhiều chi tiết.
@@ -106,6 +112,9 @@ public partial class MapPage : ContentPage
                 var circleGeometry = pointGeom.Buffer(radiusMercator);
 
                 var circleFeature = new GeometryFeature(circleGeometry);
+                circleFeature["Ten"] = poi.Ten;
+                circleFeature["Loai"] = "POI";
+                circleFeature["MoTa"] = ChonMoTaTheoNgonNgu(poi);
                 circleFeature.Styles.Add(new VectorStyle
                 {
                     Fill = new MapsuiBrush(new MapsuiColor(30, 136, 229, 42)),
@@ -125,6 +134,95 @@ public partial class MapPage : ContentPage
             CanhKhungBanDoTheoDanhSachPoiNeuCan();
             BanDo.Refresh();
         });
+    }
+
+    private async Task HienThiThongTinPoiKhiBamAsync(IFeature? feature)
+    {
+        if (feature == null) return;
+        string loai = DocThuocTinhFeature(feature, "Loai");
+        if (!string.Equals(loai, "POI", StringComparison.OrdinalIgnoreCase)) return;
+
+        string ten = DocThuocTinhFeature(feature, "Ten");
+        string moTa = DocThuocTinhFeature(feature, "MoTa");
+        if (string.IsNullOrWhiteSpace(ten)) ten = "POI";
+        if (string.IsNullOrWhiteSpace(moTa)) return;
+
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await DisplayAlert(
+                ten,
+                moTa,
+                LocalizationResourceManager.Instance["Common_Close"]);
+        });
+    }
+
+    private async Task HienThiThongTinPoiTuSuKienAsync(object? eventArgs)
+    {
+        if (eventArgs == null) return;
+        var feature = LayFeatureTuInfoEvent(eventArgs);
+        await HienThiThongTinPoiKhiBamAsync(feature);
+    }
+
+    private static IFeature? LayFeatureTuInfoEvent(object eventArgs)
+    {
+        var eventType = eventArgs.GetType();
+
+        // Một số phiên bản Mapsui có eventArgs.Feature
+        if (eventType.GetProperty("Feature")?.GetValue(eventArgs) is IFeature featureTrucTiep)
+            return featureTrucTiep;
+
+        // Một số phiên bản Mapsui có eventArgs.MapInfo.Feature
+        var mapInfo = eventType.GetProperty("MapInfo")?.GetValue(eventArgs);
+        if (mapInfo != null && mapInfo.GetType().GetProperty("Feature")?.GetValue(mapInfo) is IFeature featureTrongMapInfo)
+            return featureTrongMapInfo;
+
+        // Một số phiên bản trả tập hợp eventArgs.MapInfos[]
+        if (eventType.GetProperty("MapInfos")?.GetValue(eventArgs) is IEnumerable mapInfos)
+        {
+            foreach (var item in mapInfos)
+            {
+                if (item?.GetType().GetProperty("Feature")?.GetValue(item) is IFeature featureTuDanhSach)
+                    return featureTuDanhSach;
+            }
+        }
+
+        return null;
+    }
+
+    private void LamMoiMoTaPoiTheoNgonNgu()
+    {
+        if (_danhSachPoiHienTai.Count == 0) return;
+        ThemPinLenBanDo(_danhSachPoiHienTai.ToList());
+    }
+
+    private static string DocThuocTinhFeature(IFeature feature, string key)
+    {
+        try
+        {
+            return feature[key]?.ToString() ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string ChonMoTaTheoNgonNgu(PoiModel poi)
+    {
+        string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
+
+        if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
+
+        if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
+
+        return poi.MoTa_Vi;
+    }
+
+    private void OnLocalizationChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        LamMoiMoTaPoiTheoNgonNgu();
     }
 
     private void CapNhatViTriBanDo(double lat, double lng)
