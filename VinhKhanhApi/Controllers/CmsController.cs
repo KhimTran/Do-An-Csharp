@@ -148,7 +148,7 @@ namespace VinhKhanhApi.Controllers
             {
                 _db.POIs.Remove(poi);
                 await _db.SaveChangesAsync();
-                await ResequencePoiIdsAsync();
+                await DongBoQrCodeTheoIdAsync();
             }
             return RedirectToAction(nameof(Index));
         }
@@ -231,5 +231,9 @@ namespace VinhKhanhApi.Controllers
             await _db.Database.ExecuteSqlRawAsync(
                 "UPDATE [POIs] SET [QrCodeNoiDung] = CONCAT('poi:', [Id]) WHERE [QrCodeNoiDung] IS NULL OR [QrCodeNoiDung] = '' OR [QrCodeNoiDung] LIKE 'poi:%'");
         }
+
+        // Backward-compatible aliases to avoid CS0103 if older call sites still exist.
+        private Task DongBoOrCodeTheoIdAsync(int? poiId = null) => DongBoQrCodeTheoIdAsync(poiId);
+        private Task ResequencePoiIdsAsync() => DongBoQrCodeTheoIdAsync();
     }
 }
