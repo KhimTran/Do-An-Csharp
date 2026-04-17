@@ -3,6 +3,7 @@ using App.Services;
 using App.ViewModels;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Maps;
 using Microsoft.Maui.Storage;
 
 namespace App.Views;
