@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Maui.Media;
@@ -13,6 +14,7 @@ namespace App.Services
         private CancellationTokenSource? _cts;
         private readonly ConcurrentQueue<(string VanBan, string MaNgonNgu)> _hangDoi = new();
         private readonly SemaphoreSlim _khoaXuLyHangDoi = new(1, 1);
+        private Locale[]? _boNhoGiongNoi;
 
         public bool DangPhat { get; private set; } = false;
 
@@ -20,7 +22,6 @@ namespace App.Services
         {
             if (string.IsNullOrWhiteSpace(vanBan)) return;
 
-            // Nếu nơi gọi không truyền hoặc truyền rỗng thì lấy từ Preferences
             if (string.IsNullOrWhiteSpace(maNgonNgu))
                 maNgonNgu = Preferences.Get("tts_language", "vi-VN");
 
@@ -43,20 +44,22 @@ namespace App.Services
                 {
                     try
                     {
-                        var tatCaGiong = await TextToSpeech.GetLocalesAsync();
-                        var giongPhuHop = tatCaGiong.FirstOrDefault(g =>
-                            g.Language.StartsWith(
-                                item.MaNgonNgu.Split('-')[0],
-                                StringComparison.OrdinalIgnoreCase));
+                        var giongPhuHop = await TimGiongNoiPhuHopAsync(item.MaNgonNgu);
+                        var vanBanDaLamSach = LamSachVanBan(item.VanBan);
+
+                        if (string.IsNullOrWhiteSpace(vanBanDaLamSach))
+                            continue;
 
                         var tuyChinh = new SpeechOptions
                         {
-                            Volume = 1.0f,
-                            Pitch = 1.0f,
+                            // Giảm nhẹ volume/pitch để hạn chế hiện tượng rè trên loa điện thoại.
+                            Volume = 0.9f,
+                            Pitch = 0.95f,
                             Locale = giongPhuHop
                         };
 
-                        await TextToSpeech.SpeakAsync(item.VanBan, tuyChinh, _cts.Token);
+                        await TextToSpeech.SpeakAsync(vanBanDaLamSach, tuyChinh, _cts.Token);
+                        await Task.Delay(120, _cts.Token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -82,6 +85,35 @@ namespace App.Services
             _cts?.Dispose();
             _cts = null;
             DangPhat = false;
+        }
+
+        private async Task<Locale?> TimGiongNoiPhuHopAsync(string maNgonNgu)
+        {
+            _boNhoGiongNoi ??= (await TextToSpeech.GetLocalesAsync()).ToArray();
+
+            string maDayDu = ChuanHoaMaNgonNgu(maNgonNgu);
+            string maNgan = maDayDu.Split('-')[0];
+
+            return _boNhoGiongNoi.FirstOrDefault(g =>
+                       string.Equals(g.Language, maDayDu, StringComparison.OrdinalIgnoreCase))
+                   ?? _boNhoGiongNoi.FirstOrDefault(g =>
+                       g.Language.StartsWith(maNgan, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string ChuanHoaMaNgonNgu(string maNgonNgu)
+        {
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en-US";
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
+            return "vi-VN";
+        }
+
+        private static string LamSachVanBan(string vanBan)
+        {
+            string ketQua = vanBan.Trim();
+            ketQua = ketQua.Replace("\r\n", ". ").Replace('\n', ' ');
+            ketQua = Regex.Replace(ketQua, @"\s+", " ");
+            ketQua = Regex.Replace(ketQua, @"[^\p{L}\p{N}\p{P}\p{Zs}]", string.Empty);
+            return ketQua.Trim();
         }
     }
 }
