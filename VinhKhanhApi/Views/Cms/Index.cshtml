@@ -38,7 +38,6 @@
                 <th>Tọa độ</th>
                 <th>Bán kính</th>
                 <th>Ưu tiên</th>
-                <th>Duyệt</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
@@ -55,7 +54,6 @@
                     <td>Lat: @item.Lat<br />Lng: @item.Lng</td>
                     <td>@item.BanKinh m</td>
                     <td><span class="badge-pill badge-priority">@item.UuTien</span></td>
-                    <td><span class="badge-pill @(item.TrangThaiDuyet == "Pending" ? "badge-pending" : item.TrangThaiDuyet == "Rejected" ? "badge-rejected" : "badge-approved")">@item.TrangThaiDuyet</span></td>
                     <td>
                         <a class="vk-btn warning" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
                         <form asp-action="Delete" asp-controller="Cms" method="post" style="display:inline">
