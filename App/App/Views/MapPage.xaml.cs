@@ -34,9 +34,7 @@ public partial class MapPage : ContentPage
 
         _vm.OnDaCoiPoi += ThemPinLenBanDo;
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
-        var tapGesture = new TapGestureRecognizer();
-        tapGesture.Tapped += BanDo_Tapped;
-        BanDo.GestureRecognizers.Add(tapGesture);
+        BanDo.Info += async (s, e) => await HienThiThongTinPoiTuSuKienAsync(e);
 
         KhoiTaoBanDo();
     }
@@ -158,44 +156,34 @@ public partial class MapPage : ContentPage
         });
     }
 
-    private async void BanDo_Tapped(object? sender, TappedEventArgs e)
+    private async Task HienThiThongTinPoiTuSuKienAsync(object? eventArgs)
     {
-        var viTriCham = e.GetPosition(BanDo);
-        if (viTriCham == null) return;
-        if (_danhSachPoiHienTai.Count == 0) return;
+        if (eventArgs == null) return;
+        var feature = LayFeatureTuInfoEvent(eventArgs);
+        await HienThiThongTinPoiKhiBamAsync(feature);
+    }
 
-        var viewport = _map.Navigator.Viewport;
-        var worldPoint = viewport.ScreenToWorld(viTriCham.Value.X, viTriCham.Value.Y);
+    private static IFeature? LayFeatureTuInfoEvent(object eventArgs)
+    {
+        var eventType = eventArgs.GetType();
 
-        PoiModel? poiGanNhat = null;
-        double khoangCachNhoNhat = double.MaxValue;
+        if (eventType.GetProperty("Feature")?.GetValue(eventArgs) is IFeature featureTrucTiep)
+            return featureTrucTiep;
 
-        foreach (var poi in _danhSachPoiHienTai)
+        var mapInfo = eventType.GetProperty("MapInfo")?.GetValue(eventArgs);
+        if (mapInfo != null && mapInfo.GetType().GetProperty("Feature")?.GetValue(mapInfo) is IFeature featureTrongMapInfo)
+            return featureTrongMapInfo;
+
+        if (eventType.GetProperty("MapInfos")?.GetValue(eventArgs) is IEnumerable mapInfos)
         {
-            var (xPoi, yPoi) = SphericalMercator.FromLonLat(poi.Lng, poi.Lat);
-            var dx = xPoi - worldPoint.X;
-            var dy = yPoi - worldPoint.Y;
-            double khoangCach = Math.Sqrt(dx * dx + dy * dy);
-
-            if (khoangCach < khoangCachNhoNhat)
+            foreach (var item in mapInfos)
             {
-                khoangCachNhoNhat = khoangCach;
-                poiGanNhat = poi;
+                if (item?.GetType().GetProperty("Feature")?.GetValue(item) is IFeature featureTuDanhSach)
+                    return featureTuDanhSach;
             }
         }
 
-        // Ngưỡng chọn điểm: ~26 px quanh pin đỏ để người dùng chạm dễ hơn.
-        double nguongChon = _map.Navigator.Resolution * 26;
-        if (poiGanNhat == null || khoangCachNhoNhat > nguongChon) return;
-
-        var featureGia = new PointFeature(new MPoint(worldPoint.X, worldPoint.Y))
-        {
-            ["Loai"] = "POI",
-            ["Ten"] = poiGanNhat.Ten,
-            ["MoTa"] = ChonMoTaTheoNgonNgu(poiGanNhat)
-        };
-
-        await HienThiThongTinPoiKhiBamAsync(featureGia);
+        return null;
     }
 
     private void LamMoiMoTaPoiTheoNgonNgu()
