@@ -9,9 +9,8 @@ namespace App.ViewModels
     public partial class PoiListViewModel : ObservableObject
     {
         private readonly LocalDatabase _db;
-        private readonly SyncService _sync; // 1. Khai báo thêm SyncService
+        private readonly SyncService _sync;
 
-        // 2. Tiêm SyncService vào constructor
         public PoiListViewModel(LocalDatabase db, SyncService sync)
         {
             _db = db;
@@ -29,20 +28,18 @@ namespace App.ViewModels
             {
                 DangTai = true;
 
-                // 3. Gọi đồng bộ dữ liệu từ server về SQLite trước
-                ThongBao = "Đang đồng bộ dữ liệu từ Server...";
+                ThongBao = LocalizationResourceManager.Instance["PoiSync_Start"];
                 bool daDongBo = await _sync.DongBoPoisAsync();
 
-                // 4. Sau đó mới load dữ liệu từ SQLite lên giao diện
                 var ds = await _db.LayTatCaPoiAsync();
                 DanhSachPoi = new ObservableCollection<PoiModel>(ds);
                 ThongBao = daDongBo
-                    ? $"Đã tải {DanhSachPoi.Count} điểm thuyết minh (đã đồng bộ server)"
-                    : $"Đã tải {DanhSachPoi.Count} điểm thuyết minh (offline/API lỗi: {_sync.LastError})";
+                    ? LocalizationResourceManager.Instance.Translate("PoiSync_Done", DanhSachPoi.Count)
+                    : LocalizationResourceManager.Instance.Translate("PoiSync_Offline", DanhSachPoi.Count, _sync.LastError);
             }
             catch (Exception ex)
             {
-                ThongBao = $"Lỗi: {ex.Message}";
+                ThongBao = LocalizationResourceManager.Instance.Translate("Common_Error", ex.Message);
             }
             finally
             {
