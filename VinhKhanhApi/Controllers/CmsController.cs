@@ -232,8 +232,38 @@ namespace VinhKhanhApi.Controllers
                 .Take(10)
                 .ToList();
 
+            var lichSuSuDung = logs
+                .OrderByDescending(x => x.ThoiGianNghe)
+                .Take(100)
+                .Select(x => new
+                {
+                    x.PoiTen,
+                    x.Nguon,
+                    x.ThoiLuongGiay,
+                    x.ThoiGianNghe
+                })
+                .ToList();
+
+            var heatmap = await _db.RoutePings
+                .GroupBy(x => new
+                {
+                    Lat = Math.Round(x.Lat, 4),
+                    Lng = Math.Round(x.Lng, 4)
+                })
+                .Select(g => new
+                {
+                    g.Key.Lat,
+                    g.Key.Lng,
+                    SoLuot = g.Count()
+                })
+                .OrderByDescending(x => x.SoLuot)
+                .Take(100)
+                .ToListAsync();
+
             ViewData["TongLuotNghe"] = logs.Count;
             ViewData["ThoiLuongTrungBinh"] = logs.Count == 0 ? 0 : logs.Average(x => x.ThoiLuongGiay);
+            ViewData["LichSuSuDung"] = lichSuSuDung;
+            ViewData["Heatmap"] = heatmap;
             return View(topPoi);
         }
 

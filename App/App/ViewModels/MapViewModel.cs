@@ -111,6 +111,8 @@ namespace App.ViewModels
                     });
                 }
 
+                _ = _analytics.GuiRoutePingAsync(lat, lng, "GPS");
+
                 bool forceReread = Preferences.Get("force_reread_once", false);
 
                 if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
