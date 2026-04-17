@@ -112,6 +112,9 @@ public partial class MapPage : ContentPage
                 var circleGeometry = pointGeom.Buffer(radiusMercator);
 
                 var circleFeature = new GeometryFeature(circleGeometry);
+                circleFeature["Ten"] = poi.Ten;
+                circleFeature["Loai"] = "POI";
+                circleFeature["MoTa"] = ChonMoTaTheoNgonNgu(poi);
                 circleFeature.Styles.Add(new VectorStyle
                 {
                     Fill = new MapsuiBrush(new MapsuiColor(30, 136, 229, 42)),
