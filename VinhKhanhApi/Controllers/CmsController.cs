@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
 using VinhKhanhApi.Data;
 using VinhKhanhApi.Models;
 using VinhKhanhApi.ViewModels;
@@ -112,35 +111,6 @@ namespace VinhKhanhApi.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Approve(int id, bool approve, string? lyDoTuChoi)
-        {
-            var poi = await _db.POIs.FindAsync(id);
-            if (poi == null) return NotFound();
-
-            if (approve)
-            {
-                if (!string.IsNullOrWhiteSpace(poi.NoiDungDeXuat))
-                    poi.MoTa_Vi = poi.NoiDungDeXuat;
-
-                poi.TrangThaiDuyet = "Approved";
-                poi.LyDoTuChoi = null;
-                poi.NoiDungDeXuat = null;
-            }
-            else
-            {
-                poi.TrangThaiDuyet = "Rejected";
-                poi.LyDoTuChoi = lyDoTuChoi;
-            }
-
-            poi.NgayDuyet = DateTime.UtcNow;
-            poi.NguoiCapNhat = "admin";
-            await _db.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Edit), new { id });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             var poi = await _db.POIs.FindAsync(id);
@@ -148,7 +118,7 @@ namespace VinhKhanhApi.Controllers
             {
                 _db.POIs.Remove(poi);
                 await _db.SaveChangesAsync();
-                await ResequencePoiIdsAsync();
+                await DongBoQrCodeTheoIdAsync();
             }
             return RedirectToAction(nameof(Index));
         }

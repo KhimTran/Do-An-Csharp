@@ -10,7 +10,7 @@
     <input asp-for="Id" type="hidden" />
 
     <div class="mb-3"><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
-    <div class="mb-3"><label>Mô tả VI (nội dung chính đã duyệt)</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
+    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
     <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
 
@@ -56,35 +56,3 @@
     <button type="submit" class="vk-btn primary">Lưu</button>
     <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
 </form>
-
-@if (!string.IsNullOrWhiteSpace(Model.NoiDungDeXuat))
-{
-    <section class="vk-form mt-3">
-        <h4>Yêu cầu duyệt từ chủ quán</h4>
-        <div class="alert alert-warning">
-            <div><strong>Trạng thái:</strong> @Model.TrangThaiDuyet</div>
-            <div><strong>Nội dung đề xuất:</strong> @Model.NoiDungDeXuat</div>
-            @if (!string.IsNullOrWhiteSpace(Model.LyDoTuChoi))
-            {
-                <div><strong>Lý do từ chối:</strong> @Model.LyDoTuChoi</div>
-            }
-        </div>
-
-        <div class="d-flex gap-2 flex-wrap">
-            <form asp-action="Approve" asp-controller="Cms" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <input type="hidden" name="approve" value="true" />
-                <button type="submit" class="vk-btn primary">Duyệt nội dung</button>
-            </form>
-
-            <form asp-action="Approve" asp-controller="Cms" method="post" class="d-flex gap-2 flex-wrap">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <input type="hidden" name="approve" value="false" />
-                <input type="text" name="lyDoTuChoi" class="form-control approve-reason" placeholder="Lý do từ chối" />
-                <button type="submit" class="vk-btn danger">Từ chối</button>
-            </form>
-        </div>
-    </section>
-}
