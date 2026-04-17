@@ -3,21 +3,22 @@
     x:Class="App.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="Cài đặt">
+    xmlns:services="clr-namespace:App.Services"
+    Title="{Binding [SettingsPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
 
-            <Label Text="Cài đặt ứng dụng"
+            <Label Text="{Binding [SettingsPage_Header], Source={x:Static services:LocalizationResourceManager.Instance}}"
                    FontSize="22"
                    FontAttributes="Bold" />
 
             <Frame Padding="16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Ngôn ngữ thuyết minh"
+                    <Label Text="{Binding [SettingsPage_Language], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
                     <Picker x:Name="NgonNguPicker"
-                            Title="Chọn ngôn ngữ">
+                            Title="{Binding [SettingsPage_LanguagePicker], Source={x:Static services:LocalizationResourceManager.Instance}}">
                         <Picker.Items>
                             <x:String>Tiếng Việt</x:String>
                             <x:String>English</x:String>
@@ -29,7 +30,7 @@
 
             <Frame Padding="16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Bán kính geofence"
+                    <Label Text="{Binding [SettingsPage_Radius], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
                     <Label x:Name="BanKinhLabel"
                            Text="50 m" />
@@ -43,24 +44,24 @@
 
             <Frame Padding="16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Offline mode"
+                    <Label Text="{Binding [SettingsPage_Offline], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
                     <HorizontalStackLayout Spacing="12">
                         <Switch x:Name="OfflineSwitch" />
-                        <Label Text="Chỉ dùng dữ liệu local khi không có mạng"
+                        <Label Text="{Binding [SettingsPage_OfflineHint], Source={x:Static services:LocalizationResourceManager.Instance}}"
                                VerticalOptions="Center" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
-            <Label Text="Ứng dụng sẽ tự dùng endpoint đồng bộ mặc định để tránh gây rối cho khách du lịch."
+            <Label Text="{Binding [SettingsPage_Info], Source={x:Static services:LocalizationResourceManager.Instance}}"
                    FontSize="12"
                    TextColor="Gray" />
 
-            <Button Text="Lưu"
+            <Button Text="{Binding [SettingsPage_Save], Source={x:Static services:LocalizationResourceManager.Instance}}"
                     Clicked="LuuButton_Clicked" />
 
-            <Button Text="Khôi phục mặc định"
+            <Button Text="{Binding [SettingsPage_Reset], Source={x:Static services:LocalizationResourceManager.Instance}}"
                     Clicked="MacDinhButton_Clicked" />
 
         </VerticalStackLayout>

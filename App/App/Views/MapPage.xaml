@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
-    Title="Bản đồ Vĩnh Khánh">
+    xmlns:services="clr-namespace:App.Services"
+    Title="{Binding [MapPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
 
     <Grid RowDefinitions="*,Auto">
         <mapsui:MapControl x:Name="BanDo" Grid.Row="0" />
@@ -19,19 +20,19 @@
             BorderColor="#22000000"
             CornerRadius="10">
             <VerticalStackLayout Spacing="2">
-                <Label Text="🗺️ Chú thích bản đồ" FontAttributes="Bold" FontSize="12" />
-                <Label Text="🔵 Bạn đang ở đây" FontSize="12" />
-                <Label Text="🔴 POI ẩm thực" FontSize="12" />
-                <Label Text="🟠 Điểm đến gần nhất" FontSize="12" />
-                <Label Text="🟦 Tuyến gợi ý" FontSize="12" />
+                <Label Text="{Binding [MapPage_LegendTitle], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" FontSize="12" />
+                <Label Text="{Binding [MapPage_LegendUser], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
+                <Label Text="{Binding [MapPage_LegendPoi], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
+                <Label Text="{Binding [MapPage_LegendNearest], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
+                <Label Text="{Binding [MapPage_LegendRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" FontSize="12" />
             </VerticalStackLayout>
         </Frame>
 
         <Frame Grid.Row="1" Margin="12" Padding="12">
             <VerticalStackLayout Spacing="6">
-                <Label Text="Điểm gần nhất &amp; tuyến gợi ý" FontAttributes="Bold" />
+                <Label Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" FontAttributes="Bold" />
                 <Label Text="{Binding TenPoiGanNhat}" />
-                <Label Text="{Binding KhoangCachGanNhat, StringFormat='Khoảng cách: {0:F0} m'}" />
+                <Label Text="{Binding KhoangCachGanNhat, StringFormat='{}{0:F0} m'}" />
             </VerticalStackLayout>
         </Frame>
     </Grid>

@@ -1,5 +1,6 @@
 ﻿using App.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Storage;
 
 namespace App
 {
@@ -8,6 +9,10 @@ namespace App
         public App(SyncService sync)
         {
             InitializeComponent();
+
+            string appLanguage = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
+            LocalizationResourceManager.Instance.SetLanguage(appLanguage);
+
             // Chạy đồng bộ POI ngầm khi app khởi động
             // Không await để không chặn UI
             Task.Run(async () => await sync.DongBoPoisAsync());
