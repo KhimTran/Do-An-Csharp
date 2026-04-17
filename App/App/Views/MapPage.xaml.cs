@@ -23,10 +23,12 @@ public partial class MapPage : ContentPage
     private readonly List<Pin> _pinsPoi = new();
     private readonly List<Circle> _vungPoi = new();
 
-    private Pin? _pinViTriNguoiDung;
-    private Pin? _pinDiemDich;
+    private Circle? _vungSangViTriNguoiDung;
+    private Circle? _chamViTriNguoiDung;
     private Polyline? _tuyenDuongNen;
     private Polyline? _tuyenDuongChinh;
+    private PoiModel? _poiDangTracking;
+    private Location? _viTriNguoiDungHienTai;
 
     public MapPage(MapViewModel vm)
     {
@@ -121,10 +123,24 @@ public partial class MapPage : ContentPage
         if (sender is not Pin pin || string.IsNullOrWhiteSpace(pin.Address))
             return;
 
-        await DisplayAlert(
+        var poiDuocChon = TimPoiTheoPin(pin);
+
+        bool muonTracking = await DisplayAlert(
             string.IsNullOrWhiteSpace(pin.Label) ? "POI" : pin.Label,
             pin.Address,
+            "Tracking",
             LocalizationResourceManager.Instance["Common_Close"]);
+
+        if (!muonTracking || poiDuocChon == null)
+            return;
+
+        _poiDangTracking = poiDuocChon;
+
+        if (_viTriNguoiDungHienTai != null)
+        {
+            VeTuyenDuongDenPoi(_viTriNguoiDungHienTai, poiDuocChon);
+            CanhKhungTheoNguoiDungVaPoi(_viTriNguoiDungHienTai, poiDuocChon);
+        }
     }
 
     private void LamMoiMoTaPoiTheoNgonNgu()
@@ -184,24 +200,38 @@ public partial class MapPage : ContentPage
         MainThread.BeginInvokeOnMainThread(() =>
         {
             var viTriNguoiDung = new Location(lat, lng);
+            _viTriNguoiDungHienTai = viTriNguoiDung;
 
-            if (_pinViTriNguoiDung == null)
+            if (_vungSangViTriNguoiDung == null || _chamViTriNguoiDung == null)
             {
-                _pinViTriNguoiDung = new Pin
+                _vungSangViTriNguoiDung = new Circle
                 {
-                    Label = LocalizationResourceManager.Instance["MapPage_LegendUser"],
-                    Type = PinType.SavedPin,
-                    Location = viTriNguoiDung
+                    Center = viTriNguoiDung,
+                    Radius = Distance.FromMeters(14),
+                    StrokeColor = Color.FromRgba(66, 133, 244, 80),
+                    StrokeWidth = 1,
+                    FillColor = Color.FromRgba(66, 133, 244, 45)
                 };
-                BanDo.Pins.Add(_pinViTriNguoiDung);
+
+                _chamViTriNguoiDung = new Circle
+                {
+                    Center = viTriNguoiDung,
+                    Radius = Distance.FromMeters(4),
+                    StrokeColor = Colors.White,
+                    StrokeWidth = 2,
+                    FillColor = Color.FromArgb("#4285F4")
+                };
+
+                BanDo.MapElements.Add(_vungSangViTriNguoiDung);
+                BanDo.MapElements.Add(_chamViTriNguoiDung);
             }
             else
             {
-                _pinViTriNguoiDung.Location = viTriNguoiDung;
-                _pinViTriNguoiDung.Label = LocalizationResourceManager.Instance["MapPage_LegendUser"];
+                _vungSangViTriNguoiDung.Center = viTriNguoiDung;
+                _chamViTriNguoiDung.Center = viTriNguoiDung;
             }
 
-            VeTuyenDuongDenPoiGanNhat(lat, lng);
+            CapNhatTuyenDuong(lat, lng);
 
             if (!_daZoomLanDau)
             {
@@ -215,7 +245,30 @@ public partial class MapPage : ContentPage
         });
     }
 
-    private void VeTuyenDuongDenPoiGanNhat(double latNguoiDung, double lngNguoiDung)
+    private void CapNhatTuyenDuong(double latNguoiDung, double lngNguoiDung)
+    {
+        if (_danhSachPoiHienTai.Count == 0)
+            return;
+
+        var viTriNguoiDung = new Location(latNguoiDung, lngNguoiDung);
+        var diemDich = _poiDangTracking ?? TimPoiGanNhat(latNguoiDung, lngNguoiDung);
+
+        if (diemDich == null)
+            return;
+
+        if (_poiDangTracking != null && !_danhSachPoiHienTai.Any(p => p.Id == _poiDangTracking.Id))
+        {
+            _poiDangTracking = null;
+            diemDich = TimPoiGanNhat(latNguoiDung, lngNguoiDung);
+
+            if (diemDich == null)
+                return;
+        }
+
+        VeTuyenDuongDenPoi(viTriNguoiDung, diemDich);
+    }
+
+    private void VeTuyenDuongDenPoi(Location viTriNguoiDung, PoiModel poi)
     {
         if (_tuyenDuongNen != null)
             BanDo.MapElements.Remove(_tuyenDuongNen);
@@ -223,21 +276,7 @@ public partial class MapPage : ContentPage
         if (_tuyenDuongChinh != null)
             BanDo.MapElements.Remove(_tuyenDuongChinh);
 
-        if (_pinDiemDich != null)
-            BanDo.Pins.Remove(_pinDiemDich);
-
-        if (_danhSachPoiHienTai.Count == 0)
-            return;
-
-        var poiGanNhat = _danhSachPoiHienTai
-            .OrderBy(p => GeofenceService.TinhKhoangCachMetres(latNguoiDung, lngNguoiDung, p.Lat, p.Lng))
-            .FirstOrDefault();
-
-        if (poiGanNhat == null)
-            return;
-
-        var viTriNguoiDung = new Location(latNguoiDung, lngNguoiDung);
-        var viTriPoi = new Location(poiGanNhat.Lat, poiGanNhat.Lng);
+        var viTriPoi = new Location(poi.Lat, poi.Lng);
 
         _tuyenDuongNen = new Polyline
         {
@@ -253,16 +292,8 @@ public partial class MapPage : ContentPage
             Geopath = { viTriNguoiDung, viTriPoi }
         };
 
-        _pinDiemDich = new Pin
-        {
-            Label = poiGanNhat.Ten,
-            Type = PinType.SearchResult,
-            Location = viTriPoi
-        };
-
         BanDo.MapElements.Add(_tuyenDuongNen);
         BanDo.MapElements.Add(_tuyenDuongChinh);
-        BanDo.Pins.Add(_pinDiemDich);
     }
 
     private void CanhKhungBanDoTheoDanhSachPoiNeuCan()
@@ -299,5 +330,36 @@ public partial class MapPage : ContentPage
             (maxLng - minLng) * 1.35));
 
         _daCanhKhungTheoPoi = true;
+    }
+
+    private PoiModel? TimPoiTheoPin(Pin pin)
+    {
+        const double nguongSaiSoDo = 0.00002;
+        return _danhSachPoiHienTai.FirstOrDefault(p =>
+            Math.Abs(p.Lat - pin.Location.Latitude) < nguongSaiSoDo &&
+            Math.Abs(p.Lng - pin.Location.Longitude) < nguongSaiSoDo &&
+            string.Equals(p.Ten, pin.Label, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private PoiModel? TimPoiGanNhat(double latNguoiDung, double lngNguoiDung)
+    {
+        return _danhSachPoiHienTai
+            .OrderBy(p => GeofenceService.TinhKhoangCachMetres(latNguoiDung, lngNguoiDung, p.Lat, p.Lng))
+            .FirstOrDefault();
+    }
+
+    private void CanhKhungTheoNguoiDungVaPoi(Location viTriNguoiDung, PoiModel poi)
+    {
+        var minLat = Math.Min(viTriNguoiDung.Latitude, poi.Lat);
+        var maxLat = Math.Max(viTriNguoiDung.Latitude, poi.Lat);
+        var minLng = Math.Min(viTriNguoiDung.Longitude, poi.Lng);
+        var maxLng = Math.Max(viTriNguoiDung.Longitude, poi.Lng);
+
+        const double minSpan = 0.0035;
+        var latSpan = Math.Max(maxLat - minLat, minSpan) * 1.4;
+        var lngSpan = Math.Max(maxLng - minLng, minSpan) * 1.4;
+
+        var center = new Location((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+        BanDo.MoveToRegion(new MapSpan(center, latSpan, lngSpan));
     }
 }
