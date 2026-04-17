@@ -58,11 +58,7 @@ namespace App.Services
                         if (danhSach == null)
                             continue;
 
-                        foreach (var poi in danhSach)
-                            await _db.LuuPoiAsync(poi);
-
-                        var serverIds = danhSach.Select(p => p.Id).ToList();
-                        await _db.XoaNhungPoiKhongConTrenServerAsync(serverIds);
+                        await _db.ThayTheTatCaPoiAsync(danhSach);
 
                         return true;
                     }
@@ -83,5 +79,6 @@ namespace App.Services
                 return false;
             }
         }
+
     }
 }

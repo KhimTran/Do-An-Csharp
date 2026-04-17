@@ -41,6 +41,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
     await DamBaoCotPoiMoiAsync(db);
+    await ChuanHoaToaDoPoiLechAsync(db);
     await DamBaoBangTaiKhoanAsync(db);
 }
 
@@ -117,4 +118,16 @@ BEGIN
     INSERT INTO UserAccounts (Username, PasswordHash, Role, PoiId, IsActive)
     VALUES ('owner1', {ownerHash}, 'Owner', 1, 1);
 END");
+}
+
+static async Task ChuanHoaToaDoPoiLechAsync(AppDbContext db)
+{
+    // Đồng bộ dữ liệu cũ: một số POI đã nhập lệch xuống trục Võ Văn Kiệt.
+    // Chỉ cập nhật các điểm trong vùng lệch đặc trưng để tránh ảnh hưởng dữ liệu đã đúng.
+    await db.Database.ExecuteSqlRawAsync(@"
+UPDATE POIs
+SET Lat = Lat + 0.0022,
+    Lng = Lng + 0.0142
+WHERE Lat BETWEEN 10.7540 AND 10.7595
+  AND Lng BETWEEN 106.6880 AND 106.6925");
 }

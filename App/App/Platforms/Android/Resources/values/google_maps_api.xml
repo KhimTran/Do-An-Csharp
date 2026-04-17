@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <resources>
     <!-- Set your real Google Maps API key before running on Android -->
-    <string name="google_maps_key">REPLACE_WITH_GOOGLE_MAPS_API_KEY</string>
+    <string name="google_maps_key">AIzaSyDO44drb571xySNggbRApPZ5J3Nb43fS50</string>
 </resources>

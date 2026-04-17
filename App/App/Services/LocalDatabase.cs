@@ -59,24 +59,44 @@ namespace App.Services
             await _db!.InsertAllAsync(new List<PoiModel>
             {
                 new PoiModel {
-                    Ten = "Quán Bún Bò Huế Vĩnh Khánh",
-                    MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
-                    MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                    MoTa_Zh = "著名的顺化牛肉米线餐厅，拥有30年历史。",
-                    Lat = 10.7565,
-                    Lng = 106.6896,
+                    Ten = "Ốc Oanh",
+                    MoTa_Vi = "Quán ốc nổi tiếng lâu năm trên phố ẩm thực Vĩnh Khánh.",
+                    MoTa_En = "A long-standing famous seafood/snail restaurant on Vinh Khanh food street.",
+                    MoTa_Zh = "位于永庆美食街的知名老牌海鲜店。",
+                    Lat = 10.76147422883112,
+                    Lng = 106.70258525764435,
                     BanKinh = 50,
                     UuTien = 1
                 },
                 new PoiModel {
-                    Ten = "Chợ Xóm Chiếu",
-                    MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
-                    MoTa_En = "Traditional market of District 4.",
-                    MoTa_Zh = "第四郡传统市场。",
-                    Lat = 10.7580,
-                    Lng = 106.6910,
-                    BanKinh = 80,
+                    Ten = "Ốc Thảo",
+                    MoTa_Vi = "Quán ốc đông khách trên đường Vĩnh Khánh.",
+                    MoTa_En = "A popular seafood spot on Vinh Khanh street.",
+                    MoTa_Zh = "永庆街上的人气海鲜店。",
+                    Lat = 10.760980,
+                    Lng = 106.703420,
+                    BanKinh = 65,
                     UuTien = 2
+                },
+                new PoiModel {
+                    Ten = "Ốc Vũ",
+                    MoTa_Vi = "Quán ốc mở khuya trong khu ẩm thực Vĩnh Khánh.",
+                    MoTa_En = "A late-night seafood place in Vinh Khanh food area.",
+                    MoTa_Zh = "永庆美食区内营业到深夜的海鲜店。",
+                    Lat = 10.760760,
+                    Lng = 106.703680,
+                    BanKinh = 65,
+                    UuTien = 3
+                },
+                new PoiModel {
+                    Ten = "Ốc Phát",
+                    MoTa_Vi = "Quán ốc quen thuộc với thực khách địa phương.",
+                    MoTa_En = "A familiar seafood eatery for locals.",
+                    MoTa_Zh = "本地食客常去的海鲜店。",
+                    Lat = 10.760420,
+                    Lng = 106.704080,
+                    BanKinh = 65,
+                    UuTien = 4
                 },
             });
         }
@@ -101,6 +121,19 @@ namespace App.Services
         {
             await KhoiTaoAsync();
             return await _db!.InsertOrReplaceAsync(poi);
+        }
+
+        public async Task ThayTheTatCaPoiAsync(List<PoiModel> danhSachMoi)
+        {
+            await KhoiTaoAsync();
+
+            await _db!.RunInTransactionAsync(tran =>
+            {
+                tran.DeleteAll<PoiModel>();
+
+                foreach (var poi in danhSachMoi)
+                    tran.InsertOrReplace(poi);
+            });
         }
 
         public async Task XoaPoiAsync(int id)
