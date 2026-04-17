@@ -17,11 +17,41 @@ namespace App.Services
 
             _db = new SQLiteAsyncConnection(duongDan);
             await _db.CreateTableAsync<PoiModel>();
+            await DamBaoCotMoiPoiAsync();
             await _db.CreateTableAsync<LichSuPhatModel>();
             await _db.CreateTableAsync<AppSettingModel>();
 
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
+        }
+
+        private async Task DamBaoCotMoiPoiAsync()
+        {
+            // SQLite-net không tự ALTER khi model đổi, nên chủ động thêm cột để tương thích phiên bản app mới.
+            string[] lenhAlter =
+            {
+                "ALTER TABLE POIs ADD COLUMN SoDienThoai TEXT",
+                "ALTER TABLE POIs ADD COLUMN GioMoCua TEXT",
+                "ALTER TABLE POIs ADD COLUMN GioDongCua TEXT",
+                "ALTER TABLE POIs ADD COLUMN MonDacTrung TEXT",
+                "ALTER TABLE POIs ADD COLUMN GalleryJson TEXT",
+                "ALTER TABLE POIs ADD COLUMN QrCodeNoiDung TEXT",
+                "ALTER TABLE POIs ADD COLUMN TtsVoiceCode TEXT",
+                "ALTER TABLE POIs ADD COLUMN TrangThaiDuyet TEXT",
+                "ALTER TABLE POIs ADD COLUMN NgayDuyet TEXT"
+            };
+
+            foreach (var sql in lenhAlter)
+            {
+                try
+                {
+                    await _db!.ExecuteAsync(sql);
+                }
+                catch
+                {
+                    // Cột đã tồn tại thì bỏ qua.
+                }
+            }
         }
 
         private async Task ThemDuLieuMau()

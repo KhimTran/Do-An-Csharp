@@ -1,6 +1,7 @@
+using Microsoft.Maui.Devices;
+using Microsoft.Maui.Storage;
 using System.Net.Http.Json;
 using App.Models;
-using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
@@ -9,6 +10,8 @@ namespace App.Services
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
 
+        // Ẩn endpoint khỏi giao diện người dùng cuối.
+        // App sẽ tự thử danh sách endpoint này theo thứ tự.
         private static readonly string[] DefaultApiUrls =
         {
             "http://10.0.2.2:5099/api/pois",
@@ -34,15 +37,6 @@ namespace App.Services
             return url;
         }
 
-        private static IEnumerable<string> LayDanhSachApiCanThu(string? customUrl)
-        {
-            if (!string.IsNullOrWhiteSpace(customUrl))
-                yield return ChuanHoaApiUrl(customUrl.Trim());
-
-            foreach (var url in DefaultApiUrls)
-                yield return ChuanHoaApiUrl(url);
-        }
-
         public async Task<bool> DongBoPoisAsync()
         {
             try
@@ -56,9 +50,7 @@ namespace App.Services
                     return false;
                 }
 
-                var customUrl = Preferences.Get("api_poi_url", string.Empty);
-
-                foreach (var url in LayDanhSachApiCanThu(customUrl).Distinct())
+                foreach (var url in DefaultApiUrls.Select(ChuanHoaApiUrl).Distinct())
                 {
                     try
                     {
