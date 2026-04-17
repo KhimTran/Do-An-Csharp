@@ -1,5 +1,4 @@
 ﻿using App.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Storage;
 
 namespace App
