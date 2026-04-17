@@ -43,10 +43,13 @@
             </tr>
         </thead>
         <tbody>
+            @{
+                var stt = 1;
+            }
             @foreach (var item in Model)
             {
                 <tr>
-                    <td><span class="badge-pill badge-id">#@item.Id</span></td>
+                    <td><span class="badge-pill badge-id">#@stt</span></td>
                     <td><strong>@item.Ten</strong></td>
                     <td>@item.MoTa_Vi</td>
                     <td>Lat: @item.Lat<br />Lng: @item.Lng</td>
@@ -62,6 +65,7 @@
                         </form>
                     </td>
                 </tr>
+                stt++;
             }
         </tbody>
     </table>

@@ -20,7 +20,7 @@ namespace VinhKhanhApi.Controllers
             var query = _db.POIs.AsQueryable();
 
             if (!includePending)
-                query = query.Where(p => p.TrangThaiDuyet != "Rejected");
+                query = query.Where(p => p.TrangThaiDuyet == "Approved");
 
             var danhSach = await query.OrderBy(p => p.UuTien).ToListAsync();
             return Ok(danhSach);
@@ -102,6 +102,7 @@ namespace VinhKhanhApi.Controllers
 
                 poi.TrangThaiDuyet = "Approved";
                 poi.LyDoTuChoi = null;
+                poi.NoiDungDeXuat = null;
             }
             else
             {
