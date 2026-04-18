@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Json;
-using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 
 namespace App.Services
@@ -13,26 +12,12 @@ namespace App.Services
         };
         private DateTime _lanGuiRoutePingCuoi = DateTime.MinValue;
 
-        private static readonly string[] DefaultBaseUrls =
-        {
-            "http://10.0.2.2:5099",   // Android Emulator
-            "http://localhost:5099"   // Windows/local
-        };
-
         public string LastError { get; private set; } = string.Empty;
-
-        private static string ChuanHoaBaseUrl(string url)
-        {
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-                return url.Replace("localhost", "10.0.2.2", StringComparison.OrdinalIgnoreCase);
-
-            return url;
-        }
 
         private static IEnumerable<string> LayDanhSachBaseUrlCanThu()
         {
-            foreach (var url in DefaultBaseUrls)
-                yield return ChuanHoaBaseUrl(url);
+            foreach (var url in ApiEndpointResolver.GetBaseUrls())
+                yield return url;
         }
 
         public async Task<bool> GuiLogAsync(

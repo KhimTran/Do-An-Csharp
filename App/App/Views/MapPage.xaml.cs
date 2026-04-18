@@ -16,14 +16,6 @@ public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
     private static bool _daCanhBaoGoogleMapsKey;
-    private static readonly string[] BaseImageUrls =
-    {
-        "http://10.0.2.2:5099",
-        "http://localhost:5099",
-        "https://10.0.2.2:7099",
-        "https://localhost:7099"
-    };
-
     private bool _daZoomLanDau;
     private bool _daCanhKhungTheoPoi;
     private readonly List<PoiModel> _danhSachPoiHienTai = new();
@@ -392,9 +384,7 @@ public partial class MapPage : ContentPage
         if (Uri.TryCreate(tenDaChuanHoa, UriKind.Absolute, out var uri))
             return uri.ToString();
 
-        var baseUrl = DeviceInfo.Platform == DevicePlatform.Android
-            ? BaseImageUrls.First()
-            : BaseImageUrls.Skip(1).First();
+        var baseUrl = ApiEndpointResolver.GetConfiguredBaseUrlOrDefault();
 
         return $"{baseUrl.TrimEnd('/')}/images/poi/{tenDaChuanHoa}";
     }
