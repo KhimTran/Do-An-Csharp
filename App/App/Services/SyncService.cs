@@ -1,4 +1,3 @@
-using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Net.Http.Json;
 using App.Models;
@@ -10,14 +9,6 @@ namespace App.Services
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
 
-        // Ẩn endpoint khỏi giao diện người dùng cuối.
-        // App sẽ tự thử danh sách endpoint này theo thứ tự.
-        private static readonly string[] DefaultApiUrls =
-        {
-            "http://10.0.2.2:5099/api/pois",
-            "http://localhost:5099/api/pois"
-        };
-
         public string LastError { get; private set; } = string.Empty;
 
         public SyncService(LocalDatabase db)
@@ -27,14 +18,6 @@ namespace App.Services
             {
                 Timeout = TimeSpan.FromSeconds(10)
             };
-        }
-
-        private static string ChuanHoaApiUrl(string url)
-        {
-            if (DeviceInfo.Platform == DevicePlatform.Android)
-                return url.Replace("localhost", "10.0.2.2", StringComparison.OrdinalIgnoreCase);
-
-            return url;
         }
 
         public async Task<bool> DongBoPoisAsync()
@@ -50,7 +33,7 @@ namespace App.Services
                     return false;
                 }
 
-                foreach (var url in DefaultApiUrls.Select(ChuanHoaApiUrl).Distinct())
+                foreach (var url in ApiEndpointResolver.GetPoiApiUrls().Distinct())
                 {
                     try
                     {

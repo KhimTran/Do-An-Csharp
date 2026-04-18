@@ -54,6 +54,17 @@
                 </VerticalStackLayout>
             </Frame>
 
+            <Frame Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding [SettingsPage_ApiBaseUrl], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                           FontAttributes="Bold" />
+                    <Entry x:Name="ApiBaseUrlEntry"
+                           Placeholder="{Binding [SettingsPage_ApiBaseUrlHint], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                           Keyboard="Url"
+                           ClearButtonVisibility="WhileEditing" />
+                </VerticalStackLayout>
+            </Frame>
+
             <Label Text="{Binding [SettingsPage_Info], Source={x:Static services:LocalizationResourceManager.Instance}}"
                    FontSize="12"
                    TextColor="Gray" />
