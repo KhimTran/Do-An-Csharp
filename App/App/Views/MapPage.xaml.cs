@@ -9,6 +9,7 @@ using Microsoft.Maui.Devices;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Maps;
 using Microsoft.Maui.Storage;
+using System.Text.Json;
 
 namespace App.Views;
 
@@ -19,6 +20,7 @@ public partial class MapPage : ContentPage
     private bool _daZoomLanDau;
     private bool _daCanhKhungTheoPoi;
     private readonly List<PoiModel> _danhSachPoiHienTai = new();
+    private readonly bool _dungBanDoOsm = DeviceInfo.Platform == DevicePlatform.Android;
 
     private readonly List<Pin> _pinsPoi = new();
     private readonly List<Circle> _vungPoi = new();
@@ -30,6 +32,7 @@ public partial class MapPage : ContentPage
     private PoiModel? _poiDangTracking;
     private PoiModel? _poiDangMoPopup;
     private Location? _viTriNguoiDungHienTai;
+    private bool _osmDaSanSang;
 
     public MapPage(MapViewModel vm)
     {
@@ -41,6 +44,7 @@ public partial class MapPage : ContentPage
         _vm.OnViTriCapNhat += CapNhatViTriBanDo;
 
         KhoiTaoBanDo();
+        KhoiTaoBanDoOsmNeuCan();
     }
 
     protected override async void OnAppearing()
@@ -68,12 +72,32 @@ public partial class MapPage : ContentPage
         BanDo.MoveToRegion(MapSpan.FromCenterAndRadius(trungTamVinhKhanh, Distance.FromMeters(900)));
     }
 
+    private void KhoiTaoBanDoOsmNeuCan()
+    {
+        if (!_dungBanDoOsm)
+            return;
+
+        BanDo.IsVisible = false;
+        BanDoOsm.IsVisible = true;
+        BanDoOsm.Source = new HtmlWebViewSource
+        {
+            Html = TaoHtmlBanDoOsm()
+        };
+        _osmDaSanSang = true;
+    }
+
     private void ThemPinLenBanDo(List<PoiModel> danhSach)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _danhSachPoiHienTai.Clear();
             _danhSachPoiHienTai.AddRange(danhSach);
+
+            if (_dungBanDoOsm)
+            {
+                _ = CapNhatPoiLenBanDoOsmAsync(danhSach);
+                return;
+            }
 
             foreach (var pin in _pinsPoi)
             {
@@ -192,6 +216,13 @@ public partial class MapPage : ContentPage
             var viTriNguoiDung = new Location(lat, lng);
             _viTriNguoiDungHienTai = viTriNguoiDung;
 
+            if (_dungBanDoOsm)
+            {
+                _ = CapNhatViTriNguoiDungLenBanDoOsmAsync(lat, lng);
+                CapNhatTuyenDuong(lat, lng);
+                return;
+            }
+
             if (_vungSangViTriNguoiDung == null || _chamViTriNguoiDung == null)
             {
                 _vungSangViTriNguoiDung = new Circle
@@ -260,6 +291,12 @@ public partial class MapPage : ContentPage
 
     private void VeTuyenDuongDenPoi(Location viTriNguoiDung, PoiModel poi)
     {
+        if (_dungBanDoOsm)
+        {
+            _ = VeTuyenDuongOsmAsync(viTriNguoiDung.Latitude, viTriNguoiDung.Longitude, poi.Lat, poi.Lng);
+            return;
+        }
+
         if (_tuyenDuongNen != null)
             BanDo.MapElements.Remove(_tuyenDuongNen);
 
@@ -290,6 +327,13 @@ public partial class MapPage : ContentPage
     {
         if (_daCanhKhungTheoPoi || _danhSachPoiHienTai.Count == 0)
             return;
+
+        if (_dungBanDoOsm)
+        {
+            _ = CanhKhungBanDoOsmTheoPoiAsync(_danhSachPoiHienTai);
+            _daCanhKhungTheoPoi = true;
+            return;
+        }
 
         var minLat = _danhSachPoiHienTai.Min(p => p.Lat);
         var maxLat = _danhSachPoiHienTai.Max(p => p.Lat);
@@ -340,6 +384,12 @@ public partial class MapPage : ContentPage
 
     private void CanhKhungTheoNguoiDungVaPoi(Location viTriNguoiDung, PoiModel poi)
     {
+        if (_dungBanDoOsm)
+        {
+            _ = CanhKhungNguoiDungVaPoiOsmAsync(viTriNguoiDung.Latitude, viTriNguoiDung.Longitude, poi.Lat, poi.Lng);
+            return;
+        }
+
         var minLat = Math.Min(viTriNguoiDung.Latitude, poi.Lat);
         var maxLat = Math.Max(viTriNguoiDung.Latitude, poi.Lat);
         var minLng = Math.Min(viTriNguoiDung.Longitude, poi.Lng);
@@ -409,5 +459,120 @@ public partial class MapPage : ContentPage
             VeTuyenDuongDenPoi(_viTriNguoiDungHienTai, _poiDangTracking);
             CanhKhungTheoNguoiDungVaPoi(_viTriNguoiDungHienTai, _poiDangTracking);
         }
+    }
+
+    private async Task CapNhatPoiLenBanDoOsmAsync(List<PoiModel> danhSach)
+    {
+        if (!_osmDaSanSang)
+            return;
+
+        var jsPayload = JsonSerializer.Serialize(danhSach.Select(p => new
+        {
+            id = p.Id,
+            ten = p.Ten,
+            moTa = ChonMoTaTheoNgonNgu(p),
+            lat = p.Lat,
+            lng = p.Lng,
+            banKinh = p.BanKinh > 0 ? p.BanKinh : 100
+        }));
+
+        await BanDoOsm.EvaluateJavaScriptAsync($"window.setPois({jsPayload});");
+        await CanhKhungBanDoOsmTheoPoiAsync(danhSach);
+    }
+
+    private async Task CapNhatViTriNguoiDungLenBanDoOsmAsync(double lat, double lng)
+    {
+        if (!_osmDaSanSang)
+            return;
+
+        await BanDoOsm.EvaluateJavaScriptAsync($"window.setUser({lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {lng.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+    }
+
+    private async Task VeTuyenDuongOsmAsync(double latNguoiDung, double lngNguoiDung, double latPoi, double lngPoi)
+    {
+        if (!_osmDaSanSang)
+            return;
+
+        await BanDoOsm.EvaluateJavaScriptAsync($"window.setRoute({latNguoiDung.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {lngNguoiDung.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {latPoi.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {lngPoi.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+    }
+
+    private async Task CanhKhungBanDoOsmTheoPoiAsync(List<PoiModel> danhSach)
+    {
+        if (!_osmDaSanSang || danhSach.Count == 0)
+            return;
+
+        var jsPayload = JsonSerializer.Serialize(danhSach.Select(p => new { lat = p.Lat, lng = p.Lng }));
+        await BanDoOsm.EvaluateJavaScriptAsync($"window.fitToPois({jsPayload});");
+    }
+
+    private async Task CanhKhungNguoiDungVaPoiOsmAsync(double latNguoiDung, double lngNguoiDung, double latPoi, double lngPoi)
+    {
+        if (!_osmDaSanSang)
+            return;
+
+        await BanDoOsm.EvaluateJavaScriptAsync($"window.fitToUserAndPoi({latNguoiDung.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {lngNguoiDung.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {latPoi.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {lngPoi.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+    }
+
+    private static string TaoHtmlBanDoOsm()
+    {
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>html,body,#map{height:100%;margin:0;padding:0;}</style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([10.7605,106.7002], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let poiLayer = L.layerGroup().addTo(map);
+    let poiCircleLayer = L.layerGroup().addTo(map);
+    let userMarker = null;
+    let routeLine = null;
+
+    window.setPois = function(pois) {
+      poiLayer.clearLayers();
+      poiCircleLayer.clearLayers();
+      pois.forEach(p => {
+        L.marker([p.lat, p.lng]).bindPopup(`<b>${p.ten}</b><br/>${p.moTa || ''}`).addTo(poiLayer);
+        L.circle([p.lat, p.lng], { radius: p.banKinh || 100, color: '#1E88E5', fillColor: '#1E88E5', fillOpacity: 0.15, weight: 2 }).addTo(poiCircleLayer);
+      });
+    };
+
+    window.setUser = function(lat, lng) {
+      if (userMarker == null) {
+        userMarker = L.circleMarker([lat, lng], { radius: 8, color: '#ffffff', fillColor: '#4285F4', fillOpacity: 1, weight: 2 }).addTo(map);
+      } else {
+        userMarker.setLatLng([lat, lng]);
+      }
+    };
+
+    window.setRoute = function(lat1, lng1, lat2, lng2) {
+      if (routeLine != null) map.removeLayer(routeLine);
+      routeLine = L.polyline([[lat1, lng1],[lat2, lng2]], { color: '#0078FF', weight: 5 }).addTo(map);
+    };
+
+    window.fitToPois = function(pois) {
+      if (!pois || pois.length === 0) return;
+      const bounds = L.latLngBounds(pois.map(p => [p.lat, p.lng]));
+      map.fitBounds(bounds.pad(0.4));
+    };
+
+    window.fitToUserAndPoi = function(userLat, userLng, poiLat, poiLng) {
+      const bounds = L.latLngBounds([[userLat, userLng], [poiLat, poiLng]]);
+      map.fitBounds(bounds.pad(0.35));
+    };
+  </script>
+</body>
+</html>
+""";
     }
 }
