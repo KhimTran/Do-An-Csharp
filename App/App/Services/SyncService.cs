@@ -5,10 +5,21 @@ using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
+    public sealed record ApiBaseUrlUpdateResult(
+        bool IsValid,
+        string BaseUrl,
+        string PoiApiUrl,
+        bool SyncedFromServer,
+        int LocalPoiCount,
+        string Message);
+
     public class SyncService
     {
+        private const string OfflineFallbackMessage = "Using local data (offline mode)";
+
         private readonly LocalDatabase _db;
         private readonly HttpClient _http;
+        private string? _runtimeApiBaseUrlOverride;
 
         public string LastError { get; private set; } = string.Empty;
 
@@ -21,6 +32,61 @@ namespace App.Services
             };
         }
 
+        public async Task EnsureSavedApiConfigurationLoadedAsync()
+        {
+            var offlineModeText = await _db.LayCaiDatAsync("offline_mode");
+            if (bool.TryParse(offlineModeText, out var offlineMode))
+                Preferences.Set("offline_mode", offlineMode);
+        }
+
+        public async Task<ApiBaseUrlUpdateResult> CapNhatApiBaseUrlTuQrAsync(string scannedUrl)
+        {
+            try
+            {
+                if (!ApiEndpointResolver.TryNormalizeApiBaseUrl(scannedUrl, out var baseUrl, out var poiApiUrl, out var errorMessage))
+                {
+                    return new ApiBaseUrlUpdateResult(
+                        false,
+                        string.Empty,
+                        string.Empty,
+                        false,
+                        await DemSoPoiLocalAsync(),
+                        errorMessage);
+                }
+
+                _runtimeApiBaseUrlOverride = baseUrl;
+                Preferences.Set("offline_mode", false);
+                Preferences.Set("force_reread_once", true);
+
+                await _db.LuuCaiDatAsync("offline_mode", false.ToString());
+
+                bool synced = await DongBoPoisAsync();
+                int localPoiCount = await DemSoPoiLocalAsync();
+                string message = synced
+                    ? $"Da nhan server URL tu QR: {baseUrl}. Da tai {localPoiCount} POI tu server."
+                    : $"Da nhan server URL tu QR: {baseUrl}. App dang dung du lieu local ({localPoiCount} POI). {LastError}";
+
+                return new ApiBaseUrlUpdateResult(
+                    true,
+                    baseUrl,
+                    poiApiUrl,
+                    synced,
+                    localPoiCount,
+                    message);
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                return new ApiBaseUrlUpdateResult(
+                    false,
+                    string.Empty,
+                    string.Empty,
+                    false,
+                    await DemSoPoiLocalAsync(),
+                    ex.Message);
+            }
+        }
+
         public async Task<bool> DongBoPoisAsync()
         {
             try
@@ -29,28 +95,31 @@ namespace App.Services
 
                 if (Preferences.Get("offline_mode", false))
                 {
-                    LastError = "Offline mode dang bat.";
+                    LastError = $"{OfflineFallbackMessage}. Offline mode is enabled.";
                     return false;
                 }
 
-                var danhSachUrl = ApiEndpointResolver.GetPoiApiUrls().Distinct().ToList();
-                if (danhSachUrl.Count == 0)
+                var danhSachMayChu = LayDanhSachMayChuDongBo().ToList();
+                if (danhSachMayChu.Count == 0)
                 {
-                    LastError = "Chua cau hinh API base URL. Dang dung du lieu SQLite/local sample.";
+                    LastError = $"{OfflineFallbackMessage}. API base URL is not configured.";
                     return false;
                 }
 
-                foreach (var url in danhSachUrl)
+                foreach (var mayChu in danhSachMayChu)
                 {
                     try
                     {
-                        var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(url);
+                        var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(mayChu.PoiApiUrl);
                         if (danhSach == null || danhSach.Count == 0)
+                        {
+                            LastError = $"{OfflineFallbackMessage}. API returned no POIs from {mayChu.PoiApiUrl}.";
                             continue;
+                        }
 
                         foreach (var poi in danhSach)
                         {
-                            poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(poi.TenFileAnhMinhHoa);
+                            poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(poi.TenFileAnhMinhHoa, mayChu.BaseUrl);
                             await _db.LuuPoiAsync(poi);
                         }
 
@@ -61,24 +130,24 @@ namespace App.Services
                     }
                     catch (TaskCanceledException ex)
                     {
-                        LastError = $"{url} -> timeout: {ex.Message}";
+                        LastError = $"{OfflineFallbackMessage}. {mayChu.PoiApiUrl} -> timeout: {ex.Message}";
                     }
                     catch (HttpRequestException ex)
                     {
-                        LastError = $"{url} -> network: {ex.Message}";
+                        LastError = $"{OfflineFallbackMessage}. {mayChu.PoiApiUrl} -> network: {ex.Message}";
                     }
                     catch (JsonException ex)
                     {
-                        LastError = $"{url} -> json: {ex.Message}";
+                        LastError = $"{OfflineFallbackMessage}. {mayChu.PoiApiUrl} -> json: {ex.Message}";
                     }
                     catch (Exception ex)
                     {
-                        LastError = $"{url} -> {ex.Message}";
+                        LastError = $"{OfflineFallbackMessage}. {mayChu.PoiApiUrl} -> {ex.Message}";
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(LastError))
-                    LastError = "Khong lay duoc du lieu tu API.";
+                    LastError = $"{OfflineFallbackMessage}. Could not load POIs from API.";
 
                 return false;
             }
@@ -89,7 +158,28 @@ namespace App.Services
             }
         }
 
-        private static string? ChuanHoaUrlAnh(string? tenFileAnh) =>
-            ApiEndpointResolver.BuildPoiImageUrl(tenFileAnh);
+        private IEnumerable<(string BaseUrl, string PoiApiUrl)> LayDanhSachMayChuDongBo()
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (ApiEndpointResolver.TryNormalizeApiBaseUrl(_runtimeApiBaseUrlOverride, out var overrideBaseUrl, out var overridePoiApiUrl, out _)
+                && seen.Add(overridePoiApiUrl))
+            {
+                yield return (overrideBaseUrl, overridePoiApiUrl);
+            }
+
+            foreach (var baseUrl in ApiEndpointResolver.GetBaseUrls())
+            {
+                var poiApiUrl = ApiEndpointResolver.BuildPoiApiUrl(baseUrl);
+                if (!string.IsNullOrWhiteSpace(poiApiUrl) && seen.Add(poiApiUrl))
+                    yield return (baseUrl, poiApiUrl);
+            }
+        }
+
+        private static string? ChuanHoaUrlAnh(string? tenFileAnh, string baseUrl) =>
+            ApiEndpointResolver.BuildPoiImageUrl(baseUrl, tenFileAnh);
+
+        private async Task<int> DemSoPoiLocalAsync() =>
+            (await _db.LayTatCaPoiAsync()).Count;
     }
 }

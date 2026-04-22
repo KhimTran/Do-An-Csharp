@@ -18,7 +18,7 @@
 
                 <Border StrokeShape="RoundRectangle 10" BackgroundColor="#66000000"
                         HorizontalOptions="Center" VerticalOptions="End" Margin="12">
-                    <Label Text="{Binding [QrPage_Hint], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                    <Label Text="Quet QR POI, link APK hoac URL ngrok"
                            TextColor="White" Padding="10,6" />
                 </Border>
             </Grid>

@@ -1,5 +1,4 @@
 using App.Services;
-using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 
 namespace App.Views;
@@ -12,6 +11,7 @@ public partial class SettingsPage : ContentPage
     {
         InitializeComponent();
         _db = db;
+        AnMucNhapApiBaseUrl();
     }
 
     protected override async void OnAppearing()
@@ -33,9 +33,6 @@ public partial class SettingsPage : ContentPage
             ? off
             : Preferences.Get("offline_mode", false);
 
-        string apiBaseUrl = await _db.LayCaiDatAsync("api_base_url")
-            ?? Preferences.Get("api_base_url", string.Empty);
-
         NgonNguPicker.SelectedIndex = ngonNgu switch
         {
             "vi-VN" => 0,
@@ -47,7 +44,6 @@ public partial class SettingsPage : ContentPage
         BanKinhSlider.Value = banKinh;
         BanKinhLabel.Text = $"{banKinh} m";
         OfflineSwitch.IsToggled = offlineMode;
-        ApiBaseUrlEntry.Text = apiBaseUrl;
     }
 
     private void BanKinhSlider_ValueChanged(object sender, ValueChangedEventArgs e)
@@ -67,25 +63,18 @@ public partial class SettingsPage : ContentPage
 
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
-        string apiBaseUrl = ApiEndpointResolver.NormalizeBaseUrl(ApiBaseUrlEntry.Text?.Trim() ?? string.Empty);
-        bool loopbackChoMayThat =
-            DeviceInfo.Platform == DevicePlatform.Android &&
-            (apiBaseUrl.Contains("://localhost", StringComparison.OrdinalIgnoreCase) ||
-             apiBaseUrl.Contains("://127.0.0.1", StringComparison.OrdinalIgnoreCase));
 
-        // Lưu cả Preferences (dùng nhanh tại runtime) + SQLite (đáp ứng yêu cầu tuần 5)
+        // Save to Preferences for runtime access and to SQLite for persisted settings.
         Preferences.Set("tts_language", maNgonNgu);
         Preferences.Set("app_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
-        Preferences.Set("api_base_url", apiBaseUrl);
         Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", maNgonNgu);
         await _db.LuuCaiDatAsync("app_language", maNgonNgu);
         await _db.LuuCaiDatAsync("geofence_radius", banKinh.ToString());
         await _db.LuuCaiDatAsync("offline_mode", offlineMode.ToString());
-        await _db.LuuCaiDatAsync("api_base_url", apiBaseUrl);
 
         LocalizationResourceManager.Instance.SetLanguage(maNgonNgu);
 
@@ -93,14 +82,6 @@ public partial class SettingsPage : ContentPage
             LocalizationResourceManager.Instance["SettingsPage_SaveSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_SaveSuccessMessage"],
             "OK");
-
-        if (loopbackChoMayThat)
-        {
-            await DisplayAlertAsync(
-                "Luu y",
-                "Tren Android that, localhost/127.0.0.1 se tro ve chinh dien thoai. Hay dung IP LAN hoac public URL de goi API.",
-                "OK");
-        }
     }
 
     private async void MacDinhButton_Clicked(object sender, EventArgs e)
@@ -108,20 +89,17 @@ public partial class SettingsPage : ContentPage
         NgonNguPicker.SelectedIndex = 0;
         BanKinhSlider.Value = 50;
         OfflineSwitch.IsToggled = false;
-        ApiBaseUrlEntry.Text = string.Empty;
 
         Preferences.Set("tts_language", "vi-VN");
         Preferences.Set("app_language", "vi-VN");
         Preferences.Set("geofence_radius", 50);
         Preferences.Set("offline_mode", false);
-        Preferences.Set("api_base_url", string.Empty);
         Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", "vi-VN");
         await _db.LuuCaiDatAsync("app_language", "vi-VN");
         await _db.LuuCaiDatAsync("geofence_radius", "50");
         await _db.LuuCaiDatAsync("offline_mode", "False");
-        await _db.LuuCaiDatAsync("api_base_url", string.Empty);
 
         LocalizationResourceManager.Instance.SetLanguage("vi-VN");
 
@@ -129,5 +107,23 @@ public partial class SettingsPage : ContentPage
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessMessage"],
             "OK");
+    }
+
+    private void AnMucNhapApiBaseUrl()
+    {
+        ApiBaseUrlEntry.IsEnabled = false;
+        ApiBaseUrlEntry.IsVisible = false;
+
+        if (ApiBaseUrlEntry.Parent is VisualElement layoutCha)
+        {
+            layoutCha.IsEnabled = false;
+            layoutCha.IsVisible = false;
+
+            if (layoutCha.Parent is VisualElement khungCha)
+            {
+                khungCha.IsEnabled = false;
+                khungCha.IsVisible = false;
+            }
+        }
     }
 }

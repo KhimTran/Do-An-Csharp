@@ -1,25 +1,42 @@
-﻿using App.Models;
+using App.Models;
 using App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
 
 namespace App.ViewModels
 {
+    public sealed class QrAlertRequestedEventArgs : EventArgs
+    {
+        public QrAlertRequestedEventArgs(string title, string message)
+        {
+            Title = title;
+            Message = message;
+        }
+
+        public string Title { get; }
+        public string Message { get; }
+    }
+
     public partial class QrScanViewModel : ObservableObject
     {
         private readonly LocalDatabase _db;
         private readonly ITtsService _tts;
         private readonly AnalyticsService _analytics;
+        private readonly SyncService _sync;
 
         private string _maVuaQuet = string.Empty;
         private DateTime _thoiDiemQuetCuoi = DateTime.MinValue;
 
-        public QrScanViewModel(LocalDatabase db, ITtsService tts, AnalyticsService analytics)
+        public event EventHandler<QrAlertRequestedEventArgs>? AlertRequested;
+
+        public QrScanViewModel(LocalDatabase db, ITtsService tts, AnalyticsService analytics, SyncService sync)
         {
             _db = db;
             _tts = tts;
             _analytics = analytics;
+            _sync = sync;
             ThongBao = LocalizationResourceManager.Instance["QrPage_AimCamera"];
         }
 
@@ -29,7 +46,8 @@ namespace App.ViewModels
         [RelayCommand]
         public async Task XuLyQrAsync(string ketQua)
         {
-            if (!DangQuet || string.IsNullOrWhiteSpace(ketQua)) return;
+            if (!DangQuet || string.IsNullOrWhiteSpace(ketQua))
+                return;
 
             if (_maVuaQuet == ketQua && (DateTime.Now - _thoiDiemQuetCuoi).TotalSeconds < 3)
                 return;
@@ -38,18 +56,83 @@ namespace App.ViewModels
             _thoiDiemQuetCuoi = DateTime.Now;
             DangQuet = false;
 
-            if (!ThuLayPoiId(ketQua, out int poiId))
+            try
             {
-                ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_Invalid", ketQua);
-                await MoLaiCheDoQuetSauDelay();
-                return;
-            }
+                var payload = QrScanPayloadParser.Parse(ketQua);
+                bool daXuLyBootstrapQr = false;
 
+                // QR bootstrap co server/ngrok URL thi luu Base URL va sync ngay.
+                if (!string.IsNullOrWhiteSpace(payload.ApiBaseUrlCandidate))
+                {
+                    await XuLyQrCauHinhServerAsync(payload.ApiBaseUrlCandidate);
+                    daXuLyBootstrapQr = true;
+                }
+
+                // QR bootstrap co link APK thi mo trinh duyet de tai/cai dat app.
+                if (!string.IsNullOrWhiteSpace(payload.ApkUrl))
+                {
+                    await MoLinkApkAsync(payload.ApkUrl, daXuLyBootstrapQr);
+                    daXuLyBootstrapQr = true;
+                }
+
+                if (daXuLyBootstrapQr)
+                {
+                    await MoLaiCheDoQuetSauDelay();
+                    return;
+                }
+
+                if (!payload.PoiId.HasValue)
+                {
+                    ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_Invalid", ketQua);
+                    await MoLaiCheDoQuetSauDelay();
+                    return;
+                }
+
+                await DocPoiTuQrAsync(payload.PoiId.Value);
+                await MoLaiCheDoQuetSauDelay();
+            }
+            catch (Exception ex)
+            {
+                ThongBao = $"Khong xu ly duoc QR: {ex.Message}";
+                AlertRequested?.Invoke(this, new QrAlertRequestedEventArgs("Loi QR", ex.Message));
+                await MoLaiCheDoQuetSauDelay();
+            }
+        }
+
+        private async Task XuLyQrCauHinhServerAsync(string serverUrlFromQr)
+        {
+            var result = await _sync.CapNhatApiBaseUrlTuQrAsync(serverUrlFromQr);
+            ThongBao = result.Message;
+
+            if (!result.IsValid)
+            {
+                AlertRequested?.Invoke(this, new QrAlertRequestedEventArgs("QR ngrok khong hop le", result.Message));
+            }
+        }
+
+        private async Task MoLinkApkAsync(string apkUrl, bool daXuLyServerUrl)
+        {
+            try
+            {
+                var uri = new Uri(apkUrl, UriKind.Absolute);
+                await Browser.Default.OpenAsync(uri, BrowserLaunchMode.SystemPreferred);
+                ThongBao = daXuLyServerUrl
+                    ? $"Da cap nhat server. Dang mo link cai dat: {uri}"
+                    : $"Dang mo link cai dat: {uri}";
+            }
+            catch (Exception ex)
+            {
+                ThongBao = $"Khong mo duoc link APK: {ex.Message}";
+                AlertRequested?.Invoke(this, new QrAlertRequestedEventArgs("Khong mo duoc APK", ex.Message));
+            }
+        }
+
+        private async Task DocPoiTuQrAsync(int poiId)
+        {
             var poi = await _db.LayPoiTheoIdAsync(poiId);
             if (poi == null)
             {
                 ThongBao = LocalizationResourceManager.Instance.Translate("QrPage_PoiNotFound", poiId);
-                await MoLaiCheDoQuetSauDelay();
                 return;
             }
 
@@ -73,55 +156,6 @@ namespace App.ViewModels
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
 
             ThongBao = LocalizationResourceManager.Instance["QrPage_Done"];
-            await MoLaiCheDoQuetSauDelay();
-        }
-
-
-        private static bool ThuLayPoiId(string duLieuQr, out int poiId)
-        {
-            poiId = 0;
-            if (string.IsNullOrWhiteSpace(duLieuQr))
-                return false;
-
-            var raw = duLieuQr.Trim();
-
-            // Hỗ trợ định dạng cũ: "12"
-            if (int.TryParse(raw, out poiId))
-                return true;
-
-            // Hỗ trợ định dạng CMS hiện tại: "poi:12"
-            const string tienToPoi = "poi:";
-            if (raw.StartsWith(tienToPoi, StringComparison.OrdinalIgnoreCase))
-            {
-                var phanId = raw[tienToPoi.Length..].Trim();
-                return int.TryParse(phanId, out poiId);
-            }
-
-            // Hỗ trợ URL có tham số poiId (VD: https://.../qr?poiId=12)
-            if (Uri.TryCreate(raw, UriKind.Absolute, out var uri))
-            {
-                var query = uri.Query;
-                if (!string.IsNullOrWhiteSpace(query))
-                {
-                    var capThamSo = query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var cap in capThamSo)
-                    {
-                        var split = cap.Split('=', 2, StringSplitOptions.TrimEntries);
-                        if (split.Length != 2)
-                            continue;
-
-                        if (split[0].Equals("poiId", StringComparison.OrdinalIgnoreCase)
-                            || split[0].Equals("poi", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var value = Uri.UnescapeDataString(split[1]);
-                            if (int.TryParse(value, out poiId))
-                                return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
         }
 
         private async Task MoLaiCheDoQuetSauDelay()
@@ -144,8 +178,12 @@ namespace App.ViewModels
 
         private static string RutGonMaNgonNgu(string maNgonNgu)
         {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en";
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh";
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return "en";
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return "zh";
+
             return "vi";
         }
     }

@@ -12,6 +12,7 @@ namespace App.Views
             InitializeComponent();
             _vm = vm;
             BindingContext = vm;
+            _vm.AlertRequested += Vm_AlertRequested;
 
             QrCamera.Options = new BarcodeReaderOptions
             {
@@ -21,7 +22,7 @@ namespace App.Views
             };
         }
 
-        private async void BarcodeReader_BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+        private async void BarcodeReader_BarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
         {
             var ketQua = e.Results.FirstOrDefault()?.Value;
             if (string.IsNullOrWhiteSpace(ketQua)) return;
@@ -30,6 +31,11 @@ namespace App.Views
             {
                 await _vm.XuLyQrCommand.ExecuteAsync(ketQua);
             });
+        }
+
+        private async void Vm_AlertRequested(object? sender, QrAlertRequestedEventArgs e)
+        {
+            await DisplayAlertAsync(e.Title, e.Message, "OK");
         }
     }
 }

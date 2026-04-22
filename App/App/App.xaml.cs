@@ -15,7 +15,11 @@ namespace App
 
             // Chạy đồng bộ POI ngầm khi app khởi động
             // Không await để không chặn UI
-            Task.Run(async () => await sync.DongBoPoisAsync());
+            Task.Run(async () =>
+            {
+                await sync.EnsureSavedApiConfigurationLoadedAsync();
+                await sync.DongBoPoisAsync();
+            });
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
