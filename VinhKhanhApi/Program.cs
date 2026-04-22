@@ -5,6 +5,14 @@ using VinhKhanhApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Run the API over plain HTTP so a real Android phone can reach it through LAN or ngrok.
+// Quick start:
+// 1. dotnet run --launch-profile http
+// 2. ngrok http 5099
+// 3. Copy https://abc123.ngrok-free.app
+// 4. Test https://abc123.ngrok-free.app/api/pois
+builder.WebHost.UseUrls("http://0.0.0.0:5099");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
