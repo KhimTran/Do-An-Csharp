@@ -1,154 +1,142 @@
-# AGENTS.md — Hướng dẫn cho Codex agent
+🎯 Mục tiêu
 
-## Mục tiêu
-Repo này là đồ án **.NET MAUI 10**. Khi sửa code, ưu tiên:
-- Giữ project build đúng theo **.NET MAUI 10**
-- Không tự ý downgrade SDK / workload
-- Không đổi target framework nếu không được yêu cầu
-- Sau khi sửa phải build kiểm tra lỗi compile
-- Nếu sửa phần map, ưu tiên code chạy ổn định trên **điện thoại Android thật**
+Repo này là đồ án .NET MAUI 10 (C#).
 
----
+Khi sửa code, agent phải:
 
-## Môi trường (Environment)
+Giữ project build được
+Không phá kiến trúc hiện có
+Ưu tiên chạy ổn định trên điện thoại Android thật
+Code phải demo được, không chỉ “compile cho qua”
+⚙️ Quy tắc nền tảng (BẮT BUỘC)
+Không downgrade:
+❌ net9.0
+❌ SDK thấp hơn
+Luôn dùng:
+✅ net10.0-android
+Không tự ý đổi:
+Target framework
+Kiến trúc project
+Không xóa code khi chưa chắc chắn
+Không thêm thư viện nếu không cần thiết
+🏗️ Kiến trúc (Architecture Rules)
 
-Môi trường agent có thể **không có sẵn dotnet** hoặc có dotnet nhưng **không đúng version**.
+Project dùng MVVM
 
-### Quy tắc bắt buộc
-1. **Không mặc định cài .NET 9**
-2. Repo này dùng **.NET MAUI 10**
-3. Khi cần cài SDK, phải dùng **.NET SDK 10**
-4. Khi build Android, phải dùng **`net10.0-android`**
-5. Không tự ý đổi project xuống `net9.0-android`
+Layer	Vai trò
+Models	Dữ liệu (POI, History...)
+ViewModels	Logic
+Views	UI
+Services	GPS, DB, API, TTS
+Bắt buộc:
+Không nhét logic vào View (.xaml.cs)
+Không gọi DB trực tiếp trong View
+Logic phải nằm ở ViewModel hoặc Service
+🔄 Quy tắc sửa code
 
----
+Khi sửa bất kỳ feature nào:
 
-## Quy trình bắt buộc trước khi sửa code
+1. Đọc trước khi sửa
+Tìm hiểu flow hiện tại
+Không sửa mù
+2. Sửa tối thiểu
+Chỉ sửa đúng phần cần
+Không refactor lan rộng nếu không cần
+3. Không phá code cũ
+Nếu thay công nghệ → phải xóa sạch phần cũ
+Không để “code chết”
+📱 Quy tắc Android thật (CỰC QUAN TRỌNG)
 
-### Bước 1: Kiểm tra SDK hiện có
-Chạy:
+Mọi feature phải ưu tiên:
 
-```bash
-dotnet --info
-dotnet --list-sdks
-
-Nếu đã có SDK 10 phù hợp thì dùng luôn, không cài thêm SDK khác.
-
-Bước 2: Nếu chưa có đúng SDK, cài .NET SDK 10
-curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0 --install-dir $HOME/.dotnet
-Bước 3: Export PATH (phải chạy mỗi session nếu dùng SDK vừa cài)
-export DOTNET_ROOT=$HOME/.dotnet
-export PATH=$HOME/.dotnet:$HOME/.dotnet/tools:$PATH
-hash -r
-Bước 4: Cài workload MAUI Android đúng với SDK hiện tại
-$HOME/.dotnet/dotnet workload install maui-android --skip-sign-check
-
-Nếu máy đã có dotnet đúng version và đã có workload tương thích thì không cần cài lại.
-
-Build để kiểm tra lỗi C#
-Restore packages
-dotnet restore App/App/App.csproj
-Build nhanh — chỉ kiểm tra lỗi compile, không tạo APK
-dotnet build App/App/App.csproj \
-  --framework net10.0-android \
-  --configuration Debug \
-  --verbosity minimal 2>&1 | tail -30
-Build đầy đủ nếu cần log rõ hơn
-dotnet build App/App/App.csproj \
-  --framework net10.0-android \
-  --configuration Debug \
-  --verbosity minimal
-Nguyên tắc build
-Luôn build bằng net10.0-android
-Không tự ý build bằng net9.0-android
-Không đổi sang iOS / Windows nếu không cần
-Sau khi sửa code, phải build lại
-Nếu build fail, phải sửa tiếp cho tới khi:
-compile pass, hoặc
-nêu rõ blocker thật sự
-Giới hạn của môi trường agent
-Tác vụ	Trạng thái
-Kiểm tra lỗi C# / XAML	✅ Dùng dotnet build
-Chạy unit test	✅ Nếu có test project
-Tạo APK	⚠️ Có thể cần Android SDK đầy đủ
-Chạy app / chụp màn hình	❌ Không có emulator mặc định
-Test GPS / camera / map trên điện thoại thật	❌ Agent không thay thế được thiết bị thật
-Cấu trúc project
-App/
-├── App/
-│   ├── App.csproj          ← file project chính
-│   ├── MauiProgram.cs
-│   ├── Models/
-│   ├── ViewModels/
-│   ├── Views/
-│   └── Services/
-└── App.slnx                ← solution file
-
-Nếu cấu trúc repo thực tế khác, hãy ưu tiên cấu trúc thực tế trong repo.
-
-Target framework hợp lệ
-
-Repo này dùng .NET MAUI 10. Khi test trong agent, ưu tiên:
-
-net10.0-android — dùng để test build trong agent
-net10.0-ios — chỉ build được trên macOS
-net10.0-windows10.0.19041.0 — chỉ build được trên Windows
-
-Luôn dùng net10.0-android khi test trong agent.
-
-Lưu ý NuGet packages
-
-Project có thể dùng các package như:
-
-CommunityToolkit.Maui
-CommunityToolkit.Mvvm
-thư viện map hiện tại hoặc mới
-sqlite-net-pcl
-SQLitePCLRaw.bundle_green
-Quy tắc
-Không tự ý nâng/downgrade package nếu không cần
-Nếu thay thư viện map, phải xóa sạch code/tham chiếu cũ không còn dùng
-Nếu restore lỗi network, nêu rõ lỗi; không được giả vờ đã build thành công
-Quy định riêng cho phần Map
-
-Nếu tác vụ liên quan đến bản đồ, phải tuân thủ:
-
-Không quay lại Google Maps
-Không giữ code chết của thư viện map cũ
-Nếu chuyển sang Leaflet:
-Bắt buộc dùng WebView hoặc HybridWebView
-Phải đóng gói HTML/CSS/JS local trong app
+✅ Chạy trên điện thoại thật
+❌ Không chỉ chạy emulator
+Cấm:
+Hardcode localhost
+Code chỉ chạy với 10.0.2.2
+Bắt buộc:
+API phải cấu hình được (IP LAN hoặc public)
+Nếu API fail → phải có fallback local (SQLite / sample data)
+🌐 Quy tắc làm việc với API
+Không assume API luôn chạy
+Phải handle:
+mất mạng
+timeout
+lỗi JSON
+Bắt buộc:
+Có fallback:
+SQLite
+hoặc data mẫu
+💾 Quy tắc dữ liệu (SQLite)
+Không làm app phụ thuộc hoàn toàn server
+POI phải load được offline
+Khi có mạng → sync
+Khi không có mạng → vẫn chạy
+🗺️ Quy tắc Map (áp dụng nếu có)
+Không dùng Google Maps
+Nếu dùng Leaflet:
+Bắt buộc WebView
+HTML/CSS/JS local
 Không dùng CDN
-Không phụ thuộc localhost chỉ chạy trên emulator
-Phải ưu tiên chạy ổn định trên điện thoại thật Android
-Nếu API lỗi thì map vẫn phải hiện được dữ liệu local/offline nếu app có fallback
-Quy tắc khi sửa code
-Không thêm using dư thừa
-Không xóa comment tiếng Việt có sẵn nếu chưa cần
-Không đổi tên file/class bừa bãi làm vỡ binding / DI / XAML
-Tôn trọng mô hình MVVM hiện có
-Khi sửa XAML + code-behind, kiểm tra cả compile C# lẫn lỗi XAML
-Nếu sửa asset local cho WebView/Leaflet, phải đảm bảo file được include đúng vào project
-Sau khi sửa, PHẢI chạy dotnet build để xác nhận không có lỗi
-Quy tắc xác nhận hoàn tất
+Nếu API lỗi → vẫn phải hiện map + POI local
+📍 GPS / Sensor
+Phải xin quyền đúng cách
+Không crash nếu:
+user từ chối quyền
+GPS tắt
+Phải handle null location
+🔊 Audio / TTS
+Không phát chồng âm
+Có cơ chế stop / cancel
+Không crash nếu:
+không có voice phù hợp
+📷 QR / Camera (nếu có)
+Handle:
+không có quyền camera
+scan fail
+Không crash khi không đọc được QR
+⚡ Hiệu năng & ổn định
+Không block UI thread
+Luôn dùng async/await đúng cách
+Không loop vô hạn
+Không spam API/GPS
+🧪 Quy tắc build & kiểm tra
 
-Chỉ được coi là xong khi đã làm đủ:
+Sau khi sửa:
 
-Sửa code theo yêu cầu
-Restore thành công hoặc nêu rõ blocker thật
-Build lại project app bằng net10.0-android
-Không còn lỗi compile do phần vừa sửa
-Báo cáo rõ:
-file nào đã sửa
-file nào đã thêm/xóa
-đã build bằng framework nào
-kết quả build ra sao
-Commit message
+BẮT BUỘC:
+dotnet restore App/App/App.csproj
+dotnet build App/App/App.csproj --framework net10.0-android --configuration Debug
+Không được:
+Báo “xong” khi chưa build
+Fake build success
+✅ Điều kiện hoàn thành
 
-Dùng commit message ngắn gọn, rõ nghĩa, ưu tiên tiếng Việt.
+Chỉ được coi là xong khi:
 
-Ví dụ:
+Build PASS
+Không lỗi compile
+Feature chạy logic đúng
+Không crash
+📋 Báo cáo bắt buộc
 
-feat: chuyển map sang leaflet local webview
-fix: sửa lỗi build map page android
-refactor: tách bridge csharp javascript cho leaflet
+Agent phải ghi rõ:
+
+File đã sửa
+File đã thêm
+File đã xóa
+Framework đã build
+Kết quả build
+🧠 Nguyên tắc quan trọng nhất
+
+❗ Code phải chạy được trên điện thoại thật
+❗ Không phụ thuộc môi trường dev
+❗ Không làm kiểu “compile được nhưng không dùng được”
+
+📝 Commit message
+
+Ngắn gọn, rõ nghĩa:
+
+feat: thêm qr scan
+fix: sửa crash gps null
+refactor: tách service map
