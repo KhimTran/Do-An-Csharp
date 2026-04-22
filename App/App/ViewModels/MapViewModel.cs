@@ -1,4 +1,4 @@
-﻿using App.Models;
+using App.Models;
 using App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Maui.ApplicationModel;
@@ -15,9 +15,14 @@ namespace App.ViewModels
         private readonly ITtsService _tts;
         private readonly AnalyticsService _analytics;
 
-        private List<PoiModel> _danhSachPoi = new();
-        private bool _dangXuLyViTri = false;
-        private bool _daKhoiDong = false;
+        private List<PoiModel> _danhSachPoi = [];
+        private PoiModel? _poiDangTracking;
+        private PoiModel? _poiDangMoPopup;
+        private LocationSnapshot? _viTriNguoiDungHienTai;
+        private bool _dangXuLyViTri;
+        private bool _daKhoiDong;
+        private bool _daCanhKhungTheoPoi;
+        private bool _daCanhTheoNguoiDung;
 
         public MapViewModel(
             LocalDatabase db,
@@ -33,43 +38,150 @@ namespace App.ViewModels
             _geofence = geofence;
             _tts = tts;
             _analytics = analytics;
+
+            TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
+            TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
         }
 
         [ObservableProperty]
-        private string tenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
+        private string tenPoiGanNhat = string.Empty;
 
         [ObservableProperty]
-        private double khoangCachGanNhat = 0;
+        private double khoangCachGanNhat;
 
         [ObservableProperty]
-        private bool coPoiGanNhat = false;
+        private bool coPoiGanNhat;
 
-        public event Action<List<PoiModel>>? OnDaCoiPoi;
-        public event Action<double, double>? OnViTriCapNhat;
+        [ObservableProperty]
+        private string thongBaoBanDo = string.Empty;
+
+        [ObservableProperty]
+        private string trangThaiGps = string.Empty;
+
+        [ObservableProperty]
+        private bool hienThiPopupPoi;
+
+        [ObservableProperty]
+        private string tieuDePopupPoi = string.Empty;
+
+        [ObservableProperty]
+        private string moTaPopupPoi = string.Empty;
+
+        [ObservableProperty]
+        private string? urlAnhPopupPoi;
+
+        [ObservableProperty]
+        private bool coAnhPopupPoi;
+
+        public event Action<MapRenderState>? MapStateChanged;
 
         public async Task KhoiDongAsync()
         {
-            if (_daKhoiDong) return;
+            if (_daKhoiDong)
+                return;
+
             _daKhoiDong = true;
 
-            await _sync.DongBoPoisAsync();
-            _danhSachPoi = await _db.LayTatCaPoiAsync();
-            OnDaCoiPoi?.Invoke(_danhSachPoi);
-
-            await _gps.BatDauTheoDoiAsync((lat, lng) =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                OnViTriCapNhat?.Invoke(lat, lng);
-                _ = XuLyViTriMoiAsync(lat, lng);
+                ThongBaoBanDo = LocalizationResourceManager.Instance["PoiSync_Start"];
+                TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
             });
+
+            bool daDongBo = await _sync.DongBoPoisAsync();
+            _danhSachPoi = await _db.LayTatCaPoiAsync();
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                ThongBaoBanDo = daDongBo
+                    ? LocalizationResourceManager.Instance.Translate("PoiSync_Done", _danhSachPoi.Count)
+                    : LocalizationResourceManager.Instance.Translate("PoiSync_Offline", _danhSachPoi.Count, _sync.LastError);
+            });
+
+            PhatMapState(fitToPois: !_daCanhKhungTheoPoi);
+            _daCanhKhungTheoPoi = _danhSachPoi.Count > 0;
+
+            var viTriHienTai = await _gps.LayViTriHienTaiAsync();
+            if (viTriHienTai != null)
+            {
+                _viTriNguoiDungHienTai = viTriHienTai;
+                await XuLyViTriMoiAsync(viTriHienTai, followUser: !_daCanhTheoNguoiDung);
+                _daCanhTheoNguoiDung = true;
+            }
+
+            await _gps.BatDauTheoDoiAsync(
+                khiCoViTri: snapshot =>
+                {
+                    _viTriNguoiDungHienTai = snapshot;
+                    bool canTheoNguoiDung = !_daCanhTheoNguoiDung;
+                    if (canTheoNguoiDung)
+                        _daCanhTheoNguoiDung = true;
+
+                    _ = XuLyViTriMoiAsync(snapshot, followUser: canTheoNguoiDung);
+                },
+                khiTrangThaiThayDoi: CapNhatTrangThaiGps);
         }
 
         public void DungGps()
         {
             _gps.DungTheoDoi();
             _daKhoiDong = false;
+            _dangXuLyViTri = false;
+            _daCanhKhungTheoPoi = false;
+            _daCanhTheoNguoiDung = false;
         }
 
-        private async Task XuLyViTriMoiAsync(double lat, double lng)
+        public Task ChonPoiTuMapAsync(int poiId)
+        {
+            var poi = _danhSachPoi.FirstOrDefault(p => p.Id == poiId);
+            if (poi == null)
+                return Task.CompletedTask;
+
+            _poiDangMoPopup = poi;
+            return MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                TieuDePopupPoi = poi.Ten;
+                MoTaPopupPoi = ChonMoTaTheoNgonNgu(poi);
+                UrlAnhPopupPoi = ApiEndpointResolver.BuildPoiImageUrl(poi.TenFileAnhMinhHoa);
+                CoAnhPopupPoi = !string.IsNullOrWhiteSpace(UrlAnhPopupPoi);
+                HienThiPopupPoi = true;
+            });
+        }
+
+        public Task DongPopupAsync()
+        {
+            _poiDangMoPopup = null;
+            return MainThread.InvokeOnMainThreadAsync(() => HienThiPopupPoi = false);
+        }
+
+        public async Task BatDauTrackingPoiDangMoAsync()
+        {
+            if (_poiDangMoPopup == null)
+                return;
+
+            _poiDangTracking = _poiDangMoPopup;
+            await DongPopupAsync();
+            PhatMapState(focusOnRoute: _viTriNguoiDungHienTai != null);
+        }
+
+        public Task LamMoiNoiDungHienThiAsync()
+        {
+            if (_poiDangMoPopup != null)
+            {
+                TieuDePopupPoi = _poiDangMoPopup.Ten;
+                MoTaPopupPoi = ChonMoTaTheoNgonNgu(_poiDangMoPopup);
+                UrlAnhPopupPoi = ApiEndpointResolver.BuildPoiImageUrl(_poiDangMoPopup.TenFileAnhMinhHoa);
+                CoAnhPopupPoi = !string.IsNullOrWhiteSpace(UrlAnhPopupPoi);
+            }
+
+            if (string.IsNullOrWhiteSpace(TenPoiGanNhat))
+                TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
+
+            PhatMapState();
+            return Task.CompletedTask;
+        }
+
+        private async Task XuLyViTriMoiAsync(LocationSnapshot snapshot, bool followUser = false)
         {
             if (_dangXuLyViTri)
                 return;
@@ -78,13 +190,15 @@ namespace App.ViewModels
 
             try
             {
+                var lat = snapshot.Lat;
+                var lng = snapshot.Lng;
+
                 PoiModel? ganNhat = null;
                 double minKc = double.MaxValue;
 
                 foreach (var poi in _danhSachPoi)
                 {
                     double kc = GeofenceService.TinhKhoangCachMetres(lat, lng, poi.Lat, poi.Lng);
-
                     if (kc < minKc)
                     {
                         minKc = kc;
@@ -94,54 +208,46 @@ namespace App.ViewModels
 
                 int banKinhMacDinh = Preferences.Get("geofence_radius", 100);
 
-                if (ganNhat != null)
+                await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        TenPoiGanNhat = ganNhat.Ten;
-                        KhoangCachGanNhat = minKc;
-                        CoPoiGanNhat = minKc <= banKinhMacDinh * 3;
-                    });
-
-                    System.Diagnostics.Debug.WriteLine($"[NEAREST] {ganNhat.Ten} - {minKc:F2}m");
-                }
-                else
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    if (ganNhat == null)
                     {
                         TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
                         KhoangCachGanNhat = 0;
                         CoPoiGanNhat = false;
-                    });
-                }
+                    }
+                    else
+                    {
+                        TenPoiGanNhat = ganNhat.Ten;
+                        KhoangCachGanNhat = minKc;
+                        CoPoiGanNhat = minKc <= banKinhMacDinh * 3;
+                    }
+                });
 
                 _ = _analytics.GuiRoutePingAsync(lat, lng, "GPS");
 
                 bool forceReread = Preferences.Get("force_reread_once", false);
-
                 if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FORCE] Đọc lại 1 lần cho POI: {ganNhat.Ten}");
                     await DocThuyetMinhTheoNgonNguAsync(ganNhat, "GPS");
                     Preferences.Set("force_reread_once", false);
-                    return;
                 }
-
-                var poiCanPhat = await _geofence.KiemTraVungAsync(lat, lng);
-
-                System.Diagnostics.Debug.WriteLine(
-                    poiCanPhat != null
-                        ? $"[GEOFENCE] Vào vùng: {poiCanPhat.Ten}"
-                        : "[GEOFENCE] Chưa vào vùng");
-
-                if (poiCanPhat != null)
+                else
                 {
-                    await DocThuyetMinhTheoNgonNguAsync(poiCanPhat, "GPS");
+                    var poiCanPhat = await _geofence.KiemTraVungAsync(lat, lng);
+                    if (poiCanPhat != null)
+                        await DocThuyetMinhTheoNgonNguAsync(poiCanPhat, "GPS");
                 }
+
+                PhatMapState(followUser: followUser);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MapViewModel] Lỗi xử lý vị trí: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MapViewModel] Loi xu ly vi tri: {ex.Message}");
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    TrangThaiGps = LocalizationResourceManager.Instance.Translate("MapPage_GpsError", ex.Message);
+                });
             }
             finally
             {
@@ -149,45 +255,155 @@ namespace App.ViewModels
             }
         }
 
+        private void CapNhatTrangThaiGps(LocationTrackingStatus status)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                TrangThaiGps = status.State switch
+                {
+                    LocationTrackingState.Tracking => LocalizationResourceManager.Instance["MapPage_GpsTracking"],
+                    LocationTrackingState.PermissionDenied => LocalizationResourceManager.Instance["MapPage_GpsPermissionDenied"],
+                    LocationTrackingState.Disabled => LocalizationResourceManager.Instance["MapPage_GpsDisabled"],
+                    LocationTrackingState.Error when !string.IsNullOrWhiteSpace(status.Details)
+                        => LocalizationResourceManager.Instance.Translate("MapPage_GpsError", status.Details),
+                    LocationTrackingState.Error => LocalizationResourceManager.Instance["MapPage_GpsUnavailable"],
+                    _ => LocalizationResourceManager.Instance["MapPage_WaitingGps"]
+                };
+            });
+        }
+
+        private void PhatMapState(bool fitToPois = false, bool focusOnRoute = false, bool followUser = false)
+        {
+            MapStateChanged?.Invoke(TaoTrangThaiBanDo(fitToPois, focusOnRoute, followUser));
+        }
+
+        private MapRenderState TaoTrangThaiBanDo(bool fitToPois, bool focusOnRoute, bool followUser)
+        {
+            var geofenceRadius = Preferences.Get("geofence_radius", 100);
+            var nearestPoi = _viTriNguoiDungHienTai == null
+                ? null
+                : TimPoiGanNhat(_viTriNguoiDungHienTai.Lat, _viTriNguoiDungHienTai.Lng);
+
+            var targetPoi = LayPoiDich();
+            var route = _viTriNguoiDungHienTai == null || targetPoi == null
+                ? null
+                : new MapRouteRenderModel
+                {
+                    Points =
+                    [
+                        new MapLocationRenderModel
+                        {
+                            Lat = _viTriNguoiDungHienTai.Lat,
+                            Lng = _viTriNguoiDungHienTai.Lng
+                        },
+                        new MapLocationRenderModel
+                        {
+                            Lat = targetPoi.Lat,
+                            Lng = targetPoi.Lng
+                        }
+                    ]
+                };
+
+            return new MapRenderState
+            {
+                Pois = _danhSachPoi.Select(poi => new MapPoiRenderModel
+                {
+                    Id = poi.Id,
+                    Ten = poi.Ten,
+                    MoTa = ChonMoTaTheoNgonNgu(poi),
+                    Lat = poi.Lat,
+                    Lng = poi.Lng,
+                    BanKinh = Math.Max(poi.BanKinh, geofenceRadius),
+                    IsNearest = nearestPoi?.Id == poi.Id,
+                    IsTracking = _poiDangTracking?.Id == poi.Id
+                }).ToList(),
+                UserLocation = _viTriNguoiDungHienTai == null
+                    ? null
+                    : new MapLocationRenderModel
+                    {
+                        Lat = _viTriNguoiDungHienTai.Lat,
+                        Lng = _viTriNguoiDungHienTai.Lng
+                    },
+                Route = route,
+                Bounds = TaoBoundsTheoDanhSachPoi(),
+                NearestPoiId = nearestPoi?.Id,
+                TrackingPoiId = _poiDangTracking?.Id,
+                FitToPois = fitToPois,
+                FocusOnRoute = focusOnRoute,
+                FollowUser = followUser
+            };
+        }
+
+        private MapBoundsRenderModel? TaoBoundsTheoDanhSachPoi()
+        {
+            if (_danhSachPoi.Count == 0)
+                return null;
+
+            return new MapBoundsRenderModel
+            {
+                MinLat = _danhSachPoi.Min(p => p.Lat),
+                MinLng = _danhSachPoi.Min(p => p.Lng),
+                MaxLat = _danhSachPoi.Max(p => p.Lat),
+                MaxLng = _danhSachPoi.Max(p => p.Lng)
+            };
+        }
+
+        private PoiModel? LayPoiDich()
+        {
+            if (_poiDangTracking != null)
+            {
+                _poiDangTracking = _danhSachPoi.FirstOrDefault(p => p.Id == _poiDangTracking.Id);
+                if (_poiDangTracking != null)
+                    return _poiDangTracking;
+            }
+
+            if (_viTriNguoiDungHienTai == null)
+                return null;
+
+            return TimPoiGanNhat(_viTriNguoiDungHienTai.Lat, _viTriNguoiDungHienTai.Lng);
+        }
+
+        private PoiModel? TimPoiGanNhat(double latNguoiDung, double lngNguoiDung)
+        {
+            return _danhSachPoi
+                .OrderBy(p => GeofenceService.TinhKhoangCachMetres(latNguoiDung, lngNguoiDung, p.Lat, p.Lng))
+                .FirstOrDefault();
+        }
+
         private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi, string nguon)
         {
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
             string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
 
-            System.Diagnostics.Debug.WriteLine($"[LANG] {maNgonNgu}");
-            System.Diagnostics.Debug.WriteLine($"[TEXT] {noiDung}");
+            if (string.IsNullOrWhiteSpace(noiDung))
+                return;
 
-            if (!string.IsNullOrWhiteSpace(noiDung))
-            {
-                System.Diagnostics.Debug.WriteLine($"[TTS] Đang đọc: {noiDung}");
-                await _tts.PhatAmAsync(noiDung, maNgonNgu);
+            await _tts.PhatAmAsync(noiDung, maNgonNgu);
 
-                int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
-                await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[TTS] Nội dung rỗng nên không đọc");
-            }
+            int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+            await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
         }
 
         private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
         {
             if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(poi.MoTa_En))
-                    return poi.MoTa_En;
-
-                return poi.MoTa_Vi;
-            }
+                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
 
             if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrWhiteSpace(poi.MoTa_Zh))
-                    return poi.MoTa_Zh;
+                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
 
-                return poi.MoTa_Vi;
-            }
+            return poi.MoTa_Vi;
+        }
+
+        private static string ChonMoTaTheoNgonNgu(PoiModel poi)
+        {
+            string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
+
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
 
             return poi.MoTa_Vi;
         }

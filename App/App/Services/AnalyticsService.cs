@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Microsoft.Maui.Storage;
 
 namespace App.Services
@@ -32,7 +32,7 @@ namespace App.Services
 
                 if (Preferences.Get("offline_mode", false))
                 {
-                    LastError = "Offline mode đang bật";
+                    LastError = "Offline mode dang bat.";
                     return false;
                 }
 
@@ -117,7 +117,6 @@ namespace App.Services
                     }
                     catch
                     {
-                        // Không throw để tránh làm hỏng luồng GPS.
                     }
                 }
 

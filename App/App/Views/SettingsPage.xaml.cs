@@ -1,4 +1,5 @@
 using App.Services;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 
 namespace App.Views;
@@ -66,7 +67,11 @@ public partial class SettingsPage : ContentPage
 
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
-        string apiBaseUrl = ApiBaseUrlEntry.Text?.Trim() ?? string.Empty;
+        string apiBaseUrl = ApiEndpointResolver.NormalizeBaseUrl(ApiBaseUrlEntry.Text?.Trim() ?? string.Empty);
+        bool loopbackChoMayThat =
+            DeviceInfo.Platform == DevicePlatform.Android &&
+            (apiBaseUrl.Contains("://localhost", StringComparison.OrdinalIgnoreCase) ||
+             apiBaseUrl.Contains("://127.0.0.1", StringComparison.OrdinalIgnoreCase));
 
         // Lưu cả Preferences (dùng nhanh tại runtime) + SQLite (đáp ứng yêu cầu tuần 5)
         Preferences.Set("tts_language", maNgonNgu);
@@ -84,10 +89,18 @@ public partial class SettingsPage : ContentPage
 
         LocalizationResourceManager.Instance.SetLanguage(maNgonNgu);
 
-        await DisplayAlert(
+        await DisplayAlertAsync(
             LocalizationResourceManager.Instance["SettingsPage_SaveSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_SaveSuccessMessage"],
             "OK");
+
+        if (loopbackChoMayThat)
+        {
+            await DisplayAlertAsync(
+                "Luu y",
+                "Tren Android that, localhost/127.0.0.1 se tro ve chinh dien thoai. Hay dung IP LAN hoac public URL de goi API.",
+                "OK");
+        }
     }
 
     private async void MacDinhButton_Clicked(object sender, EventArgs e)
@@ -112,7 +125,7 @@ public partial class SettingsPage : ContentPage
 
         LocalizationResourceManager.Instance.SetLanguage("vi-VN");
 
-        await DisplayAlert(
+        await DisplayAlertAsync(
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessMessage"],
             "OK");

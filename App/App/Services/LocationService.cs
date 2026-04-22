@@ -1,88 +1,162 @@
-﻿namespace App.Services
+namespace App.Services;
+
+public class LocationService : ILocationService
 {
-    public class LocationService : ILocationService
+    private static readonly TimeSpan TrackingInterval = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan TrackingTimeout = TimeSpan.FromSeconds(12);
+
+    private CancellationTokenSource? _cts;
+    private LocationSnapshot? _lastEmittedLocation;
+
+    public async Task BatDauTheoDoiAsync(
+        Action<LocationSnapshot> khiCoViTri,
+        Action<LocationTrackingStatus>? khiTrangThaiThayDoi = null)
     {
-        private CancellationTokenSource? _cts;
+        if (_cts != null && !_cts.IsCancellationRequested)
+            return;
 
-        public async Task BatDauTheoDoiAsync(Action<double, double> khiCoViTri)
+        var trangThai = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+        if (trangThai != PermissionStatus.Granted)
+            trangThai = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+
+        if (trangThai != PermissionStatus.Granted)
         {
-            var trangThai = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-            if (trangThai != PermissionStatus.Granted)
-                throw new Exception("Không có quyền truy cập GPS.");
+            khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+                LocationTrackingState.PermissionDenied,
+                "Location permission was denied."));
+            return;
+        }
 
-            // Nếu đang chạy rồi thì không chạy thêm lần nữa
-            if (_cts != null && !_cts.IsCancellationRequested)
-                return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
 
-            _cts = new CancellationTokenSource();
+        var viTriGanNhat = await LayViTriHienTaiAsync();
+        if (viTriGanNhat != null)
+        {
+            _lastEmittedLocation = viTriGanNhat;
+            khiCoViTri(viTriGanNhat);
+        }
 
-            // Chụp token ra biến local để tránh bị null khi DungTheoDoi() chạy
-            var token = _cts.Token;
-
-            _ = Task.Run(async () =>
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
+                try
                 {
-                    try
-                    {
-                        var viTri = await Geolocation.GetLocationAsync(
-                            new GeolocationRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(10)),
-                            token);
+                    var viTri = await Geolocation.GetLocationAsync(
+                        new GeolocationRequest(GeolocationAccuracy.Best, TrackingTimeout),
+                        token);
 
-                        if (viTri != null)
+                    if (viTri == null)
+                    {
+                        khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+                            LocationTrackingState.Error,
+                            "Location is currently unavailable."));
+                    }
+                    else
+                    {
+                        var snapshot = new LocationSnapshot(
+                            viTri.Latitude,
+                            viTri.Longitude,
+                            viTri.Accuracy,
+                            viTri.Timestamp);
+
+                        if (ShouldEmit(snapshot))
                         {
-                            khiCoViTri(viTri.Latitude, viTri.Longitude);
-                            System.Diagnostics.Debug.WriteLine($"[GPS] {viTri.Latitude}, {viTri.Longitude}");
+                            _lastEmittedLocation = snapshot;
+                            khiCoViTri(snapshot);
                         }
-                    }
-                    catch (FeatureNotEnabledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[GPS] GPS đang tắt.");
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[GPS] Lỗi: {ex.Message}");
-                    }
 
-                    try
-                    {
-                        await Task.Delay(3000, token);
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        break;
+                        khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(LocationTrackingState.Tracking));
                     }
                 }
-            }, token);
-        }
+                catch (FeatureNotEnabledException)
+                {
+                    khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+                        LocationTrackingState.Disabled,
+                        "GPS is disabled."));
+                }
+                catch (PermissionException)
+                {
+                    khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+                        LocationTrackingState.PermissionDenied,
+                        "Location permission was denied."));
+                    break;
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[GPS] Lỗi: {ex.Message}");
+                    khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+                        LocationTrackingState.Error,
+                        ex.Message));
+                }
 
-        public void DungTheoDoi()
-        {
-            if (_cts == null)
-                return;
-
-            try
-            {
-                _cts.Cancel();
+                try
+                {
+                    await Task.Delay(TrackingInterval, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
-            catch
-            {
-            }
+        }, token);
+    }
 
-            _cts.Dispose();
-            _cts = null;
-        }
+    public void DungTheoDoi()
+    {
+        if (_cts == null)
+            return;
 
-        public async Task<(double Lat, double Lng)?> LayViTriHienTaiAsync()
+        try
         {
-            var viTri = await Geolocation.GetLastKnownLocationAsync();
-            if (viTri == null) return null;
-
-            return (viTri.Latitude, viTri.Longitude);
+            _cts.Cancel();
         }
+        catch
+        {
+        }
+
+        _cts.Dispose();
+        _cts = null;
+        _lastEmittedLocation = null;
+    }
+
+    public async Task<LocationSnapshot?> LayViTriHienTaiAsync()
+    {
+        var viTri = await Geolocation.GetLastKnownLocationAsync();
+        if (viTri == null)
+            return null;
+
+        return new LocationSnapshot(
+            viTri.Latitude,
+            viTri.Longitude,
+            viTri.Accuracy,
+            viTri.Timestamp);
+    }
+
+    private bool ShouldEmit(LocationSnapshot snapshot)
+    {
+        if (_lastEmittedLocation == null)
+            return true;
+
+        var khoangCach = GeofenceService.TinhKhoangCachMetres(
+            _lastEmittedLocation.Lat,
+            _lastEmittedLocation.Lng,
+            snapshot.Lat,
+            snapshot.Lng);
+
+        return khoangCach >= 3;
     }
 }

@@ -1,4 +1,3 @@
-using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 
 namespace App.Services;
@@ -7,20 +6,13 @@ public static class ApiEndpointResolver
 {
     private const string ApiBaseUrlPreferenceKey = "api_base_url";
 
-    private static readonly string[] DefaultBaseUrls =
-    {
-        "http://10.0.2.2:5099", // Android Emulator
-        "http://localhost:5099" // Windows/local
-    };
-
     public static IEnumerable<string> GetBaseUrls()
     {
-        var customBaseUrl = Preferences.Get(ApiBaseUrlPreferenceKey, string.Empty)?.Trim();
-        if (!string.IsNullOrWhiteSpace(customBaseUrl))
-            yield return NormalizeBaseUrl(customBaseUrl);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var configuredBaseUrl = GetConfiguredBaseUrl();
 
-        foreach (var baseUrl in DefaultBaseUrls)
-            yield return NormalizeBaseUrl(baseUrl);
+        if (!string.IsNullOrWhiteSpace(configuredBaseUrl) && seen.Add(configuredBaseUrl))
+            yield return configuredBaseUrl;
     }
 
     public static IEnumerable<string> GetPoiApiUrls()
@@ -29,27 +21,46 @@ public static class ApiEndpointResolver
             yield return $"{baseUrl}/api/pois";
     }
 
+    public static string? GetConfiguredBaseUrl()
+    {
+        var customBaseUrl = Preferences.Get(ApiBaseUrlPreferenceKey, string.Empty)?.Trim();
+        if (string.IsNullOrWhiteSpace(customBaseUrl))
+            return null;
+
+        return NormalizeBaseUrl(customBaseUrl);
+    }
+
+    public static bool HasConfiguredBaseUrl() =>
+        !string.IsNullOrWhiteSpace(GetConfiguredBaseUrl());
+
     public static string NormalizeBaseUrl(string url)
     {
         var normalized = url.Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
         if (!normalized.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
             !normalized.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             normalized = $"http://{normalized}";
         }
 
-        if (DeviceInfo.Platform == DevicePlatform.Android)
-            return normalized.Replace("localhost", "10.0.2.2", StringComparison.OrdinalIgnoreCase);
-
         return normalized;
     }
 
-    public static string GetConfiguredBaseUrlOrDefault()
+    public static string? BuildPoiImageUrl(string? tenFileAnh)
     {
-        var customBaseUrl = Preferences.Get(ApiBaseUrlPreferenceKey, string.Empty)?.Trim();
-        if (!string.IsNullOrWhiteSpace(customBaseUrl))
-            return NormalizeBaseUrl(customBaseUrl);
+        if (string.IsNullOrWhiteSpace(tenFileAnh))
+            return null;
 
-        return NormalizeBaseUrl(DefaultBaseUrls[0]);
+        var raw = tenFileAnh.Trim();
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var absoluteUri))
+            return absoluteUri.ToString();
+
+        var baseUrl = GetConfiguredBaseUrl();
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            return null;
+
+        return $"{baseUrl}/images/poi/{raw}";
     }
 }

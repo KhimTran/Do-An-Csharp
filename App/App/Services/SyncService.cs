@@ -1,6 +1,7 @@
-using Microsoft.Maui.Storage;
-using System.Net.Http.Json;
 using App.Models;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.Maui.Storage;
 
 namespace App.Services
 {
@@ -26,33 +27,49 @@ namespace App.Services
             {
                 LastError = string.Empty;
 
-                bool offlineMode = Preferences.Get("offline_mode", false);
-                if (offlineMode)
+                if (Preferences.Get("offline_mode", false))
                 {
-                    LastError = "Offline mode đang bật";
+                    LastError = "Offline mode dang bat.";
                     return false;
                 }
 
-                foreach (var url in ApiEndpointResolver.GetPoiApiUrls().Distinct())
+                var danhSachUrl = ApiEndpointResolver.GetPoiApiUrls().Distinct().ToList();
+                if (danhSachUrl.Count == 0)
+                {
+                    LastError = "Chua cau hinh API base URL. Dang dung du lieu SQLite/local sample.";
+                    return false;
+                }
+
+                foreach (var url in danhSachUrl)
                 {
                     try
                     {
                         var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(url);
-                        if (danhSach == null)
+                        if (danhSach == null || danhSach.Count == 0)
                             continue;
 
                         foreach (var poi in danhSach)
                         {
-                            poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(baseUrl: url, tenFileAnh: poi.TenFileAnhMinhHoa);
-                        }
-
-                        foreach (var poi in danhSach)
+                            poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(poi.TenFileAnhMinhHoa);
                             await _db.LuuPoiAsync(poi);
+                        }
 
                         var serverIds = danhSach.Select(p => p.Id).ToList();
                         await _db.XoaNhungPoiKhongConTrenServerAsync(serverIds);
 
                         return true;
+                    }
+                    catch (TaskCanceledException ex)
+                    {
+                        LastError = $"{url} -> timeout: {ex.Message}";
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        LastError = $"{url} -> network: {ex.Message}";
+                    }
+                    catch (JsonException ex)
+                    {
+                        LastError = $"{url} -> json: {ex.Message}";
                     }
                     catch (Exception ex)
                     {
@@ -61,7 +78,7 @@ namespace App.Services
                 }
 
                 if (string.IsNullOrWhiteSpace(LastError))
-                    LastError = "Không lấy được dữ liệu từ API";
+                    LastError = "Khong lay duoc du lieu tu API.";
 
                 return false;
             }
@@ -72,17 +89,7 @@ namespace App.Services
             }
         }
 
-        private static string? ChuanHoaUrlAnh(string baseUrl, string? tenFileAnh)
-        {
-            if (string.IsNullOrWhiteSpace(tenFileAnh))
-                return null;
-
-            var raw = tenFileAnh.Trim();
-            if (Uri.TryCreate(raw, UriKind.Absolute, out _))
-                return raw;
-
-            var normalizedBase = baseUrl.Replace("/api/pois", string.Empty, StringComparison.OrdinalIgnoreCase).TrimEnd('/');
-            return $"{normalizedBase}/images/poi/{raw}";
-        }
+        private static string? ChuanHoaUrlAnh(string? tenFileAnh) =>
+            ApiEndpointResolver.BuildPoiImageUrl(tenFileAnh);
     }
 }

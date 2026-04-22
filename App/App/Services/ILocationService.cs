@@ -1,15 +1,12 @@
-﻿// Services/ILocationService.cs
-namespace App.Services
+namespace App.Services;
+
+public interface ILocationService
 {
-    public interface ILocationService
-    {
-        // Bắt đầu theo dõi vị trí, gọi callback mỗi khi có vị trí mới
-        Task BatDauTheoDoiAsync(Action<double, double> khiCoViTri);
+    Task BatDauTheoDoiAsync(
+        Action<LocationSnapshot> khiCoViTri,
+        Action<LocationTrackingStatus>? khiTrangThaiThayDoi = null);
 
-        // Dừng theo dõi
-        void DungTheoDoi();
+    void DungTheoDoi();
 
-        // Lấy vị trí một lần
-        Task<(double Lat, double Lng)?> LayViTriHienTaiAsync();
-    }
+    Task<LocationSnapshot?> LayViTriHienTaiAsync();
 }

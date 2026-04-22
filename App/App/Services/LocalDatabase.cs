@@ -57,29 +57,36 @@ namespace App.Services
 
         private async Task ThemDuLieuMau()
         {
-            await _db!.InsertAllAsync(new List<PoiModel>
+            var mau = new List<PoiModel>
             {
-                new PoiModel {
-                    Ten = "Quán Bún Bò Huế Vĩnh Khánh",
-                    MoTa_Vi = "Quán bún bò nổi tiếng với hơn 30 năm lịch sử.",
-                    MoTa_En = "Famous bun bo Hue restaurant with 30-year history.",
-                    MoTa_Zh = "著名的顺化牛肉米线餐厅，拥有30年历史。",
-                    Lat = 10.7565,
-                    Lng = 106.6896,
-                    BanKinh = 50,
+                new PoiModel
+                {
+                    Id = 1,
+                    Ten = "Pho am thuc Vinh Khanh",
+                    MoTa_Vi = "Cum quan an noi tieng tren duong Vinh Khanh, phu hop de demo marker va geofence ngay khi mo app.",
+                    MoTa_En = "A well-known food street cluster on Vinh Khanh, useful to demo markers and geofences right after launch.",
+                    MoTa_Zh = "永庆街知名美食区，打开应用即可看到示例标记与地理围栏。",
+                    Lat = 10.76082,
+                    Lng = 106.70442,
+                    BanKinh = 80,
                     UuTien = 1
                 },
-                new PoiModel {
-                    Ten = "Chợ Xóm Chiếu",
-                    MoTa_Vi = "Khu chợ truyền thống lâu đời của quận 4.",
-                    MoTa_En = "Traditional market of District 4.",
-                    MoTa_Zh = "第四郡传统市场。",
-                    Lat = 10.7580,
-                    Lng = 106.6910,
-                    BanKinh = 80,
+                new PoiModel
+                {
+                    Id = 2,
+                    Ten = "Cho Xom Chieu",
+                    MoTa_Vi = "Cho truyen thong lau doi o Quan 4, duoc seed san de app van co du lieu khi API khong san sang.",
+                    MoTa_En = "A long-running traditional market in District 4, seeded so the app still has data when the API is unavailable.",
+                    MoTa_Zh = "第四郡的传统市场，在 API 不可用时仍能用作本地示例数据。",
+                    Lat = 10.75873,
+                    Lng = 106.70169,
+                    BanKinh = 100,
                     UuTien = 2
-                },
-            });
+                }
+            };
+
+            foreach (var poi in mau)
+                await _db!.InsertOrReplaceAsync(poi);
         }
 
         public async Task<List<PoiModel>> LayTatCaPoiAsync()

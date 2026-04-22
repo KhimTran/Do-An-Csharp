@@ -1,10 +1,14 @@
-﻿using App.Services;
+using App.Services;
 using App.ViewModels;
 using App.Views;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using ZXing.Net.Maui.Controls;
 
+#if ANDROID
+using Android.Webkit;
+using Microsoft.Maui.Handlers;
+#endif
 
 namespace App
 {
@@ -18,12 +22,25 @@ namespace App
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
                 .UseBarcodeReader()
-                .UseMauiMaps()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+#if ANDROID
+            WebViewHandler.Mapper.AppendToMapping("LeafletWebView", (handler, view) =>
+            {
+                handler.PlatformView.Settings.JavaScriptEnabled = true;
+                handler.PlatformView.Settings.DomStorageEnabled = true;
+                handler.PlatformView.Settings.AllowFileAccess = true;
+                handler.PlatformView.Settings.AllowContentAccess = true;
+                handler.PlatformView.Settings.MixedContentMode = MixedContentHandling.CompatibilityMode;
+                handler.PlatformView.Settings.SetSupportZoom(true);
+                handler.PlatformView.Settings.BuiltInZoomControls = false;
+                handler.PlatformView.Settings.DisplayZoomControls = false;
+            });
+#endif
 
             builder.Services.AddSingleton<LocalDatabase>();
             builder.Services.AddSingleton<SyncService>();
