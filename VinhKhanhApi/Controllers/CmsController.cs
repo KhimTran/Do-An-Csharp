@@ -269,6 +269,106 @@ namespace VinhKhanhApi.Controllers
             return View(topPoi);
         }
 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Monitoring()
+        {
+            var now = DateTime.UtcNow;
+            var activeCutoff = now.AddSeconds(-90);
+            var weeklyCutoff = now.Date.AddDays(-6);
+
+            var activeDevices = await _db.DeviceHeartbeats
+                .AsNoTracking()
+                .Where(x => x.LastSeen >= activeCutoff)
+                .OrderByDescending(x => x.LastSeen)
+                .Select(x => new
+                {
+                    x.SessionId,
+                    x.DeviceLabel,
+                    x.LastSeen,
+                    x.AppVersion
+                })
+                .ToListAsync();
+
+            var recentRoutePings = await _db.RoutePings
+                .AsNoTracking()
+                .Where(x => x.ThoiGian >= weeklyCutoff)
+                .Select(x => new
+                {
+                    x.SessionId,
+                    x.ThoiGian
+                })
+                .ToListAsync();
+
+            var orderedDays = new[]
+            {
+                new { Day = DayOfWeek.Monday, Label = "Thứ 2", Index = 0 },
+                new { Day = DayOfWeek.Tuesday, Label = "Thứ 3", Index = 1 },
+                new { Day = DayOfWeek.Wednesday, Label = "Thứ 4", Index = 2 },
+                new { Day = DayOfWeek.Thursday, Label = "Thứ 5", Index = 3 },
+                new { Day = DayOfWeek.Friday, Label = "Thứ 6", Index = 4 },
+                new { Day = DayOfWeek.Saturday, Label = "Thứ 7", Index = 5 },
+                new { Day = DayOfWeek.Sunday, Label = "Chủ nhật", Index = 6 }
+            };
+
+            var weeklyUsage = orderedDays
+                .Select(day => new
+                {
+                    day.Index,
+                    day.Label,
+                    DistinctSessions = recentRoutePings
+                        .Where(x => x.ThoiGian.DayOfWeek == day.Day && !string.IsNullOrWhiteSpace(x.SessionId))
+                        .Select(x => x.SessionId)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count()
+                })
+                .ToList();
+
+            var weeklyHeatmap = orderedDays
+                .SelectMany(day => Enumerable.Range(0, 24).Select(hour => new
+                {
+                    day.Index,
+                    day.Label,
+                    Hour = hour,
+                    Count = recentRoutePings.Count(x => x.ThoiGian.DayOfWeek == day.Day && x.ThoiGian.Hour == hour)
+                }))
+                .ToList();
+
+            var model = new MonitoringViewModel
+            {
+                GeneratedAtUtc = now,
+                ActiveDeviceCount = activeDevices.Count,
+                ActiveDevices = activeDevices
+                    .Select(x => new MonitoringActiveDeviceViewModel
+                    {
+                        SessionId = x.SessionId,
+                        DeviceLabel = x.DeviceLabel,
+                        LastSeen = x.LastSeen,
+                        AppVersion = x.AppVersion
+                    })
+                    .ToList(),
+                WeeklyUsage = weeklyUsage
+                    .Select(x => new MonitoringWeeklyUsageViewModel
+                    {
+                        DayIndex = x.Index,
+                        DayLabel = x.Label,
+                        DistinctSessions = x.DistinctSessions
+                    })
+                    .ToList(),
+                WeeklyHeatmap = weeklyHeatmap
+                    .Select(x => new MonitoringHeatmapCellViewModel
+                    {
+                        DayIndex = x.Index,
+                        DayLabel = x.Label,
+                        Hour = x.Hour,
+                        Count = x.Count
+                    })
+                    .ToList()
+            };
+
+            return View(model);
+        }
+
         private async Task<string?> LuuFileAudioNeuCo(IFormFile? file, string? fileNameCu)
         {
             if (file == null || file.Length == 0) return fileNameCu;

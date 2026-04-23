@@ -51,6 +51,7 @@ using (var scope = app.Services.CreateScope())
     await DamBaoCotPoiMoiAsync(db);
     await DamBaoBangTaiKhoanAsync(db);
     await DamBaoBangRoutePingsAsync(db);
+    await DamBaoBangHeartbeatAsync(db);
 }
 
 app.UseCors("AllowAll");
@@ -142,6 +143,33 @@ BEGIN
         ThoiGian DATETIME2 NOT NULL DEFAULT(GETUTCDATE()),
         Nguon NVARCHAR(20) NOT NULL DEFAULT('GPS')
     );
+END";
+
+    await db.Database.ExecuteSqlRawAsync(sql);
+}
+
+static async Task DamBaoBangHeartbeatAsync(AppDbContext db)
+{
+    var sql = @"
+IF OBJECT_ID('DeviceHeartbeats', 'U') IS NULL
+BEGIN
+    CREATE TABLE DeviceHeartbeats (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        SessionId NVARCHAR(100) NOT NULL,
+        DeviceLabel NVARCHAR(50) NOT NULL DEFAULT 'Unknown',
+        LastSeen DATETIME2 NOT NULL DEFAULT(GETUTCDATE()),
+        AppVersion NVARCHAR(20) NULL
+    );
+END
+
+IF OBJECT_ID('DeviceHeartbeats', 'U') IS NOT NULL
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sys.indexes
+        WHERE name = 'UX_DeviceHeartbeats_SessionId'
+            AND object_id = OBJECT_ID('DeviceHeartbeats'))
+BEGIN
+    CREATE UNIQUE INDEX UX_DeviceHeartbeats_SessionId ON DeviceHeartbeats(SessionId);
 END";
 
     await db.Database.ExecuteSqlRawAsync(sql);

@@ -18,15 +18,16 @@
             IsVisible="{Binding HienThiPopupPoi}"
             Padding="20"
             ZIndex="20">
-            <Frame
+            <Border
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
                 WidthRequest="340"
                 MaximumWidthRequest="420"
                 MaximumHeightRequest="460"
                 Padding="16,14"
-                CornerRadius="12"
-                BackgroundColor="White">
+                BackgroundColor="White"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 12">
                 <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
                     <Label
                         Grid.Row="0"
@@ -70,18 +71,18 @@
                             Text="{Binding [MapPage_Track], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                     </Grid>
                 </Grid>
-            </Frame>
+            </Border>
         </Grid>
 
-        <Frame
+        <Border
             Grid.Row="0"
             Margin="12"
             Padding="10,8"
             HorizontalOptions="Start"
             VerticalOptions="Start"
             BackgroundColor="#CCFFFFFF"
-            BorderColor="#22000000"
-            CornerRadius="10"
+            Stroke="#22000000"
+            StrokeShape="RoundRectangle 10"
             ZIndex="5">
             <VerticalStackLayout Spacing="2">
                 <Label
@@ -101,9 +102,14 @@
                     FontSize="12"
                     Text="{Binding [MapPage_LegendRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" />
             </VerticalStackLayout>
-        </Frame>
+        </Border>
 
-        <Frame Grid.Row="1" Margin="12" Padding="12" ZIndex="5">
+        <Border Grid.Row="1"
+                Margin="12"
+                Padding="12"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 12"
+                ZIndex="5">
             <VerticalStackLayout Spacing="6">
                 <Label
                     FontAttributes="Bold"
@@ -113,6 +119,6 @@
                 <Label FontSize="12" Text="{Binding TrangThaiGps}" TextColor="#52606D" />
                 <Label FontSize="12" Text="{Binding ThongBaoBanDo}" TextColor="#52606D" />
             </VerticalStackLayout>
-        </Frame>
+        </Border>
     </Grid>
 </ContentPage>

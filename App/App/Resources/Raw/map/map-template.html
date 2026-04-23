@@ -7,7 +7,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta
         http-equiv="Content-Security-Policy"
-        content="default-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org;" />
+        content="default-src 'self' data: blob: http: https: appbridge:; img-src 'self' data: blob: http: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' data: blob: http: https:; frame-src 'self' appbridge:;" />
     <title>Leaflet Map</title>
     <style>
 /*__LEAFLET_CSS__*/
@@ -56,6 +56,48 @@
 
         .leaflet-tooltip.poi-tooltip::before {
             display: none;
+        }
+
+        .leaflet-popup.poi-popup-shell .leaflet-popup-content-wrapper {
+            border-radius: 16px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            padding: 0;
+        }
+
+        .leaflet-popup.poi-popup-shell .leaflet-popup-content {
+            margin: 0;
+            min-width: 220px;
+        }
+
+        .leaflet-popup.poi-popup-shell .leaflet-popup-tip {
+            box-shadow: none;
+        }
+
+        .poi-popup {
+            color: #1f2937;
+            padding: 12px;
+        }
+
+        .poi-popup__title {
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 8px;
+        }
+
+        .poi-popup__image {
+            border-radius: 10px;
+            display: block;
+            height: 120px;
+            margin-bottom: 8px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .poi-popup__description {
+            color: #4b5563;
+            font-size: 12px;
+            line-height: 1.5;
         }
     </style>
 </head>

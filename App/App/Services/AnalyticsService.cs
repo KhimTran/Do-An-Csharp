@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 
 namespace App.Services
@@ -6,11 +8,13 @@ namespace App.Services
     public class AnalyticsService
     {
         private static readonly TimeSpan KhoangCachGuiRoutePing = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan KhoangCachGuiHeartbeat = TimeSpan.FromSeconds(60);
         private readonly HttpClient _http = new()
         {
             Timeout = TimeSpan.FromSeconds(10)
         };
         private DateTime _lanGuiRoutePingCuoi = DateTime.MinValue;
+        private DateTime _lanGuiHeartbeatCuoi = DateTime.MinValue;
 
         public string LastError { get; private set; } = string.Empty;
 
@@ -82,12 +86,7 @@ namespace App.Services
                 if (DateTime.UtcNow - _lanGuiRoutePingCuoi < KhoangCachGuiRoutePing)
                     return false;
 
-                string sessionId = Preferences.Get("analytics_session_id", string.Empty);
-                if (string.IsNullOrWhiteSpace(sessionId))
-                {
-                    sessionId = Guid.NewGuid().ToString("N");
-                    Preferences.Set("analytics_session_id", sessionId);
-                }
+                string sessionId = LayHoacTaoSessionId();
 
                 var payload = new[]
                 {
@@ -128,6 +127,47 @@ namespace App.Services
             }
         }
 
+        public async Task GuiHeartbeatAsync()
+        {
+            try
+            {
+                if (Preferences.Get("offline_mode", false))
+                    return;
+
+                var now = DateTime.UtcNow;
+                if (now - _lanGuiHeartbeatCuoi < KhoangCachGuiHeartbeat)
+                    return;
+
+                _lanGuiHeartbeatCuoi = now;
+
+                var payload = new
+                {
+                    SessionId = LayHoacTaoSessionId(),
+                    DeviceLabel = LayNhanThietBi(),
+                    AppVersion = AppInfo.VersionString
+                };
+
+                foreach (var baseUrl in LayDanhSachBaseUrlCanThu().Distinct())
+                {
+                    try
+                    {
+                        var response = await _http.PostAsJsonAsync(
+                            $"{baseUrl}/api/analytics/heartbeat",
+                            payload);
+
+                        if (response.IsSuccessStatusCode)
+                            return;
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
         public static int UocTinhThoiLuongGiay(string noiDung)
         {
             if (string.IsNullOrWhiteSpace(noiDung))
@@ -138,6 +178,28 @@ namespace App.Services
                 .Length;
 
             return Math.Max(5, soTu / 2);
+        }
+
+        private static string LayHoacTaoSessionId()
+        {
+            string sessionId = Preferences.Get("analytics_session_id", string.Empty);
+            if (!string.IsNullOrWhiteSpace(sessionId))
+                return sessionId;
+
+            sessionId = Guid.NewGuid().ToString("N");
+            Preferences.Set("analytics_session_id", sessionId);
+            return sessionId;
+        }
+
+        private static string LayNhanThietBi()
+        {
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+                return "Android";
+
+            if (DeviceInfo.Platform == DevicePlatform.iOS)
+                return "iOS";
+
+            return DeviceInfo.Platform.ToString();
         }
     }
 }

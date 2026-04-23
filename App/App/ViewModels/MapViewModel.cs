@@ -131,27 +131,37 @@ namespace App.ViewModels
             _daCanhTheoNguoiDung = false;
         }
 
-        public Task ChonPoiTuMapAsync(int poiId)
+        public async Task ChonPoiTuMapAsync(int poiId)
         {
             var poi = _danhSachPoi.FirstOrDefault(p => p.Id == poiId);
             if (poi == null)
-                return Task.CompletedTask;
+                return;
 
             _poiDangMoPopup = poi;
-            return MainThread.InvokeOnMainThreadAsync(() =>
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                TieuDePopupPoi = poi.Ten;
-                MoTaPopupPoi = ChonMoTaTheoNgonNgu(poi);
-                UrlAnhPopupPoi = ApiEndpointResolver.BuildPoiImageUrl(poi.TenFileAnhMinhHoa);
-                CoAnhPopupPoi = !string.IsNullOrWhiteSpace(UrlAnhPopupPoi);
+                CapNhatPopupPoi(poi);
                 HienThiPopupPoi = true;
             });
+
+            PhatMapState();
         }
 
-        public Task DongPopupAsync()
+        public async Task DongPopupAsync(bool capNhatBanDo = true)
         {
             _poiDangMoPopup = null;
-            return MainThread.InvokeOnMainThreadAsync(() => HienThiPopupPoi = false);
+            await MainThread.InvokeOnMainThreadAsync(() => HienThiPopupPoi = false);
+
+            if (capNhatBanDo)
+                PhatMapState();
+        }
+
+        public Task DongPopupNeuTrungAsync(int poiId)
+        {
+            if (_poiDangMoPopup?.Id != poiId)
+                return Task.CompletedTask;
+
+            return DongPopupAsync();
         }
 
         public async Task BatDauTrackingPoiDangMoAsync()
@@ -160,7 +170,7 @@ namespace App.ViewModels
                 return;
 
             _poiDangTracking = _poiDangMoPopup;
-            await DongPopupAsync();
+            await DongPopupAsync(capNhatBanDo: false);
             PhatMapState(focusOnRoute: _viTriNguoiDungHienTai != null);
         }
 
@@ -168,10 +178,7 @@ namespace App.ViewModels
         {
             if (_poiDangMoPopup != null)
             {
-                TieuDePopupPoi = _poiDangMoPopup.Ten;
-                MoTaPopupPoi = ChonMoTaTheoNgonNgu(_poiDangMoPopup);
-                UrlAnhPopupPoi = ApiEndpointResolver.BuildPoiImageUrl(_poiDangMoPopup.TenFileAnhMinhHoa);
-                CoAnhPopupPoi = !string.IsNullOrWhiteSpace(UrlAnhPopupPoi);
+                CapNhatPopupPoi(_poiDangMoPopup);
             }
 
             if (string.IsNullOrWhiteSpace(TenPoiGanNhat))
@@ -225,6 +232,7 @@ namespace App.ViewModels
                 });
 
                 _ = _analytics.GuiRoutePingAsync(lat, lng, "GPS");
+                _ = _analytics.GuiHeartbeatAsync();
 
                 bool forceReread = Preferences.Get("force_reread_once", false);
                 if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
@@ -289,6 +297,16 @@ namespace App.ViewModels
                 ? null
                 : new MapRouteRenderModel
                 {
+                    Origin = new MapLocationRenderModel
+                    {
+                        Lat = _viTriNguoiDungHienTai.Lat,
+                        Lng = _viTriNguoiDungHienTai.Lng
+                    },
+                    Destination = new MapLocationRenderModel
+                    {
+                        Lat = targetPoi.Lat,
+                        Lng = targetPoi.Lng
+                    },
                     Points =
                     [
                         new MapLocationRenderModel
@@ -311,6 +329,7 @@ namespace App.ViewModels
                     Id = poi.Id,
                     Ten = poi.Ten,
                     MoTa = ChonMoTaTheoNgonNgu(poi),
+                    ImageUrl = BuildPoiImageUrl(poi),
                     Lat = poi.Lat,
                     Lng = poi.Lng,
                     BanKinh = Math.Max(poi.BanKinh, geofenceRadius),
@@ -328,6 +347,7 @@ namespace App.ViewModels
                 Bounds = TaoBoundsTheoDanhSachPoi(),
                 NearestPoiId = nearestPoi?.Id,
                 TrackingPoiId = _poiDangTracking?.Id,
+                PopupPoiId = _poiDangMoPopup?.Id,
                 FitToPois = fitToPois,
                 FocusOnRoute = focusOnRoute,
                 FollowUser = followUser
@@ -369,6 +389,17 @@ namespace App.ViewModels
                 .OrderBy(p => GeofenceService.TinhKhoangCachMetres(latNguoiDung, lngNguoiDung, p.Lat, p.Lng))
                 .FirstOrDefault();
         }
+
+        private void CapNhatPopupPoi(PoiModel poi)
+        {
+            TieuDePopupPoi = poi.Ten;
+            MoTaPopupPoi = ChonMoTaTheoNgonNgu(poi);
+            UrlAnhPopupPoi = BuildPoiImageUrl(poi);
+            CoAnhPopupPoi = !string.IsNullOrWhiteSpace(UrlAnhPopupPoi);
+        }
+
+        private static string? BuildPoiImageUrl(PoiModel poi)
+            => ApiEndpointResolver.BuildPoiImageUrl(poi.TenFileAnhMinhHoa);
 
         private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi, string nguon)
         {

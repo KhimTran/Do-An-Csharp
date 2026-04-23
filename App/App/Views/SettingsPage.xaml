@@ -13,7 +13,9 @@
                    FontSize="22"
                    FontAttributes="Bold" />
 
-            <Frame Padding="16">
+            <Border Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{Binding [SettingsPage_Language], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
@@ -26,9 +28,11 @@
                         </Picker.Items>
                     </Picker>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame Padding="16">
+            <Border Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{Binding [SettingsPage_Radius], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
@@ -40,9 +44,11 @@
                             Value="50"
                             ValueChanged="BanKinhSlider_ValueChanged" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame Padding="16">
+            <Border Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{Binding [SettingsPage_Offline], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
@@ -52,9 +58,11 @@
                                VerticalOptions="Center" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <Frame Padding="16">
+            <Border Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding [SettingsPage_ApiBaseUrl], Source={x:Static services:LocalizationResourceManager.Instance}}"
                            FontAttributes="Bold" />
@@ -63,7 +71,7 @@
                            Keyboard="Url"
                            ClearButtonVisibility="WhileEditing" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <Label Text="{Binding [SettingsPage_Info], Source={x:Static services:LocalizationResourceManager.Instance}}"
                    FontSize="12"

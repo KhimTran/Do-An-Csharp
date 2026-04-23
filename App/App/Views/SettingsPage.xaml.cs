@@ -46,12 +46,12 @@ public partial class SettingsPage : ContentPage
         OfflineSwitch.IsToggled = offlineMode;
     }
 
-    private void BanKinhSlider_ValueChanged(object sender, ValueChangedEventArgs e)
+    private void BanKinhSlider_ValueChanged(object? sender, ValueChangedEventArgs e)
     {
         BanKinhLabel.Text = $"{(int)e.NewValue} m";
     }
 
-    private async void LuuButton_Clicked(object sender, EventArgs e)
+    private async void LuuButton_Clicked(object? sender, EventArgs e)
     {
         string maNgonNgu = NgonNguPicker.SelectedIndex switch
         {
@@ -84,7 +84,7 @@ public partial class SettingsPage : ContentPage
             "OK");
     }
 
-    private async void MacDinhButton_Clicked(object sender, EventArgs e)
+    private async void MacDinhButton_Clicked(object? sender, EventArgs e)
     {
         NgonNguPicker.SelectedIndex = 0;
         BanKinhSlider.Value = 50;

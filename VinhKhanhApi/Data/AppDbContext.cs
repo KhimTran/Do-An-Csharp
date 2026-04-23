@@ -11,10 +11,23 @@ namespace VinhKhanhApi.Data
         public DbSet<PoiModel> POIs { get; set; }
         public DbSet<PlaybackLogModel> PlaybackLogs { get; set; }
         public DbSet<RoutePingModel> RoutePings { get; set; }
+        public DbSet<DeviceHeartbeatModel> DeviceHeartbeats { get; set; }
         public DbSet<UserAccountModel> UserAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<DeviceHeartbeatModel>(entity =>
+            {
+                entity.ToTable("DeviceHeartbeats");
+                entity.Property(x => x.SessionId).HasMaxLength(100);
+                entity.Property(x => x.DeviceLabel).HasMaxLength(50).HasDefaultValue("Unknown");
+                entity.Property(x => x.LastSeen).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(x => x.AppVersion).HasMaxLength(20);
+                entity.HasIndex(x => x.SessionId)
+                    .IsUnique()
+                    .HasDatabaseName("UX_DeviceHeartbeats_SessionId");
+            });
+
             modelBuilder.Entity<PoiModel>().HasData(
                 new PoiModel
                 {

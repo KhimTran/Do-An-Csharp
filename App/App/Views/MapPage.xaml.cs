@@ -155,6 +155,15 @@ public partial class MapPage : ContentPage
 
                 return true;
 
+            case "poi-popup-close":
+                if (TryGetQueryValue(uri, "poiId", out var closedPoiIdText) &&
+                    int.TryParse(closedPoiIdText, out var closedPoiId))
+                {
+                    _ = MainThread.InvokeOnMainThreadAsync(() => _vm.DongPopupNeuTrungAsync(closedPoiId));
+                }
+
+                return true;
+
             default:
                 return true;
         }

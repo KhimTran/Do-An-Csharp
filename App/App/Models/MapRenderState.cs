@@ -10,6 +10,7 @@ public sealed class MapRenderState
     public MapBoundsRenderModel? Bounds { get; init; }
     public int? NearestPoiId { get; init; }
     public int? TrackingPoiId { get; init; }
+    public int? PopupPoiId { get; init; }
     public bool FitToPois { get; init; }
     public bool FocusOnRoute { get; init; }
     public bool FollowUser { get; init; }
@@ -20,6 +21,7 @@ public sealed class MapPoiRenderModel
     public int Id { get; init; }
     public string Ten { get; init; } = string.Empty;
     public string MoTa { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
     public double Lat { get; init; }
     public double Lng { get; init; }
     public double BanKinh { get; init; }
@@ -35,6 +37,8 @@ public sealed class MapLocationRenderModel
 
 public sealed class MapRouteRenderModel
 {
+    public MapLocationRenderModel? Origin { get; init; }
+    public MapLocationRenderModel? Destination { get; init; }
     public List<MapLocationRenderModel> Points { get; init; } = [];
 }
 

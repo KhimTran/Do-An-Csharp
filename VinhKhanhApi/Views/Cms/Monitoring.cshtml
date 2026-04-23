@@ -1,0 +1,278 @@
+@model VinhKhanhApi.ViewModels.MonitoringViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Device Monitoring";
+
+    var usageMax = Math.Max(1, Model.WeeklyUsage.Max(x => x.DistinctSessions));
+    var heatmapMax = Math.Max(1, Model.WeeklyHeatmap.Max(x => x.Count));
+    var dayLabels = new[] { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật" };
+    var heatmapLookup = Model.WeeklyHeatmap.ToDictionary(
+        item => $"{item.DayIndex}-{item.Hour}",
+        item => item);
+}
+
+@section Head {
+    <meta http-equiv="refresh" content="30" />
+}
+
+<style>
+    .monitoring-stack {
+        display: grid;
+        gap: 18px;
+    }
+
+    .monitor-section {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(31, 60, 151, 0.08);
+    }
+
+    .monitor-section h2 {
+        margin: 0 0 6px;
+        font-size: clamp(24px, 2vw, 38px);
+        font-weight: 800;
+    }
+
+    .monitor-subtitle {
+        margin: 0 0 18px;
+        color: #60708f;
+        font-size: clamp(14px, 1vw, 18px);
+    }
+
+    .monitor-hero {
+        display: grid;
+        grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .monitor-live-card {
+        min-height: 100%;
+        background: linear-gradient(135deg, var(--sidebar1), var(--sidebar2));
+        color: #fff;
+        border-radius: 18px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .monitor-live-card .label {
+        font-size: clamp(18px, 1.25vw, 24px);
+        opacity: 0.86;
+        font-weight: 600;
+    }
+
+    .monitor-live-card .value {
+        font-size: clamp(52px, 5vw, 84px);
+        line-height: 1;
+        font-weight: 900;
+    }
+
+    .monitor-live-card .muted {
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .monitor-bars {
+        display: flex;
+        align-items: end;
+        gap: 14px;
+        min-height: 260px;
+        padding-top: 12px;
+    }
+
+    .monitor-bar {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .monitor-bar-value {
+        font-size: clamp(18px, 1.1vw, 22px);
+        font-weight: 800;
+        color: var(--sidebar1);
+    }
+
+    .monitor-bar-track {
+        width: 100%;
+        min-height: 220px;
+        background: linear-gradient(180deg, rgba(31, 60, 151, 0.08), rgba(46, 87, 195, 0.18));
+        border-radius: 18px 18px 10px 10px;
+        display: flex;
+        align-items: end;
+        overflow: hidden;
+    }
+
+    .monitor-bar-fill {
+        width: 100%;
+        border-radius: 18px 18px 10px 10px;
+        background: linear-gradient(180deg, var(--sidebar2), var(--sidebar1));
+    }
+
+    .monitor-bar-label {
+        font-size: clamp(14px, 0.95vw, 18px);
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .monitor-heatmap {
+        display: grid;
+        gap: 10px;
+    }
+
+    .monitor-heatmap-header {
+        display: grid;
+        grid-template-columns: 70px repeat(7, minmax(0, 1fr));
+        gap: 8px;
+        font-weight: 800;
+        color: #44567b;
+    }
+
+    .monitor-heatmap-row {
+        display: grid;
+        grid-template-columns: 70px repeat(7, minmax(0, 1fr));
+        gap: 8px;
+        align-items: center;
+    }
+
+    .monitor-hour {
+        font-size: clamp(13px, 0.9vw, 16px);
+        color: #60708f;
+        font-weight: 700;
+    }
+
+    .monitor-cell {
+        min-height: 24px;
+        border-radius: 8px;
+        border: 1px solid rgba(31, 60, 151, 0.08);
+    }
+
+    @@media (max-width: 1100px) {
+        .monitor-hero {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .monitor-bars {
+            gap: 10px;
+        }
+
+        .monitor-heatmap-header,
+        .monitor-heatmap-row {
+            grid-template-columns: 52px repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+    }
+</style>
+
+<h1 class="page-title">Device Monitoring</h1>
+
+<div class="monitoring-stack">
+    <section class="monitor-section">
+        <h2>Live Active Devices</h2>
+        <p class="monitor-subtitle">Tự động refresh mỗi 30 giây. Thiết bị được xem là online nếu heartbeat trong vòng 90 giây gần nhất.</p>
+
+        <div class="monitor-hero">
+            <div class="monitor-live-card">
+                <div class="label">Thiết bị đang dùng app</div>
+                <div class="value">@Model.ActiveDeviceCount</div>
+                <div class="muted">Tính đến @Model.GeneratedAtUtc.ToString("HH:mm:ss 'UTC'")</div>
+            </div>
+
+            <div class="vk-table-wrap">
+                <table class="vk-table">
+                    <thead>
+                        <tr>
+                            <th>Session</th>
+                            <th>Platform</th>
+                            <th>App Version</th>
+                            <th>Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ActiveDevices.Count == 0)
+                        {
+                            <tr><td colspan="4">Chưa có thiết bị nào online trong 90 giây gần đây.</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.ActiveDevices)
+                            {
+                                var shortSession = item.SessionId.Length > 8
+                                    ? item.SessionId.Substring(0, 8)
+                                    : item.SessionId;
+                                var secondsAgo = Math.Max(0, (int)Math.Round((Model.GeneratedAtUtc - item.LastSeen).TotalSeconds));
+
+                                <tr>
+                                    <td><span class="badge-pill badge-id">@shortSession</span></td>
+                                    <td>@item.DeviceLabel</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.AppVersion) ? "-" : item.AppVersion)</td>
+                                    <td>@secondsAgo giây trước</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="monitor-section">
+        <h2>Sử dụng 7 ngày gần đây</h2>
+        <p class="monitor-subtitle">Số session khác nhau đã gửi route ping trong từng ngày.</p>
+
+        <div class="monitor-bars">
+            @foreach (var item in Model.WeeklyUsage)
+            {
+                var count = item.DistinctSessions;
+                var height = count == 0 ? 8 : Math.Max(14, count * 100.0 / usageMax);
+
+                <div class="monitor-bar">
+                    <div class="monitor-bar-value">@count</div>
+                    <div class="monitor-bar-track">
+                        <div class="monitor-bar-fill" style="height:@height.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="monitor-bar-label">@item.DayLabel</div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="monitor-section">
+        <h2>Heatmap giờ x ngày</h2>
+        <p class="monitor-subtitle">Các ô đậm hơn nghĩa là có nhiều route ping hơn trong 7 ngày vừa qua.</p>
+
+        <div class="monitor-heatmap">
+            <div class="monitor-heatmap-header">
+                <div></div>
+                @foreach (var label in dayLabels)
+                {
+                    <div>@label</div>
+                }
+            </div>
+
+            @for (var hour = 0; hour < 24; hour++)
+            {
+                <div class="monitor-heatmap-row">
+                    <div class="monitor-hour">@hour.ToString("00")h</div>
+                    @for (var dayIndex = 0; dayIndex < dayLabels.Length; dayIndex++)
+                    {
+                        var key = $"{dayIndex}-{hour}";
+                        var cell = heatmapLookup[key];
+                        var opacity = cell.Count == 0 ? 0.06 : Math.Max(0.12, (double)cell.Count / heatmapMax);
+                        var title = $"{dayLabels[dayIndex]}, {hour:00}h: {cell.Count} lượt";
+
+                        <div class="monitor-cell"
+                             title="@title"
+                             style="background-color:rgba(31,60,151,@opacity.ToString("0.00", CultureInfo.InvariantCulture))"></div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>

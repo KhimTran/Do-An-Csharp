@@ -59,7 +59,6 @@ namespace VinhKhanhApi.Controllers
             });
         }
 
-        // Global analytics cho Admin: heatmap tuyến phố.
         [HttpGet("heatmap")]
         public async Task<IActionResult> Heatmap()
         {
@@ -85,7 +84,7 @@ namespace VinhKhanhApi.Controllers
         public async Task<IActionResult> CreateRoutePings([FromBody] List<RoutePingModel>? pings)
         {
             if (pings == null || pings.Count == 0)
-                return BadRequest("Danh sách route ping rỗng.");
+                return BadRequest("Danh sach route ping rong.");
 
             foreach (var ping in pings.Where(p => p is not null))
             {
@@ -99,7 +98,64 @@ namespace VinhKhanhApi.Controllers
             return Ok(new { Saved = pings.Count });
         }
 
-        // Local analytics cho chủ quán.
+        [HttpPost("heartbeat")]
+        public async Task<IActionResult> Heartbeat([FromBody] DeviceHeartbeatRequest? request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.SessionId))
+                return BadRequest("sessionId is required.");
+
+            var sessionId = request.SessionId.Trim();
+            var deviceLabel = string.IsNullOrWhiteSpace(request.DeviceLabel)
+                ? "Unknown"
+                : request.DeviceLabel.Trim();
+            var appVersion = string.IsNullOrWhiteSpace(request.AppVersion)
+                ? null
+                : request.AppVersion.Trim();
+            var lastSeen = DateTime.UtcNow;
+
+            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+IF EXISTS (SELECT 1 FROM DeviceHeartbeats WITH (UPDLOCK, SERIALIZABLE) WHERE SessionId = {sessionId})
+BEGIN
+    UPDATE DeviceHeartbeats
+    SET DeviceLabel = {deviceLabel},
+        LastSeen = {lastSeen},
+        AppVersion = {appVersion}
+    WHERE SessionId = {sessionId};
+END
+ELSE
+BEGIN
+    INSERT INTO DeviceHeartbeats (SessionId, DeviceLabel, LastSeen, AppVersion)
+    VALUES ({sessionId}, {deviceLabel}, {lastSeen}, {appVersion});
+END");
+
+            return Ok();
+        }
+
+        [HttpGet("active-devices")]
+        public async Task<IActionResult> ActiveDevices()
+        {
+            var cutoff = DateTime.UtcNow.AddSeconds(-90);
+
+            var devices = await _db.DeviceHeartbeats
+                .AsNoTracking()
+                .Where(x => x.LastSeen >= cutoff)
+                .OrderByDescending(x => x.LastSeen)
+                .Select(x => new
+                {
+                    x.SessionId,
+                    x.DeviceLabel,
+                    x.LastSeen,
+                    x.AppVersion
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Count = devices.Count,
+                Devices = devices
+            });
+        }
+
         [HttpGet("local/{poiId:int}")]
         public async Task<IActionResult> LocalAnalytics(int poiId)
         {
@@ -117,6 +173,13 @@ namespace VinhKhanhApi.Controllers
                 LuotGps = gpsAuto,
                 ThoiLuongTrungBinh = avgDuration
             });
+        }
+
+        public sealed class DeviceHeartbeatRequest
+        {
+            public string SessionId { get; set; } = string.Empty;
+            public string? DeviceLabel { get; set; }
+            public string? AppVersion { get; set; }
         }
     }
 }
