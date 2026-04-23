@@ -150,10 +150,14 @@ namespace App.ViewModels
                 NguonKichHoat = "QR"
             });
 
-            await _tts.PhatAmAsync(noiDung, maNgonNgu);
+            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
+            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
 
-            int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
-            await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
+            if (ketQuaPhat.Completed && ketQuaPhat.CreatedNewSession)
+            {
+                int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+                await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
+            }
 
             ThongBao = LocalizationResourceManager.Instance["QrPage_Done"];
         }

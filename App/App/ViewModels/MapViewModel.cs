@@ -410,7 +410,10 @@ namespace App.ViewModels
             if (string.IsNullOrWhiteSpace(noiDung))
                 return;
 
-            await _tts.PhatAmAsync(noiDung, maNgonNgu);
+            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
+            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
+            if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
+                return;
 
             int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
@@ -438,6 +441,17 @@ namespace App.ViewModels
                 return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
 
             return poi.MoTa_Vi;
+        }
+
+        private static string RutGonMaNgonNgu(string maNgonNgu)
+        {
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return "en";
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return "zh";
+
+            return "vi";
         }
     }
 }

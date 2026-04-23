@@ -1,10 +1,5 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Storage;
 
@@ -12,83 +7,187 @@ namespace App.Services
 {
     public class TtsService : ITtsService
     {
-        private CancellationTokenSource? _cts;
-        private readonly ConcurrentQueue<(string VanBan, string MaNgonNgu)> _hangDoi = new();
+        private const int GioiHanHangDoi = 3;
+
+        private readonly object _khoaHangDoi = new();
+        private readonly ConcurrentQueue<YeuCauPhatAm> _hangDoi = new();
         private readonly SemaphoreSlim _khoaXuLyHangDoi = new(1, 1);
+        private readonly Dictionary<string, YeuCauPhatAm> _yeuCauTheoKhoa = new(StringComparer.Ordinal);
+
+        private CancellationTokenSource? _cts;
         private Locale[]? _boNhoGiongNoi;
+        private bool _dangXuLyHangDoi;
 
-        public bool DangPhat { get; private set; } = false;
+        public bool DangPhat { get; private set; }
 
-        public async Task PhatAmAsync(string vanBan, string maNgonNgu = "vi-VN")
+        public async Task<TtsPlaybackResult> PhatAmAsync(
+            string vanBan,
+            string maNgonNgu = "vi-VN",
+            string? khoaAmThanh = null)
         {
-            if (string.IsNullOrWhiteSpace(vanBan)) return;
+            if (string.IsNullOrWhiteSpace(vanBan))
+                return TtsPlaybackResult.Rejected("empty");
 
             if (string.IsNullOrWhiteSpace(maNgonNgu))
                 maNgonNgu = Preferences.Get("tts_language", "vi-VN");
 
-            _hangDoi.Enqueue((vanBan, maNgonNgu));
+            var yeuCau = ThemHoacNhapYeuCau(vanBan, maNgonNgu, khoaAmThanh, out bool canKhoiDongXuLy, out bool laYeuCauGop);
+            if (yeuCau == null)
+                return TtsPlaybackResult.Rejected("queue-full");
 
-            if (DangPhat) return;
+            if (canKhoiDongXuLy)
+                _ = XuLyHangDoiAsync();
 
-            await XuLyHangDoi();
+            var ketQua = await yeuCau.ChoHoanTat.Task;
+            if (!laYeuCauGop)
+                return ketQua;
+
+            return ketQua.Completed
+                ? TtsPlaybackResult.CompletedMergedSession()
+                : ketQua.Status == "cancelled"
+                    ? TtsPlaybackResult.Cancelled(createdNewSession: false)
+                    : ketQua.Status == "failed"
+                        ? TtsPlaybackResult.Failed(createdNewSession: false)
+                        : TtsPlaybackResult.Rejected(ketQua.Status);
         }
 
-        private async Task XuLyHangDoi()
+        public void DungPhat()
+        {
+            List<YeuCauPhatAm> yeuCauDangCho = [];
+
+            lock (_khoaHangDoi)
+            {
+                while (_hangDoi.TryDequeue(out var item))
+                {
+                    _yeuCauTheoKhoa.Remove(item.Khoa);
+                    yeuCauDangCho.Add(item);
+                }
+            }
+
+            foreach (var item in yeuCauDangCho)
+                item.ChoHoanTat.TrySetResult(TtsPlaybackResult.Cancelled(createdNewSession: true));
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+            DangPhat = false;
+        }
+
+        private YeuCauPhatAm? ThemHoacNhapYeuCau(
+            string vanBan,
+            string maNgonNgu,
+            string? khoaAmThanh,
+            out bool canKhoiDongXuLy,
+            out bool laYeuCauGop)
+        {
+            canKhoiDongXuLy = false;
+            laYeuCauGop = false;
+            string khoa = TaoKhoaAmThanh(vanBan, maNgonNgu, khoaAmThanh);
+
+            lock (_khoaHangDoi)
+            {
+                if (_yeuCauTheoKhoa.TryGetValue(khoa, out var yeuCauDaCo))
+                {
+                    laYeuCauGop = true;
+                    return yeuCauDaCo;
+                }
+
+                if (_hangDoi.Count >= GioiHanHangDoi)
+                    return null;
+
+                var yeuCauMoi = new YeuCauPhatAm(khoa, vanBan, maNgonNgu);
+                _hangDoi.Enqueue(yeuCauMoi);
+                _yeuCauTheoKhoa[khoa] = yeuCauMoi;
+
+                if (!_dangXuLyHangDoi)
+                {
+                    _dangXuLyHangDoi = true;
+                    canKhoiDongXuLy = true;
+                }
+
+                return yeuCauMoi;
+            }
+        }
+
+        private async Task XuLyHangDoiAsync()
         {
             await _khoaXuLyHangDoi.WaitAsync();
             try
             {
-                DangPhat = true;
-                _cts = new CancellationTokenSource();
-
-                while (_hangDoi.TryDequeue(out var item))
+                while (true)
                 {
+                    YeuCauPhatAm? item;
+                    lock (_khoaHangDoi)
+                    {
+                        if (!_hangDoi.TryDequeue(out item))
+                        {
+                            DangPhat = false;
+                            _dangXuLyHangDoi = false;
+                            break;
+                        }
+
+                        DangPhat = true;
+                    }
+
+                    _cts?.Dispose();
+                    _cts = new CancellationTokenSource();
+
+                    TtsPlaybackResult ketQua;
                     try
                     {
-                        var giongPhuHop = await TimGiongNoiPhuHopAsync(item.MaNgonNgu);
-                        var vanBanDaLamSach = LamSachVanBan(item.VanBan);
-
-                        if (string.IsNullOrWhiteSpace(vanBanDaLamSach))
-                            continue;
-
-                        var tuyChinh = new SpeechOptions
-                        {
-                            // Đưa về mức an toàn để tránh méo tiếng/rè trên loa ngoài.
-                            Volume = 0.72f,
-                            Pitch = 1.0f,
-                            Locale = giongPhuHop
-                        };
-
-                        foreach (var doan in TachDoanVanBan(vanBanDaLamSach))
-                        {
-                            await TextToSpeech.SpeakAsync(doan, tuyChinh, _cts.Token);
-                            await Task.Delay(180, _cts.Token);
-                        }
+                        ketQua = await PhatTuanTuAsync(item, _cts.Token);
                     }
                     catch (OperationCanceledException)
                     {
-                        break;
+                        ketQua = TtsPlaybackResult.Cancelled(createdNewSession: true);
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[TTS] Lỗi: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[TTS] Loi: {ex.Message}");
+                        ketQua = TtsPlaybackResult.Failed(createdNewSession: true);
                     }
+                    finally
+                    {
+                        lock (_khoaHangDoi)
+                        {
+                            _yeuCauTheoKhoa.Remove(item.Khoa);
+                        }
+                    }
+
+                    item.ChoHoanTat.TrySetResult(ketQua);
                 }
             }
             finally
             {
                 DangPhat = false;
+                _cts?.Dispose();
+                _cts = null;
                 _khoaXuLyHangDoi.Release();
             }
         }
 
-        public void DungPhat()
+        private async Task<TtsPlaybackResult> PhatTuanTuAsync(YeuCauPhatAm item, CancellationToken token)
         {
-            _hangDoi.Clear();
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = null;
-            DangPhat = false;
+            var giongPhuHop = await TimGiongNoiPhuHopAsync(item.MaNgonNgu);
+            var vanBanDaLamSach = LamSachVanBan(item.VanBan);
+            if (string.IsNullOrWhiteSpace(vanBanDaLamSach))
+                return TtsPlaybackResult.Rejected("empty");
+
+            var tuyChinh = new SpeechOptions
+            {
+                // Muc am luong vua phai de tranh re tieng tren loa ngoai.
+                Volume = 0.72f,
+                Pitch = 1.0f,
+                Locale = giongPhuHop
+            };
+
+            foreach (var doan in TachDoanVanBan(vanBanDaLamSach))
+            {
+                await TextToSpeech.SpeakAsync(doan, tuyChinh, token);
+                await Task.Delay(180, token);
+            }
+
+            return TtsPlaybackResult.CompletedNewSession();
         }
 
         private async Task<Locale?> TimGiongNoiPhuHopAsync(string maNgonNgu)
@@ -106,9 +205,22 @@ namespace App.Services
 
         private static string ChuanHoaMaNgonNgu(string maNgonNgu)
         {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase)) return "en-US";
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
+            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                return "en-US";
+
+            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return "zh-CN";
+
             return "vi-VN";
+        }
+
+        private static string TaoKhoaAmThanh(string vanBan, string maNgonNgu, string? khoaAmThanh)
+        {
+            if (!string.IsNullOrWhiteSpace(khoaAmThanh))
+                return khoaAmThanh.Trim();
+
+            string vanBanDaLamSach = LamSachVanBan(vanBan);
+            return $"{ChuanHoaMaNgonNgu(maNgonNgu)}::{vanBanDaLamSach}";
         }
 
         private static string LamSachVanBan(string vanBan)
@@ -151,6 +263,25 @@ namespace App.Services
 
             if (!string.IsNullOrWhiteSpace(doanHienTai))
                 yield return doanHienTai;
+        }
+
+        private sealed class YeuCauPhatAm
+        {
+            public YeuCauPhatAm(string khoa, string vanBan, string maNgonNgu)
+            {
+                Khoa = khoa;
+                VanBan = vanBan;
+                MaNgonNgu = maNgonNgu;
+                ChoHoanTat = new TaskCompletionSource<TtsPlaybackResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            public string Khoa { get; }
+
+            public string VanBan { get; }
+
+            public string MaNgonNgu { get; }
+
+            public TaskCompletionSource<TtsPlaybackResult> ChoHoanTat { get; }
         }
     }
 }
