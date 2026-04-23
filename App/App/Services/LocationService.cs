@@ -21,6 +21,9 @@ public class LocationService : ILocationService
 
         if (trangThai != PermissionStatus.Granted)
         {
+            if (TryEmitVirtualFallback(khiCoViTri, khiTrangThaiThayDoi))
+                return;
+
             khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
                 LocationTrackingState.PermissionDenied,
                 "Location permission was denied."));
@@ -49,6 +52,9 @@ public class LocationService : ILocationService
 
                     if (viTri == null)
                     {
+                        if (TryEmitVirtualFallback(khiCoViTri, khiTrangThaiThayDoi))
+                            continue;
+
                         khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
                             LocationTrackingState.Error,
                             "Location is currently unavailable."));
@@ -72,12 +78,18 @@ public class LocationService : ILocationService
                 }
                 catch (FeatureNotEnabledException)
                 {
+                    if (TryEmitVirtualFallback(khiCoViTri, khiTrangThaiThayDoi))
+                        continue;
+
                     khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
                         LocationTrackingState.Disabled,
                         "GPS is disabled."));
                 }
                 catch (PermissionException)
                 {
+                    if (TryEmitVirtualFallback(khiCoViTri, khiTrangThaiThayDoi))
+                        continue;
+
                     khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
                         LocationTrackingState.PermissionDenied,
                         "Location permission was denied."));
@@ -137,13 +149,36 @@ public class LocationService : ILocationService
     {
         var viTri = await Geolocation.GetLastKnownLocationAsync();
         if (viTri == null)
-            return null;
+            return DeviceRuntimeProfile.IsVirtualDevice
+                ? DeviceRuntimeProfile.CreateDemoLocation()
+                : null;
 
         return new LocationSnapshot(
             viTri.Latitude,
             viTri.Longitude,
             viTri.Accuracy,
             viTri.Timestamp);
+    }
+
+    private bool TryEmitVirtualFallback(
+        Action<LocationSnapshot> khiCoViTri,
+        Action<LocationTrackingStatus>? khiTrangThaiThayDoi)
+    {
+        if (!DeviceRuntimeProfile.IsVirtualDevice)
+            return false;
+
+        var snapshot = DeviceRuntimeProfile.CreateDemoLocation();
+        if (ShouldEmit(snapshot))
+        {
+            _lastEmittedLocation = snapshot;
+            khiCoViTri(snapshot);
+        }
+
+        khiTrangThaiThayDoi?.Invoke(new LocationTrackingStatus(
+            LocationTrackingState.Simulated,
+            "Using a simulated emulator location."));
+
+        return true;
     }
 
     private bool ShouldEmit(LocationSnapshot snapshot)

@@ -1,5 +1,5 @@
-﻿using App.Services;
-using Microsoft.Extensions.DependencyInjection;
+using App.Services;
+using App.Views;
 using Microsoft.Maui.Storage;
 
 namespace App
@@ -13,8 +13,8 @@ namespace App
             string appLanguage = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
             LocalizationResourceManager.Instance.SetLanguage(appLanguage);
 
-            // Chạy đồng bộ POI ngầm khi app khởi động
-            // Không await để không chặn UI
+            // Chay dong bo POI ngam khi app khoi dong.
+            // Khong await de tranh chan UI.
             Task.Run(async () =>
             {
                 await sync.EnsureSavedApiConfigurationLoadedAsync();
@@ -24,7 +24,15 @@ namespace App
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new AppShell());
+            try
+            {
+                return new Window(new AppShell());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[App] Startup fallback: {ex}");
+                return new Window(new StartupFallbackPage(ex.Message));
+            }
         }
     }
 }

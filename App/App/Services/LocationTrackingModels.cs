@@ -4,6 +4,7 @@ public enum LocationTrackingState
 {
     Idle,
     Tracking,
+    Simulated,
     PermissionDenied,
     Disabled,
     Error

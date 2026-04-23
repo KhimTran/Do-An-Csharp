@@ -2,35 +2,56 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
-             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              xmlns:services="clr-namespace:App.Services"
              x:DataType="vm:QrScanViewModel"
              x:Class="App.Views.QrScanPage"
              Title="{Binding [QrPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
 
-    <Grid RowDefinitions="*,Auto,Auto" Padding="12">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" Padding="12" RowSpacing="12">
 
-        <Border Grid.Row="0" StrokeShape="RoundRectangle 12">
+        <Border Grid.Row="0" StrokeShape="RoundRectangle 12" HeightRequest="320">
             <Grid>
-                <zxing:CameraBarcodeReaderView x:Name="QrCamera"
-                                               IsDetecting="{Binding DangQuet}"
-                                               BarcodesDetected="BarcodeReader_BarcodesDetected" />
+                <Grid x:Name="CameraHost" />
 
-                <Border StrokeShape="RoundRectangle 10" BackgroundColor="#66000000"
-                        HorizontalOptions="Center" VerticalOptions="End" Margin="12">
-                    <Label Text="Quet QR POI, link APK hoac URL ngrok"
-                           TextColor="White" Padding="10,6" />
+                <Border x:Name="CameraFallbackOverlay"
+                        StrokeShape="RoundRectangle 10"
+                        BackgroundColor="#66000000"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill"
+                        Margin="12">
+                    <VerticalStackLayout
+                        Padding="14"
+                        Spacing="10"
+                        VerticalOptions="Center">
+                        <Label Text="{Binding [QrPage_CameraUnavailable], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                               TextColor="White" />
+                        <Label Text="Quet QR POI, link APK hoac URL ngrok"
+                               TextColor="White" />
+                    </VerticalStackLayout>
                 </Border>
             </Grid>
         </Border>
 
-        <Label Grid.Row="1"
+        <Border Grid.Row="1" StrokeShape="RoundRectangle 12" Padding="14">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding [QrPage_ManualTitle], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                       FontAttributes="Bold" />
+                <Entry x:Name="ManualQrEntry"
+                       Placeholder="{Binding [QrPage_ManualPlaceholder], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                       ReturnType="Go"
+                       Completed="ManualQrEntry_Completed" />
+                <Button Text="{Binding [QrPage_ManualSubmit], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                        Clicked="ManualSubmitButton_Clicked" />
+            </VerticalStackLayout>
+        </Border>
+
+        <Label Grid.Row="2"
                Text="{Binding ThongBao}"
                FontSize="16"
                HorizontalOptions="Center"
                Margin="10" />
 
-        <Button Grid.Row="2"
+        <Button Grid.Row="3"
                 Text="{Binding [QrPage_TestButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
                 Command="{Binding XuLyQrCommand}"
                 CommandParameter="1"

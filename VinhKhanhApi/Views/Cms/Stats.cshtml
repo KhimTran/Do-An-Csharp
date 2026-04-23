@@ -1,5 +1,6 @@
 @using System.Linq
 @model IEnumerable<dynamic>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 @{
     ViewData["Title"] = "Thống kê";
     var lichSu = ViewData["LichSuSuDung"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
@@ -22,6 +23,13 @@
         <div class="value">@Model.Count()</div>
     </div>
 </section>
+
+<div style="background:#fff;border-radius:18px;padding:20px 24px;margin-bottom:20px;">
+    <h3 style="font-size:clamp(18px,1.4vw,26px);font-weight:700;margin-bottom:16px;">
+        Biểu đồ Top POI được nghe nhiều nhất
+    </h3>
+    <canvas id="topPoiChart" style="max-height:300px;"></canvas>
+</div>
 
 <div class="vk-table-wrap">
     <table class="vk-table">
@@ -75,36 +83,126 @@
     </table>
 </div>
 
-<h2 class="page-title" style="font-size:1.2rem;margin-top:18px;">Heatmap điểm di chuyển ẩn danh</h2>
-<div class="vk-table-wrap">
-    <table class="vk-table">
-        <thead>
-            <tr>
-                <th>Lat</th>
-                <th>Lng</th>
-                <th>Số lượt xuất hiện</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (!heatmap.Any())
-            {
-                <tr><td colspan="3">Chưa có dữ liệu route ping.</td></tr>
-            }
-            else
-            {
-                foreach (var row in heatmap)
+<h2 style="font-size:1.2rem;font-weight:700;margin:18px 0 10px;">
+    Heatmap điểm di chuyển ẩn danh
+</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+    <div style="background:#fff;border-radius:18px;overflow:hidden;">
+        <div id="heatmapMap" style="height:380px;width:100%;"></div>
+    </div>
+
+    <div class="vk-table-wrap">
+        <table class="vk-table">
+            <thead>
+                <tr>
+                    <th>Lat</th>
+                    <th>Lng</th>
+                    <th>Số lượt xuất hiện</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!heatmap.Any())
                 {
-                    <tr>
-                        <td>@row.Lat</td>
-                        <td>@row.Lng</td>
-                        <td><span class="badge-pill badge-priority">@row.SoLuot</span></td>
-                    </tr>
+                    <tr><td colspan="3">Chưa có dữ liệu route ping.</td></tr>
                 }
-            }
-        </tbody>
-    </table>
+                else
+                {
+                    foreach (var row in heatmap)
+                    {
+                        <tr>
+                            <td>@row.Lat</td>
+                            <td>@row.Lng</td>
+                            <td><span class="badge-pill badge-priority">@row.SoLuot</span></td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div style="margin-top:14px;">
     <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại CMS</a>
 </div>
+
+<script>
+    var labels = [@Html.Raw(string.Join(",", Model.Select(x => $"\"{x.TenPoi}\"")))];
+    var data   = [@Html.Raw(string.Join(",", Model.Select(x => (int)x.SoLan)))];
+
+    const topPoiCanvas = document.getElementById('topPoiChart');
+    if (topPoiCanvas) {
+        new Chart(topPoiCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: 'rgba(47, 102, 255, 0.78)',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(0,0,0,0.06)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(0,0,0,0.06)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Leaflet heatmap
+    const heatPoints = [
+        @foreach (var p in heatmap) {
+            @Html.Raw($"[{p.Lat},{p.Lng},{p.SoLuot}],")
+        }
+    ];
+
+    const leafletCss = document.createElement('link');
+    leafletCss.rel = 'stylesheet';
+    leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(leafletCss);
+
+    const leafletScript = document.createElement('script');
+    leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    leafletScript.onload = function() {
+        const map = L.map('heatmapMap').setView([10.7605, 106.7002], 15);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+
+        heatPoints.forEach(function(p) {
+            const radius = Math.min(6 + p[2] * 0.8, 28);
+            const opacity = Math.min(0.35 + p[2] * 0.03, 0.85);
+            L.circleMarker([p[0], p[1]], {
+                radius: radius,
+                color: '#e53935',
+                weight: 0,
+                fillColor: '#e53935',
+                fillOpacity: opacity
+            }).bindTooltip(`${p[2]} lượt`, { direction: 'top' }).addTo(map);
+        });
+
+        if (heatPoints.length > 0) {
+            const bounds = L.latLngBounds(heatPoints.map(p => [p[0], p[1]]));
+            map.fitBounds(bounds.pad(0.3));
+        }
+    };
+    document.head.appendChild(leafletScript);
+</script>

@@ -1,3 +1,7 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -17,15 +21,20 @@
             {
                 @if (User.IsInRole("Admin"))
                 {
-                    <a class="nav-link" href="@Url.Action("Index", "Cms")">Quan ly POI</a>
-                    <a class="nav-link" href="@Url.Action("Stats", "Cms")">Thong ke tong</a>
-                    <a class="nav-link" href="@Url.Action("Monitoring", "Cms")">Monitoring</a>
-                    <a class="nav-link" href="@Url.Action("Users", "Cms")">Tai khoan</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "Index" ? "active" : "")"
+                       href="@Url.Action("Index", "Cms")">Quan ly POI</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "Stats" ? "active" : "")"
+                       href="@Url.Action("Stats", "Cms")">Thong ke tong</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "Monitoring" ? "active" : "")"
+                       href="@Url.Action("Monitoring", "Cms")">Monitoring</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "Users" ? "active" : "")"
+                       href="@Url.Action("Users", "Cms")">Tai khoan</a>
                 }
 
                 @if (User.IsInRole("Owner"))
                 {
-                    <a class="nav-link" href="@Url.Action("Dashboard", "Owner")">Quan cua toi</a>
+                    <a class="nav-link @(currentController == "Owner" ? "active" : "")"
+                       href="@Url.Action("Dashboard", "Owner")">Quan cua toi</a>
                 }
 
                 <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:16px;">
@@ -35,7 +44,8 @@
             }
             else
             {
-                <a class="nav-link" href="@Url.Action("Login", "Account")">Dang nhap</a>
+                <a class="nav-link @(currentController == "Account" && currentAction == "Login" ? "active" : "")"
+                   href="@Url.Action("Login", "Account")">Dang nhap</a>
             }
         </aside>
 

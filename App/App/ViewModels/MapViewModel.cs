@@ -270,6 +270,7 @@ namespace App.ViewModels
                 TrangThaiGps = status.State switch
                 {
                     LocationTrackingState.Tracking => LocalizationResourceManager.Instance["MapPage_GpsTracking"],
+                    LocationTrackingState.Simulated => LocalizationResourceManager.Instance["MapPage_GpsSimulated"],
                     LocationTrackingState.PermissionDenied => LocalizationResourceManager.Instance["MapPage_GpsPermissionDenied"],
                     LocationTrackingState.Disabled => LocalizationResourceManager.Instance["MapPage_GpsDisabled"],
                     LocationTrackingState.Error when !string.IsNullOrWhiteSpace(status.Details)

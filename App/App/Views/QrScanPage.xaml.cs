@@ -1,11 +1,14 @@
-﻿using App.ViewModels;
+using App.Services;
+using App.ViewModels;
 using ZXing.Net.Maui;
+using ZXing.Net.Maui.Controls;
 
 namespace App.Views
 {
     public partial class QrScanPage : ContentPage
     {
         private readonly QrScanViewModel _vm;
+        private CameraBarcodeReaderView? _qrCamera;
 
         public QrScanPage(QrScanViewModel vm)
         {
@@ -13,19 +16,61 @@ namespace App.Views
             _vm = vm;
             BindingContext = vm;
             _vm.AlertRequested += Vm_AlertRequested;
+        }
 
-            QrCamera.Options = new BarcodeReaderOptions
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            EnsureCameraReady();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            DisposeCamera();
+        }
+
+        private void EnsureCameraReady()
+        {
+            if (_qrCamera != null || DeviceRuntimeProfile.IsVirtualDevice)
+            {
+                CameraFallbackOverlay.IsVisible = DeviceRuntimeProfile.IsVirtualDevice;
+                return;
+            }
+
+            var qrCamera = new CameraBarcodeReaderView();
+            qrCamera.SetBinding(CameraBarcodeReaderView.IsDetectingProperty, nameof(QrScanViewModel.DangQuet));
+            qrCamera.Options = new BarcodeReaderOptions
             {
                 Formats = BarcodeFormats.TwoDimensional,
                 AutoRotate = true,
                 Multiple = false
             };
+            qrCamera.BarcodesDetected += BarcodeReader_BarcodesDetected;
+
+            CameraHost.Children.Clear();
+            CameraHost.Children.Add(qrCamera);
+            CameraFallbackOverlay.IsVisible = false;
+            _qrCamera = qrCamera;
+        }
+
+        private void DisposeCamera()
+        {
+            if (_qrCamera == null)
+                return;
+
+            _qrCamera.BarcodesDetected -= BarcodeReader_BarcodesDetected;
+            _qrCamera.IsDetecting = false;
+            CameraHost.Children.Clear();
+            _qrCamera.Handler?.DisconnectHandler();
+            _qrCamera = null;
         }
 
         private async void BarcodeReader_BarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
         {
             var ketQua = e.Results.FirstOrDefault()?.Value;
-            if (string.IsNullOrWhiteSpace(ketQua)) return;
+            if (string.IsNullOrWhiteSpace(ketQua))
+                return;
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -36,6 +81,26 @@ namespace App.Views
         private async void Vm_AlertRequested(object? sender, QrAlertRequestedEventArgs e)
         {
             await DisplayAlertAsync(e.Title, e.Message, "OK");
+        }
+
+        private async void ManualSubmitButton_Clicked(object? sender, EventArgs e)
+        {
+            await XuLyQrNhapTayAsync();
+        }
+
+        private async void ManualQrEntry_Completed(object? sender, EventArgs e)
+        {
+            await XuLyQrNhapTayAsync();
+        }
+
+        private async Task XuLyQrNhapTayAsync()
+        {
+            var rawValue = ManualQrEntry.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(rawValue))
+                return;
+
+            ManualQrEntry.Text = string.Empty;
+            await _vm.XuLyQrCommand.ExecuteAsync(rawValue);
         }
     }
 }

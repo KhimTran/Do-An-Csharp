@@ -58,6 +58,12 @@
 	  <AndroidSigningStorePass></AndroidSigningStorePass>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<!-- Build one debug package that can run on both x86_64 emulators and arm64 Android phones. -->
+		<RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+		<AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
