@@ -12,13 +12,13 @@ public static class ApiEndpointResolver
     public static IEnumerable<string> GetBaseUrls()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var configuredBaseUrl = GetLegacyConfiguredBaseUrl();
+        if (!string.IsNullOrWhiteSpace(configuredBaseUrl) && seen.Add(configuredBaseUrl))
+            yield return configuredBaseUrl;
+
         var defaultBaseUrl = GetDefaultBaseUrl();
         if (!string.IsNullOrWhiteSpace(defaultBaseUrl) && seen.Add(defaultBaseUrl))
             yield return defaultBaseUrl;
-
-        var legacyBaseUrl = GetLegacyConfiguredBaseUrl();
-        if (!string.IsNullOrWhiteSpace(legacyBaseUrl) && seen.Add(legacyBaseUrl))
-            yield return legacyBaseUrl;
     }
 
     public static IEnumerable<string> GetPoiApiUrls()

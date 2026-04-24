@@ -129,6 +129,8 @@ namespace App.ViewModels
 
         private async Task DocPoiTuQrAsync(int poiId)
         {
+            await _sync.DongBoPoisAsync();
+
             var poi = await _db.LayPoiTheoIdAsync(poiId);
             if (poi == null)
             {
@@ -150,7 +152,8 @@ namespace App.ViewModels
                 NguonKichHoat = "QR"
             });
 
-            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
+            string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
+            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
             var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
 
             if (ketQuaPhat.Completed && ketQuaPhat.CreatedNewSession)

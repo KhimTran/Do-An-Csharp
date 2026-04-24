@@ -6,12 +6,13 @@ namespace App.Views;
 public partial class SettingsPage : ContentPage
 {
     private readonly LocalDatabase _db;
-
     public SettingsPage(LocalDatabase db)
     {
         InitializeComponent();
         _db = db;
-        AnMucNhapApiBaseUrl();
+        NgonNguPicker.Items.Add("VN - Tieng Viet");
+        NgonNguPicker.Items.Add("EN - English");
+        NgonNguPicker.Items.Add("ZH - \u4e2d\u6587");
     }
 
     protected override async void OnAppearing()
@@ -42,13 +43,13 @@ public partial class SettingsPage : ContentPage
         };
 
         BanKinhSlider.Value = banKinh;
-        BanKinhLabel.Text = $"{banKinh} m";
+        BanKinhLabel.Text = $"{banKinh}m";
         OfflineSwitch.IsToggled = offlineMode;
     }
 
     private void BanKinhSlider_ValueChanged(object? sender, ValueChangedEventArgs e)
     {
-        BanKinhLabel.Text = $"{(int)e.NewValue} m";
+        BanKinhLabel.Text = $"{(int)e.NewValue}m";
     }
 
     private async void LuuButton_Clicked(object? sender, EventArgs e)
@@ -64,7 +65,6 @@ public partial class SettingsPage : ContentPage
         int banKinh = (int)BanKinhSlider.Value;
         bool offlineMode = OfflineSwitch.IsToggled;
 
-        // Save to Preferences for runtime access and to SQLite for persisted settings.
         Preferences.Set("tts_language", maNgonNgu);
         Preferences.Set("app_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
@@ -107,23 +107,5 @@ public partial class SettingsPage : ContentPage
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessMessage"],
             "OK");
-    }
-
-    private void AnMucNhapApiBaseUrl()
-    {
-        ApiBaseUrlEntry.IsEnabled = false;
-        ApiBaseUrlEntry.IsVisible = false;
-
-        if (ApiBaseUrlEntry.Parent is VisualElement layoutCha)
-        {
-            layoutCha.IsEnabled = false;
-            layoutCha.IsVisible = false;
-
-            if (layoutCha.Parent is VisualElement khungCha)
-            {
-                khungCha.IsEnabled = false;
-                khungCha.IsVisible = false;
-            }
-        }
     }
 }

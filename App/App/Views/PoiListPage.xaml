@@ -2,34 +2,205 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
-             xmlns:models="clr-namespace:App.Models"
-             xmlns:services="clr-namespace:App.Services"
-             x:DataType="vm:PoiListViewModel"
              x:Class="App.Views.PoiListPage"
-             Title="{Binding [PoiPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
-    <Grid RowDefinitions="Auto,*,Auto">
-        <Label Grid.Row="0" Text="{Binding ThongBao}"
-               HorizontalOptions="Center" Margin="10" TextColor="Gray" />
-        <ActivityIndicator Grid.Row="1"
-                           IsRunning="{Binding DangTai}"
-                           IsVisible="{Binding DangTai}" />
-        <CollectionView Grid.Row="1" ItemsSource="{Binding DanhSachPoi}">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:PoiModel">
-                    <Border Padding="12" Margin="10,5" StrokeShape="RoundRectangle 10">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="{Binding Ten}" FontSize="16" FontAttributes="Bold" />
-                            <Label Text="{Binding MoTa_Vi}" FontSize="12" TextColor="Gray" />
-                            <Label Text="{Binding BanKinh, StringFormat='{}{0} m'}"
-                                   FontSize="11" TextColor="DodgerBlue" />
-                        </VerticalStackLayout>
+             x:DataType="vm:PoiListViewModel"
+             Title="📍 Địa điểm gần bạn"
+             BackgroundColor="#18181B">
+    <Grid>
+        <RefreshView Command="{Binding TaiDanhSachPoiCommand}"
+                     IsRefreshing="{Binding DangTai}">
+            <ScrollView>
+                <VerticalStackLayout Padding="18,18,18,28" Spacing="18">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="📍"
+                                   FontSize="28"
+                                   VerticalTextAlignment="Center" />
+                            <Label Text="Địa điểm gần bạn"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+
+                        <Button Grid.Column="1"
+                                Text="↻ Cập nhật"
+                                Command="{Binding TaiDanhSachPoiCommand}"
+                                Padding="14,10"
+                                BackgroundColor="#251B47"
+                                BorderColor="#8B5CF6"
+                                BorderWidth="1"
+                                CornerRadius="18"
+                                TextColor="#E9D5FF"
+                                FontSize="14" />
+                    </Grid>
+
+                    <Border BackgroundColor="#211C39"
+                            Stroke="#7C3AED"
+                            StrokeThickness="1.2"
+                            StrokeShape="RoundRectangle 20"
+                            Padding="18,16">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                            <Label Text="🎧"
+                                   FontSize="28"
+                                   VerticalOptions="Start"
+                                   Margin="0,4,0,0" />
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="{Binding MoTaKhuVuc}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#F5F3FF" />
+                                <Label Text="{Binding HuongDan}"
+                                       FontSize="14"
+                                       TextColor="#D4D4D8"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+
+                            <Label Grid.Column="2"
+                                   Text="🗺️"
+                                   FontSize="34"
+                                   VerticalOptions="Center" />
+                        </Grid>
                     </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-        <Button Grid.Row="2"
-                Text="{Binding [PoiPage_LoadButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                Command="{Binding TaiDanhSachPoiCommand}"
-                Margin="20" BackgroundColor="#1F5C99" TextColor="White" />
+
+                    <Border HorizontalOptions="Center"
+                            BackgroundColor="#22153D"
+                            Stroke="#7C3AED"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 999"
+                            Padding="18,10">
+                        <Label Text="🎧 Tự động phát khi đến gần"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#C4B5FD" />
+                    </Border>
+
+                    <Label Text="{Binding TrangThaiViTri}"
+                           FontSize="13"
+                           TextColor="#A1A1AA" />
+
+                    <CollectionView ItemsSource="{Binding DanhSachPoi}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="14" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PoiListItemViewModel">
+                                <Border BackgroundColor="#222327"
+                                        Stroke="#3F3F46"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 22"
+                                        Padding="14">
+                                    <Grid ColumnDefinitions="102,*"
+                                          ColumnSpacing="14"
+                                          RowDefinitions="Auto,Auto,Auto,Auto">
+                                        <Grid Grid.RowSpan="4"
+                                              WidthRequest="102"
+                                              HeightRequest="102">
+                                            <Border BackgroundColor="#312E81"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 16"
+                                                    IsVisible="{Binding KhongCoAnh}">
+                                                <Grid>
+                                                    <Label Text="{Binding ChuCaiDaiDien}"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           FontSize="26"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White" />
+                                                </Grid>
+                                            </Border>
+
+                                            <Image Source="{Binding UrlAnh}"
+                                                   Aspect="AspectFill"
+                                                   WidthRequest="102"
+                                                   HeightRequest="102"
+                                                   IsVisible="{Binding CoAnh}" />
+                                        </Grid>
+
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Ten}"
+                                               FontSize="18"
+                                               FontAttributes="Bold"
+                                               TextColor="White" />
+
+                                        <HorizontalStackLayout Grid.Row="1"
+                                                               Grid.Column="1"
+                                                               Spacing="8">
+                                            <Border BackgroundColor="{Binding MauNenTrangThai}"
+                                                    Stroke="{Binding MauVienTrangThai}"
+                                                    StrokeThickness="1"
+                                                    StrokeShape="RoundRectangle 999"
+                                                    Padding="10,6">
+                                                <HorizontalStackLayout Spacing="6">
+                                                    <Label Text="●"
+                                                           TextColor="{Binding MauTrangThai}"
+                                                           FontSize="12"
+                                                           VerticalTextAlignment="Center" />
+                                                    <Label Text="{Binding TrangThaiKhoangCach}"
+                                                           TextColor="{Binding MauTrangThai}"
+                                                           FontAttributes="Bold"
+                                                           FontSize="13" />
+                                                    <Label Text="{Binding KhoangCachChiTiet}"
+                                                           TextColor="{Binding MauTrangThai}"
+                                                           FontSize="13" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                        </HorizontalStackLayout>
+
+                                        <Label Grid.Row="2"
+                                               Grid.Column="1"
+                                               Text="{Binding MoTaNgan}"
+                                               FontSize="14"
+                                               TextColor="#D4D4D8"
+                                               MaxLines="2"
+                                               LineBreakMode="TailTruncation" />
+
+                                        <Grid Grid.Row="3"
+                                              Grid.Column="1"
+                                              ColumnDefinitions="*,*"
+                                              ColumnSpacing="10"
+                                              Margin="0,6,0,0">
+                                            <Button Text="🔊 Nghe ngay"
+                                                    Command="{Binding NgheNgayCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#6D3DF2"
+                                                    TextColor="White"
+                                                    FontAttributes="Bold"
+                                                    CornerRadius="14"
+                                                    Padding="14,12" />
+                                            <Button Grid.Column="1"
+                                                    Text="📍 Xem bản đồ"
+                                                    Command="{Binding XemBanDoCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#222327"
+                                                    BorderColor="#71717A"
+                                                    BorderWidth="1"
+                                                    TextColor="White"
+                                                    CornerRadius="14"
+                                                    Padding="14,12" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                        <CollectionView.Footer>
+                            <Label Text="↻ Vuốt xuống để cập nhật danh sách"
+                                   Margin="0,10,0,0"
+                                   HorizontalTextAlignment="Center"
+                                   FontSize="13"
+                                   TextColor="#A1A1AA" />
+                        </CollectionView.Footer>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <ActivityIndicator IsRunning="{Binding DangTai}"
+                           IsVisible="{Binding DangTai}"
+                           Color="#C4B5FD"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
     </Grid>
 </ContentPage>

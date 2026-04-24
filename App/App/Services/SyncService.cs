@@ -1,4 +1,5 @@
 using App.Models;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Maui.Storage;
@@ -34,6 +35,10 @@ namespace App.Services
 
         public async Task EnsureSavedApiConfigurationLoadedAsync()
         {
+            var apiBaseUrlText = await _db.LayCaiDatAsync("api_base_url");
+            if (!string.IsNullOrWhiteSpace(apiBaseUrlText))
+                Preferences.Set("api_base_url", apiBaseUrlText.Trim());
+
             var offlineModeText = await _db.LayCaiDatAsync("offline_mode");
             if (bool.TryParse(offlineModeText, out var offlineMode))
                 Preferences.Set("offline_mode", offlineMode);
@@ -55,9 +60,11 @@ namespace App.Services
                 }
 
                 _runtimeApiBaseUrlOverride = baseUrl;
+                Preferences.Set("api_base_url", baseUrl);
                 Preferences.Set("offline_mode", false);
                 Preferences.Set("force_reread_once", true);
 
+                await _db.LuuCaiDatAsync("api_base_url", baseUrl);
                 await _db.LuuCaiDatAsync("offline_mode", false.ToString());
 
                 bool synced = await DongBoPoisAsync();
@@ -110,7 +117,7 @@ namespace App.Services
                 {
                     try
                     {
-                        var danhSach = await _http.GetFromJsonAsync<List<PoiModel>>(mayChu.PoiApiUrl);
+                        var danhSach = await TaiDanhSachPoiTuServerAsync(mayChu.PoiApiUrl);
                         if (danhSach == null || danhSach.Count == 0)
                         {
                             LastError = $"{OfflineFallbackMessage}. API returned no POIs from {mayChu.PoiApiUrl}.";
@@ -178,6 +185,27 @@ namespace App.Services
 
         private static string? ChuanHoaUrlAnh(string? tenFileAnh, string baseUrl) =>
             ApiEndpointResolver.BuildPoiImageUrl(baseUrl, tenFileAnh);
+
+        private async Task<List<PoiModel>?> TaiDanhSachPoiTuServerAsync(string poiApiUrl)
+        {
+            var cacheBustUrl = $"{poiApiUrl}{(poiApiUrl.Contains('?') ? "&" : "?")}ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            using var request = new HttpRequestMessage(HttpMethod.Get, cacheBustUrl);
+            request.Headers.CacheControl = new CacheControlHeaderValue
+            {
+                NoCache = true,
+                NoStore = true,
+                MaxAge = TimeSpan.Zero
+            };
+            request.Headers.Pragma.ParseAdd("no-cache");
+
+            using var response = await _http.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            return await JsonSerializer.DeserializeAsync<List<PoiModel>>(stream, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
 
         private async Task<int> DemSoPoiLocalAsync() =>
             (await _db.LayTatCaPoiAsync()).Count;

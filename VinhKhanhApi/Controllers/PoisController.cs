@@ -17,7 +17,11 @@ namespace VinhKhanhApi.Controllers
         [HttpGet]
         public async Task<ActionResult<List<PoiModel>>> GetAll([FromQuery] bool includePending = false)
         {
-            var query = _db.POIs.AsQueryable();
+            ApplyNoCacheHeaders();
+
+            var query = _db.POIs
+                .AsNoTracking()
+                .AsQueryable();
 
             if (!includePending)
                 query = query.Where(p => p.TrangThaiDuyet == "Approved");
@@ -30,7 +34,11 @@ namespace VinhKhanhApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<PoiModel>> GetById(int id)
         {
-            var poi = await _db.POIs.FindAsync(id);
+            ApplyNoCacheHeaders();
+
+            var poi = await _db.POIs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (poi == null) return NotFound();
             return Ok(poi);
         }
@@ -133,6 +141,13 @@ namespace VinhKhanhApi.Controllers
             public bool Approved { get; set; }
             public string? LyDoTuChoi { get; set; }
             public string? AdminName { get; set; }
+        }
+
+        private void ApplyNoCacheHeaders()
+        {
+            Response.Headers.CacheControl = "no-store, no-cache, max-age=0, must-revalidate";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
         }
     }
 }

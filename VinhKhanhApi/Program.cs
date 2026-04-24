@@ -28,6 +28,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
 builder.Services.AddOpenApi();
+builder.Services.Configure<TranslationOptions>(
+    builder.Configuration.GetSection(TranslationOptions.SectionName));
+builder.Services.AddHttpClient<ITranslationService, TranslationService>();
 
 builder.Services.AddCors(options =>
 {

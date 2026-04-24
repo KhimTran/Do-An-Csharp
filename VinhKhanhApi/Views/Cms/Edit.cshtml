@@ -1,55 +1,503 @@
 @model VinhKhanhApi.ViewModels.CmsPoiFormViewModel
 @{
-    ViewData["Title"] = Model.Id == 0 ? "Tạo POI" : "Sửa POI";
+    var pageTitle = Model.Id == 0 ? "Tạo POI" : "Sửa POI";
+    ViewData["Title"] = pageTitle;
+
+    var sourceLanguage = VinhKhanhApi.ViewModels.CmsPoiFormViewModel.NormalizeLanguage(Model.SourceLanguage);
+    var activeLanguage = VinhKhanhApi.ViewModels.CmsPoiFormViewModel.NormalizeLanguage(
+        string.IsNullOrWhiteSpace(Model.ActiveDescriptionTab) ? sourceLanguage : Model.ActiveDescriptionTab);
 }
 
-<h1 class="page-title">@ViewData["Title"]</h1>
+@section Head {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
 
-<form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data" class="vk-form">
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@pageTitle</h1>
+        <p class="page-subtitle">Quản lý thông tin POI theo form gọn hơn, có dịch mô tả tự động ở backend.</p>
+    </div>
+    <div class="page-actions">
+        <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại danh sách</a>
+    </div>
+</div>
+
+<form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data" class="poi-editor-form">
     @Html.AntiForgeryToken()
     <input asp-for="Id" type="hidden" />
+    <input asp-for="ActiveDescriptionTab" type="hidden" />
+    <input asp-for="TenFileAudio_Vi" type="hidden" />
+    <input asp-for="TenFileAudio_En" type="hidden" />
+    <input asp-for="TenFileAudio_Zh" type="hidden" />
+    <input asp-for="TenFileAnhMinhHoa" type="hidden" />
 
-    <div class="mb-3"><label>Tên</label><input asp-for="Ten" class="form-control" /></div>
-    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control"></textarea></div>
-    <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control"></textarea></div>
-    <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control"></textarea></div>
-    <div class="mb-3">
-        <label>Ảnh minh họa POI</label>
-        <input asp-for="AnhMinhHoa" type="file" class="form-control" accept="image/*" />
-        @if (!string.IsNullOrWhiteSpace(Model.TenFileAnhMinhHoa))
-        {
-            <div class="mt-2">
-                <img src="~/images/poi/@Model.TenFileAnhMinhHoa" alt="Ảnh minh họa @Model.Ten" class="poi-preview-image" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger poi-alert"></div>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
+                <h2>Thông tin địa điểm</h2>
+                <p>Các dữ liệu trong khối này dùng cho CMS và app mobile như hiện tại.</p>
             </div>
-            <small class="muted">@Model.TenFileAnhMinhHoa</small>
-        }
-    </div>
+        </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3"><label>Lat</label><input asp-for="Lat" class="form-control" /></div>
-        <div class="col-md-6 mb-3"><label>Lng</label><input asp-for="Lng" class="form-control" /></div>
-        <div class="col-md-6 mb-3"><label>Bán kính geofence (m)</label><input asp-for="BanKinh" class="form-control" /></div>
-        <div class="col-md-6 mb-3"><label>Ưu tiên</label><input asp-for="UuTien" class="form-control" /></div>
-    </div>
+        <div class="poi-grid">
+            <div class="poi-field poi-field-span-2">
+                <label asp-for="Ten">Tên địa điểm *</label>
+                <input asp-for="Ten" class="form-control" placeholder="Ví dụ: Ốc Sáu Nở" />
+                <span asp-validation-for="Ten" class="text-danger"></span>
+            </div>
 
-    <h4 class="mt-4">Audio thuyết minh</h4>
-    <hr />
-    <div class="mb-3">
-        <label>Audio VI (.mp3)</label>
-        <input asp-for="AudioVi" type="file" class="form-control" />
-        <small class="muted">@Model.TenFileAudio_Vi</small>
-    </div>
-    <div class="mb-3">
-        <label>Audio EN (.mp3)</label>
-        <input asp-for="AudioEn" type="file" class="form-control" />
-        <small class="muted">@Model.TenFileAudio_En</small>
-    </div>
-    <div class="mb-3">
-        <label>Audio ZH (.mp3)</label>
-        <input asp-for="AudioZh" type="file" class="form-control" />
-        <small class="muted">@Model.TenFileAudio_Zh</small>
-    </div>
+            <div class="poi-field">
+                <label asp-for="SoDienThoai">Số điện thoại</label>
+                <input asp-for="SoDienThoai" class="form-control" placeholder="0901234567" />
+            </div>
 
-    <button type="submit" class="vk-btn primary">Lưu</button>
-    <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
+            <div class="poi-field">
+                <label asp-for="GioMoCua">Giờ mở cửa</label>
+                <input asp-for="GioMoCua" class="form-control" placeholder="08:00" />
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="GioDongCua">Giờ đóng cửa</label>
+                <input asp-for="GioDongCua" class="form-control" placeholder="22:00" />
+            </div>
+
+            <div class="poi-field poi-field-span-2">
+                <label asp-for="MonDacTrung">Điểm nhấn / món đặc trưng</label>
+                <input asp-for="MonDacTrung" class="form-control" placeholder="Thông tin ngắn để nhận diện địa điểm" />
+            </div>
+
+            <div class="poi-field poi-field-span-2">
+                <label asp-for="AnhMinhHoa">Ảnh minh họa</label>
+                <input asp-for="AnhMinhHoa" type="file" class="form-control" accept="image/*" />
+                <div class="poi-help-text">Ảnh được lưu trên web và tiếp tục dùng lại cho app mobile.</div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAnhMinhHoa))
+                {
+                    <div class="poi-image-preview">
+                        <img src="~/images/poi/@Model.TenFileAnhMinhHoa" alt="Ảnh minh họa @Model.Ten" class="poi-preview-image" />
+                        <div class="poi-image-preview-meta">
+                            <strong>Ảnh hiện tại</strong>
+                            <span>@Model.TenFileAnhMinhHoa</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="poi-empty-state">Chưa có ảnh minh họa cho POI này.</div>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="Lat">Vĩ độ (Lat)</label>
+                <input asp-for="Lat" class="form-control" type="number" step="any" />
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="Lng">Kinh độ (Lng)</label>
+                <input asp-for="Lng" class="form-control" type="number" step="any" />
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="BanKinh">Bán kính geofence (m)</label>
+                <input asp-for="BanKinh" class="form-control" type="number" min="1" step="1" />
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="UuTien">Ưu tiên</label>
+                <input asp-for="UuTien" class="form-control" type="number" min="1" step="1" />
+            </div>
+
+            <div class="poi-field poi-field-span-2">
+                <div class="poi-map-card">
+                    <div class="poi-map-head">
+                        <div>
+                            <h3>Chọn vị trí trên bản đồ</h3>
+                            <p>Bạn có thể nhấn vào bản đồ để lấy vĩ độ và kinh độ nhanh hơn khi tạo hoặc sửa POI.</p>
+                        </div>
+                        <button type="button" class="vk-btn secondary poi-map-reset" data-map-action="sync">
+                            Cập nhật từ tọa độ
+                        </button>
+                    </div>
+
+                    <div id="poiLocationMap"
+                         class="poi-location-map"
+                         data-lat="@(Model.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                         data-lng="@(Model.Lng.ToString(System.Globalization.CultureInfo.InvariantCulture))"></div>
+
+                    <div class="poi-map-footer">
+                        <span class="poi-help-text">Nhấn vào bản đồ để chọn vị trí chính xác cho POI.</span>
+                        <span class="poi-map-coordinates" data-map-status>Chưa chọn vị trí trên bản đồ.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
+                <h2>Mô tả điểm</h2>
+                <p>Chọn 1 ngôn ngữ gốc để nhập, hai ngôn ngữ còn lại sẽ được backend tự dịch khi lưu.</p>
+            </div>
+        </div>
+
+        <div class="poi-translation-note">
+            Chỉ cần nhập 1 ngôn ngữ - hệ thống tự dịch sang các ngôn ngữ còn lại khi lưu.
+        </div>
+
+        <div class="poi-language-toolbar">
+            <div class="poi-field poi-source-picker">
+                <label asp-for="SourceLanguage">Ngôn ngữ nhập chính</label>
+                <select asp-for="SourceLanguage" class="form-select poi-source-select">
+                    <option value="vi">Việt</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+                <span asp-validation-for="SourceLanguage" class="text-danger"></span>
+            </div>
+
+            <div class="poi-source-summary">
+                <span class="poi-source-summary-label">Đang dùng làm nguồn</span>
+                <strong class="poi-source-summary-value" data-source-language-label>
+                    @VinhKhanhApi.ViewModels.CmsPoiFormViewModel.GetDisplayNameForLanguage(sourceLanguage)
+                </strong>
+                <span class="poi-source-summary-text">Bạn vẫn xem được đầy đủ 3 ngôn ngữ ngay trên form.</span>
+            </div>
+        </div>
+
+        <div class="poi-tabs" role="tablist" aria-label="Mô tả đa ngôn ngữ">
+            <button type="button" class="poi-tab-button @(activeLanguage == "vi" ? "is-active" : string.Empty)" data-description-tab="vi">
+                Việt
+            </button>
+            <button type="button" class="poi-tab-button @(activeLanguage == "en" ? "is-active" : string.Empty)" data-description-tab="en">
+                English
+            </button>
+            <button type="button" class="poi-tab-button @(activeLanguage == "zh" ? "is-active" : string.Empty)" data-description-tab="zh">
+                中文
+            </button>
+        </div>
+
+        <div class="poi-tab-panels">
+            <div class="poi-tab-panel @(activeLanguage == "vi" ? "is-active" : string.Empty)" data-description-panel="vi">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>Tiếng Việt</h3>
+                        <p class="poi-panel-caption" data-caption-for="vi"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="vi"></span>
+                </div>
+                <textarea asp-for="MoTa_Vi" rows="8" class="form-control poi-description-input" data-language="vi" placeholder="Mô tả ngắn bằng tiếng Việt..."></textarea>
+                <span asp-validation-for="MoTa_Vi" class="text-danger"></span>
+            </div>
+
+            <div class="poi-tab-panel @(activeLanguage == "en" ? "is-active" : string.Empty)" data-description-panel="en">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>English</h3>
+                        <p class="poi-panel-caption" data-caption-for="en"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="en"></span>
+                </div>
+                <textarea asp-for="MoTa_En" rows="8" class="form-control poi-description-input" data-language="en" placeholder="Brief English description..."></textarea>
+                <span asp-validation-for="MoTa_En" class="text-danger"></span>
+            </div>
+
+            <div class="poi-tab-panel @(activeLanguage == "zh" ? "is-active" : string.Empty)" data-description-panel="zh">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>中文</h3>
+                        <p class="poi-panel-caption" data-caption-for="zh"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="zh"></span>
+                </div>
+                <textarea asp-for="MoTa_Zh" rows="8" class="form-control poi-description-input" data-language="zh" placeholder="中文描述..."></textarea>
+                <span asp-validation-for="MoTa_Zh" class="text-danger"></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
+                <h2>Audio thuyết minh</h2>
+                <p>Giữ nguyên flow upload hiện có cho từng ngôn ngữ.</p>
+            </div>
+        </div>
+
+        <div class="poi-grid poi-grid-audio">
+            <div class="poi-field">
+                <label asp-for="AudioVi">Audio VI (.mp3)</label>
+                <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Vi))
+                {
+                    <small class="muted">Hiện tại: @Model.TenFileAudio_Vi</small>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="AudioEn">Audio EN (.mp3)</label>
+                <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_En))
+                {
+                    <small class="muted">Hiện tại: @Model.TenFileAudio_En</small>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="AudioZh">Audio ZH (.mp3)</label>
+                <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Zh))
+                {
+                    <small class="muted">Hiện tại: @Model.TenFileAudio_Zh</small>
+                }
+            </div>
+        </div>
+    </section>
+
+    <div class="poi-form-actions">
+        <button type="submit" class="vk-btn primary">Lưu POI</button>
+        <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại</a>
+    </div>
 </form>
+
+<script>
+    (() => {
+        const form = document.querySelector(".poi-editor-form");
+        if (!form) {
+            return;
+        }
+
+        const sourceSelect = form.querySelector(".poi-source-select");
+        const activeTabInput = form.querySelector("#ActiveDescriptionTab");
+        const tabButtons = Array.from(form.querySelectorAll("[data-description-tab]"));
+        const tabPanels = Array.from(form.querySelectorAll("[data-description-panel]"));
+        const descriptionInputs = Array.from(form.querySelectorAll(".poi-description-input"));
+        const sourceLabel = form.querySelector("[data-source-language-label]");
+
+        const languageLabels = {
+            vi: "Tiếng Việt",
+            en: "English",
+            zh: "中文"
+        };
+
+        const editableMessage = "Đây là ô nhập chính. Nội dung tại đây sẽ được dùng để dịch sang các ngôn ngữ còn lại khi lưu.";
+        const readonlyMessage = "Ô này đang ở chế độ xem. Hãy đổi Ngôn ngữ nhập chính nếu bạn muốn sửa trực tiếp nội dung này.";
+
+        const normalizeLanguage = (language) => {
+            if (language === "en" || language === "zh") {
+                return language;
+            }
+
+            return "vi";
+        };
+
+        const setActiveTab = (language) => {
+            const normalizedLanguage = normalizeLanguage(language);
+
+            tabButtons.forEach((button) => {
+                const isActive = button.dataset.descriptionTab === normalizedLanguage;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+
+            tabPanels.forEach((panel) => {
+                panel.classList.toggle("is-active", panel.dataset.descriptionPanel === normalizedLanguage);
+            });
+
+            if (activeTabInput) {
+                activeTabInput.value = normalizedLanguage;
+            }
+        };
+
+        const applySourceLanguage = () => {
+            const sourceLanguage = normalizeLanguage(sourceSelect?.value);
+
+            if (sourceLabel) {
+                sourceLabel.textContent = languageLabels[sourceLanguage];
+            }
+
+            descriptionInputs.forEach((input) => {
+                const isSource = input.dataset.language === sourceLanguage;
+                input.readOnly = !isSource;
+                input.classList.toggle("is-readonly", !isSource);
+            });
+
+            ["vi", "en", "zh"].forEach((language) => {
+                const badge = form.querySelector(`[data-badge-for="${language}"]`);
+                const caption = form.querySelector(`[data-caption-for="${language}"]`);
+                const isSource = language === sourceLanguage;
+
+                if (badge) {
+                    badge.textContent = isSource ? "Ngôn ngữ gốc" : "Bản xem trước";
+                    badge.classList.toggle("is-active", isSource);
+                }
+
+                if (caption) {
+                    caption.textContent = isSource ? editableMessage : readonlyMessage;
+                }
+            });
+        };
+
+        tabButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                setActiveTab(button.dataset.descriptionTab);
+            });
+        });
+
+        if (sourceSelect) {
+            sourceSelect.addEventListener("change", () => {
+                const sourceLanguage = normalizeLanguage(sourceSelect.value);
+                applySourceLanguage();
+                setActiveTab(sourceLanguage);
+            });
+        }
+
+        applySourceLanguage();
+        setActiveTab(activeTabInput?.value || sourceSelect?.value || "vi");
+    })();
+
+    (() => {
+        const mapContainer = document.getElementById("poiLocationMap");
+        if (!mapContainer) {
+            return;
+        }
+
+        const latInput = document.getElementById("Lat");
+        const lngInput = document.getElementById("Lng");
+        const syncButton = document.querySelector("[data-map-action='sync']");
+        const statusElement = document.querySelector("[data-map-status]");
+
+        const defaultCenter = [10.7585362, 106.7008397];
+        let map;
+        let marker;
+
+        const parseCoordinate = (value) => {
+            const parsedValue = Number.parseFloat(value);
+            return Number.isFinite(parsedValue) ? parsedValue : null;
+        };
+
+        const isValidCoordinatePair = (lat, lng) =>
+            lat !== null &&
+            lng !== null &&
+            lat >= -90 &&
+            lat <= 90 &&
+            lng >= -180 &&
+            lng <= 180 &&
+            !(lat === 0 && lng === 0);
+
+        const getCurrentCoordinates = () => {
+            const inputLat = parseCoordinate(latInput?.value);
+            const inputLng = parseCoordinate(lngInput?.value);
+
+            if (isValidCoordinatePair(inputLat, inputLng)) {
+                return [inputLat, inputLng];
+            }
+
+            const dataLat = parseCoordinate(mapContainer.dataset.lat);
+            const dataLng = parseCoordinate(mapContainer.dataset.lng);
+
+            if (isValidCoordinatePair(dataLat, dataLng)) {
+                return [dataLat, dataLng];
+            }
+
+            return defaultCenter;
+        };
+
+        const updateStatus = (lat, lng) => {
+            if (!statusElement) {
+                return;
+            }
+
+            statusElement.textContent = `Vĩ độ: ${lat.toFixed(6)} | Kinh độ: ${lng.toFixed(6)}`;
+        };
+
+        const setMarkerPosition = (lat, lng, shouldCenterMap) => {
+            if (!marker) {
+                marker = L.marker([lat, lng]).addTo(map);
+            } else {
+                marker.setLatLng([lat, lng]);
+            }
+
+            if (latInput) {
+                latInput.value = lat.toFixed(7);
+            }
+
+            if (lngInput) {
+                lngInput.value = lng.toFixed(7);
+            }
+
+            updateStatus(lat, lng);
+
+            if (shouldCenterMap) {
+                map.setView([lat, lng], Math.max(map.getZoom(), 17));
+            }
+        };
+
+        const initializeMap = () => {
+            const [initialLat, initialLng] = getCurrentCoordinates();
+            const initialZoom = isValidCoordinatePair(initialLat, initialLng) ? 17 : 15;
+
+            map = L.map(mapContainer).setView([initialLat, initialLng], initialZoom);
+
+            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap"
+            }).addTo(map);
+
+            setMarkerPosition(initialLat, initialLng, false);
+
+            map.on("click", (event) => {
+                setMarkerPosition(event.latlng.lat, event.latlng.lng, false);
+            });
+
+            if (latInput) {
+                latInput.addEventListener("change", () => {
+                    const lat = parseCoordinate(latInput.value);
+                    const lng = parseCoordinate(lngInput?.value);
+                    if (isValidCoordinatePair(lat, lng)) {
+                        setMarkerPosition(lat, lng, true);
+                    }
+                });
+            }
+
+            if (lngInput) {
+                lngInput.addEventListener("change", () => {
+                    const lat = parseCoordinate(latInput?.value);
+                    const lng = parseCoordinate(lngInput.value);
+                    if (isValidCoordinatePair(lat, lng)) {
+                        setMarkerPosition(lat, lng, true);
+                    }
+                });
+            }
+
+            if (syncButton) {
+                syncButton.addEventListener("click", () => {
+                    const lat = parseCoordinate(latInput?.value);
+                    const lng = parseCoordinate(lngInput?.value);
+
+                    if (isValidCoordinatePair(lat, lng)) {
+                        setMarkerPosition(lat, lng, true);
+                    } else {
+                        setMarkerPosition(defaultCenter[0], defaultCenter[1], true);
+                    }
+                });
+            }
+
+            window.setTimeout(() => {
+                map.invalidateSize();
+            }, 120);
+        };
+
+        if (window.L) {
+            initializeMap();
+            return;
+        }
+
+        const leafletScript = document.createElement("script");
+        leafletScript.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        leafletScript.onload = initializeMap;
+        document.body.appendChild(leafletScript);
+    })();
+</script>

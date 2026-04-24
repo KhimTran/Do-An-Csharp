@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using VinhKhanhApi.Data;
 using VinhKhanhApi.Models;
+using VinhKhanhApi.Services;
 using VinhKhanhApi.ViewModels;
 
 namespace VinhKhanhApi.Controllers
@@ -13,11 +14,13 @@ namespace VinhKhanhApi.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
+        private readonly ITranslationService _translationService;
 
-        public CmsController(AppDbContext db, IWebHostEnvironment env)
+        public CmsController(AppDbContext db, IWebHostEnvironment env, ITranslationService translationService)
         {
             _db = db;
             _env = env;
+            _translationService = translationService;
         }
 
         [HttpGet]
@@ -30,78 +33,68 @@ namespace VinhKhanhApi.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null) return View(new CmsPoiFormViewModel());
+            if (id == null)
+            {
+                return View(new CmsPoiFormViewModel
+                {
+                    SourceLanguage = CmsPoiFormViewModel.VietnameseLanguage,
+                    ActiveDescriptionTab = CmsPoiFormViewModel.VietnameseLanguage
+                });
+            }
 
-            var poi = await _db.POIs.FindAsync(id.Value);
+            var poi = await _db.POIs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id.Value);
             if (poi == null) return NotFound();
 
-            return View(new CmsPoiFormViewModel
-            {
-                Id = poi.Id,
-                Ten = poi.Ten,
-                MoTa_Vi = poi.MoTa_Vi,
-                MoTa_En = poi.MoTa_En,
-                MoTa_Zh = poi.MoTa_Zh,
-                Lat = poi.Lat,
-                Lng = poi.Lng,
-                BanKinh = poi.BanKinh,
-                UuTien = poi.UuTien,
-                TenFileAudio_Vi = poi.TenFileAudio_Vi,
-                TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh,
-                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
-                SoDienThoai = poi.SoDienThoai,
-                GioMoCua = poi.GioMoCua,
-                GioDongCua = poi.GioDongCua,
-                MonDacTrung = poi.MonDacTrung,
-                GalleryJson = poi.GalleryJson,
-                QrCodeNoiDung = poi.QrCodeNoiDung,
-                TtsVoiceCode = poi.TtsVoiceCode,
-                TrangThaiDuyet = poi.TrangThaiDuyet,
-                NoiDungDeXuat = poi.NoiDungDeXuat,
-                NgayDeXuat = poi.NgayDeXuat,
-                NgayDuyet = poi.NgayDuyet,
-                LyDoTuChoi = poi.LyDoTuChoi
-            });
+            return View(MapToPoiFormViewModel(poi));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(CmsPoiFormViewModel model)
+        public async Task<IActionResult> Edit(CmsPoiFormViewModel model, CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid) return View(model);
+            model.SourceLanguage = CmsPoiFormViewModel.NormalizeLanguage(model.SourceLanguage);
+            model.ActiveDescriptionTab = model.SourceLanguage;
 
-            PoiModel poi;
-            var isNewPoi = model.Id == 0;
-            if (model.Id == 0)
+            PoiModel? poi = null;
+            if (model.Id != 0)
+            {
+                poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == model.Id, cancellationToken);
+                if (poi == null) return NotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                RestoreCurrentFiles(model, poi);
+                return View(model);
+            }
+
+            if (!await TryPopulateTranslatedDescriptionsAsync(model, poi, cancellationToken))
+            {
+                RestoreCurrentFiles(model, poi);
+                return View(model);
+            }
+
+            var isNewPoi = poi == null;
+            if (isNewPoi)
             {
                 poi = new PoiModel();
                 _db.POIs.Add(poi);
             }
-            else
-            {
-                poi = await _db.POIs.FindAsync(model.Id) ?? new PoiModel();
-                if (poi.Id == 0) _db.POIs.Add(poi);
-            }
 
-            poi.Ten = model.Ten;
-            poi.MoTa_Vi = model.MoTa_Vi;
-            poi.MoTa_En = model.MoTa_En;
-            poi.MoTa_Zh = model.MoTa_Zh;
-            poi.Lat = model.Lat;
-            poi.Lng = model.Lng;
-            poi.BanKinh = model.BanKinh;
-            poi.UuTien = model.UuTien;
+            var targetPoi = poi!;
 
-            poi.NguoiCapNhat = "admin";
+            ApplyFormToPoi(targetPoi, model);
+            targetPoi.NguoiCapNhat = User.Identity?.Name ?? "admin";
 
-            poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, model.TenFileAudio_Vi);
-            poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, model.TenFileAudio_En);
-            poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, model.TenFileAudio_Zh);
-            poi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, model.TenFileAnhMinhHoa);
+            targetPoi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, targetPoi.TenFileAudio_Vi);
+            targetPoi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, targetPoi.TenFileAudio_En);
+            targetPoi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, targetPoi.TenFileAudio_Zh);
+            targetPoi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, targetPoi.TenFileAnhMinhHoa);
 
-            await _db.SaveChangesAsync();
-            await DongBoQrCodeTheoIdAsync(isNewPoi ? poi.Id : null);
+            await _db.SaveChangesAsync(cancellationToken);
+            await DongBoQrCodeTheoIdAsync(isNewPoi ? targetPoi.Id : null);
             return RedirectToAction(nameof(Index));
         }
 
@@ -367,6 +360,258 @@ namespace VinhKhanhApi.Controllers
             };
 
             return View(model);
+        }
+
+        private async Task<bool> TryPopulateTranslatedDescriptionsAsync(
+            CmsPoiFormViewModel model,
+            PoiModel? existingPoi,
+            CancellationToken cancellationToken)
+        {
+            var resolvedSource = ResolveSubmittedSourceDescription(model, existingPoi);
+            var sourceLanguage = resolvedSource.Language;
+            var sourceText = resolvedSource.Text;
+
+            model.SourceLanguage = sourceLanguage;
+            model.ActiveDescriptionTab = sourceLanguage;
+            model.SetDescriptionByLanguage(sourceLanguage, sourceText);
+
+            if (!ShouldTranslateDescriptions(existingPoi, model))
+            {
+                if (existingPoi != null)
+                {
+                    model.MoTa_Vi = sourceLanguage == CmsPoiFormViewModel.VietnameseLanguage
+                        ? sourceText
+                        : existingPoi.MoTa_Vi;
+                    model.MoTa_En = sourceLanguage == CmsPoiFormViewModel.EnglishLanguage
+                        ? sourceText
+                        : existingPoi.MoTa_En;
+                    model.MoTa_Zh = sourceLanguage == CmsPoiFormViewModel.ChineseLanguage
+                        ? sourceText
+                        : existingPoi.MoTa_Zh;
+                }
+
+                return true;
+            }
+
+            var translationResult = await _translationService.TranslatePoiDescriptionsAsync(
+                new PoiDescriptionTranslationRequest(
+                    sourceLanguage,
+                    sourceText,
+                    new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        [CmsPoiFormViewModel.VietnameseLanguage] = model.MoTa_Vi,
+                        [CmsPoiFormViewModel.EnglishLanguage] = model.MoTa_En,
+                        [CmsPoiFormViewModel.ChineseLanguage] = model.MoTa_Zh
+                    }),
+                cancellationToken);
+
+            if (!translationResult.Success)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    translationResult.ErrorMessage ?? "Không thể tự động dịch mô tả lúc này.");
+                return false;
+            }
+
+            ApplyDescriptionsToViewModel(model, translationResult.Descriptions);
+            return true;
+        }
+
+        private static (string Language, string Text) ResolveSubmittedSourceDescription(
+            CmsPoiFormViewModel model,
+            PoiModel? existingPoi)
+        {
+            var requestedSourceLanguage = CmsPoiFormViewModel.NormalizeLanguage(model.SourceLanguage);
+            var requestedSourceText = NormalizeText(model.GetDescriptionByLanguage(requestedSourceLanguage));
+
+            if (existingPoi == null)
+            {
+                if (!string.IsNullOrWhiteSpace(requestedSourceText))
+                {
+                    return (requestedSourceLanguage, requestedSourceText);
+                }
+
+                foreach (var fallbackLanguage in CmsPoiFormViewModel.SupportedLanguages)
+                {
+                    var fallbackText = NormalizeText(model.GetDescriptionByLanguage(fallbackLanguage));
+                    if (!string.IsNullOrWhiteSpace(fallbackText))
+                    {
+                        return (fallbackLanguage, fallbackText);
+                    }
+                }
+
+                return (requestedSourceLanguage, requestedSourceText);
+            }
+
+            if (HasDescriptionChanged(existingPoi, model, requestedSourceLanguage) &&
+                !string.IsNullOrWhiteSpace(requestedSourceText))
+            {
+                return (requestedSourceLanguage, requestedSourceText);
+            }
+
+            foreach (var fallbackLanguage in BuildLanguagePriority(model.ActiveDescriptionTab))
+            {
+                var fallbackText = NormalizeText(model.GetDescriptionByLanguage(fallbackLanguage));
+                if (string.IsNullOrWhiteSpace(fallbackText))
+                {
+                    continue;
+                }
+
+                if (HasDescriptionChanged(existingPoi, model, fallbackLanguage))
+                {
+                    return (fallbackLanguage, fallbackText);
+                }
+            }
+
+            return (requestedSourceLanguage, requestedSourceText);
+        }
+
+        private static IEnumerable<string> BuildLanguagePriority(string? preferredLanguage)
+        {
+            var normalizedPreferredLanguage = CmsPoiFormViewModel.NormalizeLanguage(preferredLanguage);
+            yield return normalizedPreferredLanguage;
+
+            foreach (var language in CmsPoiFormViewModel.SupportedLanguages)
+            {
+                if (!language.Equals(normalizedPreferredLanguage, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return language;
+                }
+            }
+        }
+
+        private static bool HasDescriptionChanged(
+            PoiModel existingPoi,
+            CmsPoiFormViewModel model,
+            string language)
+        {
+            var submitted = NormalizeText(model.GetDescriptionByLanguage(language));
+            var current = NormalizeText(GetDescriptionByLanguage(existingPoi, language));
+            return !string.Equals(submitted, current, StringComparison.Ordinal);
+        }
+
+        private static CmsPoiFormViewModel MapToPoiFormViewModel(PoiModel poi)
+        {
+            var sourceLanguage = ResolveSourceLanguage(poi);
+
+            return new CmsPoiFormViewModel
+            {
+                Id = poi.Id,
+                Ten = poi.Ten,
+                MoTa_Vi = poi.MoTa_Vi,
+                MoTa_En = poi.MoTa_En,
+                MoTa_Zh = poi.MoTa_Zh,
+                SourceLanguage = sourceLanguage,
+                ActiveDescriptionTab = sourceLanguage,
+                Lat = poi.Lat,
+                Lng = poi.Lng,
+                BanKinh = poi.BanKinh,
+                UuTien = poi.UuTien,
+                TenFileAudio_Vi = poi.TenFileAudio_Vi,
+                TenFileAudio_En = poi.TenFileAudio_En,
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
+                SoDienThoai = poi.SoDienThoai,
+                GioMoCua = poi.GioMoCua,
+                GioDongCua = poi.GioDongCua,
+                MonDacTrung = poi.MonDacTrung,
+                GalleryJson = poi.GalleryJson,
+                QrCodeNoiDung = poi.QrCodeNoiDung,
+                TtsVoiceCode = poi.TtsVoiceCode,
+                TrangThaiDuyet = poi.TrangThaiDuyet,
+                NoiDungDeXuat = poi.NoiDungDeXuat,
+                NgayDeXuat = poi.NgayDeXuat,
+                NgayDuyet = poi.NgayDuyet,
+                LyDoTuChoi = poi.LyDoTuChoi
+            };
+        }
+
+        private static string ResolveSourceLanguage(PoiModel poi)
+        {
+            if (!string.IsNullOrWhiteSpace(poi.MoTa_Vi)) return CmsPoiFormViewModel.VietnameseLanguage;
+            if (!string.IsNullOrWhiteSpace(poi.MoTa_En)) return CmsPoiFormViewModel.EnglishLanguage;
+            if (!string.IsNullOrWhiteSpace(poi.MoTa_Zh)) return CmsPoiFormViewModel.ChineseLanguage;
+            return CmsPoiFormViewModel.VietnameseLanguage;
+        }
+
+        private static bool ShouldTranslateDescriptions(PoiModel? existingPoi, CmsPoiFormViewModel model)
+        {
+            var sourceLanguage = CmsPoiFormViewModel.NormalizeLanguage(model.SourceLanguage);
+            var submittedSourceText = NormalizeText(model.GetDescriptionByLanguage(sourceLanguage));
+
+            if (string.IsNullOrWhiteSpace(submittedSourceText))
+            {
+                return false;
+            }
+
+            if (existingPoi == null)
+            {
+                return true;
+            }
+
+            var currentSourceText = NormalizeText(GetDescriptionByLanguage(existingPoi, sourceLanguage));
+
+            return !string.Equals(submittedSourceText, currentSourceText, StringComparison.Ordinal) ||
+                   string.IsNullOrWhiteSpace(existingPoi.MoTa_Vi) ||
+                   string.IsNullOrWhiteSpace(existingPoi.MoTa_En) ||
+                   string.IsNullOrWhiteSpace(existingPoi.MoTa_Zh);
+        }
+
+        private static string GetDescriptionByLanguage(PoiModel poi, string language) =>
+            CmsPoiFormViewModel.NormalizeLanguage(language) switch
+            {
+                CmsPoiFormViewModel.EnglishLanguage => poi.MoTa_En,
+                CmsPoiFormViewModel.ChineseLanguage => poi.MoTa_Zh,
+                _ => poi.MoTa_Vi
+            };
+
+        private static void ApplyDescriptionsToViewModel(
+            CmsPoiFormViewModel model,
+            IReadOnlyDictionary<string, string> descriptions)
+        {
+            model.MoTa_Vi = descriptions.TryGetValue(CmsPoiFormViewModel.VietnameseLanguage, out var vi)
+                ? vi?.Trim() ?? string.Empty
+                : string.Empty;
+            model.MoTa_En = descriptions.TryGetValue(CmsPoiFormViewModel.EnglishLanguage, out var en)
+                ? en?.Trim() ?? string.Empty
+                : string.Empty;
+            model.MoTa_Zh = descriptions.TryGetValue(CmsPoiFormViewModel.ChineseLanguage, out var zh)
+                ? zh?.Trim() ?? string.Empty
+                : string.Empty;
+        }
+
+        private static void ApplyFormToPoi(PoiModel poi, CmsPoiFormViewModel model)
+        {
+            poi.Ten = NormalizeText(model.Ten);
+            poi.MoTa_Vi = NormalizeText(model.MoTa_Vi);
+            poi.MoTa_En = NormalizeText(model.MoTa_En);
+            poi.MoTa_Zh = NormalizeText(model.MoTa_Zh);
+            poi.Lat = model.Lat;
+            poi.Lng = model.Lng;
+            poi.BanKinh = model.BanKinh;
+            poi.UuTien = model.UuTien;
+            poi.SoDienThoai = NormalizeOptionalText(model.SoDienThoai);
+            poi.GioMoCua = NormalizeOptionalText(model.GioMoCua);
+            poi.GioDongCua = NormalizeOptionalText(model.GioDongCua);
+            poi.MonDacTrung = NormalizeOptionalText(model.MonDacTrung);
+        }
+
+        private static void RestoreCurrentFiles(CmsPoiFormViewModel model, PoiModel? poi)
+        {
+            if (poi == null) return;
+
+            model.TenFileAudio_Vi ??= poi.TenFileAudio_Vi;
+            model.TenFileAudio_En ??= poi.TenFileAudio_En;
+            model.TenFileAudio_Zh ??= poi.TenFileAudio_Zh;
+            model.TenFileAnhMinhHoa ??= poi.TenFileAnhMinhHoa;
+        }
+
+        private static string NormalizeText(string? value) => value?.Trim() ?? string.Empty;
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            var normalizedValue = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalizedValue) ? null : normalizedValue;
         }
 
         private async Task<string?> LuuFileAudioNeuCo(IFormFile? file, string? fileNameCu)
