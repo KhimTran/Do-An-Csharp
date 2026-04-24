@@ -220,19 +220,46 @@ namespace VinhKhanhApi.Controllers
         [HttpGet]
         public async Task<IActionResult> Stats()
         {
-            var logs = await _db.PlaybackLogs.ToListAsync();
-            var topPoi = logs.GroupBy(x => x.PoiTen)
-                .Select(g => new { TenPoi = g.Key, SoLan = g.Count() })
+            var existingPois = await _db.POIs
+                .AsNoTracking()
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Ten
+                })
+                .ToListAsync();
+
+            var existingPoiIds = existingPois
+                .Select(p => p.Id)
+                .ToList();
+
+            var logs = await _db.PlaybackLogs
+                .AsNoTracking()
+                .Where(x => existingPoiIds.Contains(x.PoiId))
+                .ToListAsync();
+
+            var existingPoiNamesById = existingPois.ToDictionary(p => p.Id, p => p.Ten);
+
+            var topPoi = logs.GroupBy(x => x.PoiId)
+                .Select(g => new
+                {
+                    TenPoi = existingPoiNamesById.TryGetValue(g.Key, out var poiName)
+                        ? poiName
+                        : g.Select(x => x.PoiTen).FirstOrDefault() ?? string.Empty,
+                    SoLan = g.Count()
+                })
                 .OrderByDescending(x => x.SoLan)
                 .Take(10)
                 .ToList();
 
             var lichSuSuDung = logs
                 .OrderByDescending(x => x.ThoiGianNghe)
-                .Take(100)
+                .Take(30)
                 .Select(x => new
                 {
-                    x.PoiTen,
+                    PoiTen = existingPoiNamesById.TryGetValue(x.PoiId, out var poiName)
+                        ? poiName
+                        : x.PoiTen,
                     x.Nguon,
                     x.ThoiLuongGiay,
                     x.ThoiGianNghe
@@ -257,6 +284,10 @@ namespace VinhKhanhApi.Controllers
 
             ViewData["TongLuotNghe"] = logs.Count;
             ViewData["ThoiLuongTrungBinh"] = logs.Count == 0 ? 0 : logs.Average(x => x.ThoiLuongGiay);
+            ViewData["SoPoiCoLuotNghe"] = logs
+                .Select(x => x.PoiId)
+                .Distinct()
+                .Count();
             ViewData["LichSuSuDung"] = lichSuSuDung;
             ViewData["Heatmap"] = heatmap;
             return View(topPoi);

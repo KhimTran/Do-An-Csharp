@@ -5,6 +5,9 @@
     ViewData["Title"] = "Thống kê";
     var lichSu = ViewData["LichSuSuDung"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var heatmap = ViewData["Heatmap"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var vietNamTimeZone = TimeSpan.FromHours(7);
+    var sttLichSu = 1;
+    var hasHeatmap = heatmap.Any();
 }
 
 <h1 class="page-title">Thống kê nghe thuyết minh</h1>
@@ -20,7 +23,7 @@
     </div>
     <div class="stat-card">
         <div class="label">Số POI có lượt nghe</div>
-        <div class="value">@Model.Count()</div>
+        <div class="value">@ViewData["SoPoiCoLuotNghe"]</div>
     </div>
 </section>
 
@@ -51,12 +54,13 @@
     </table>
 </div>
 
-<h2 class="page-title" style="font-size:1.2rem;margin-top:18px;">Lịch sử sử dụng (100 lượt gần nhất)</h2>
+<h2 class="page-title" style="font-size:1.2rem;margin-top:18px;">Lịch sử nghe gần đây</h2>
 <div class="vk-table-wrap">
     <table class="vk-table">
         <thead>
             <tr>
-                <th>Thời gian (UTC)</th>
+                <th>STT</th>
+                <th>Thời gian</th>
                 <th>POI</th>
                 <th>Nguồn</th>
                 <th>Thời lượng (giây)</th>
@@ -65,49 +69,66 @@
         <tbody>
             @if (!lichSu.Any())
             {
-                <tr><td colspan="4">Chưa có dữ liệu lịch sử nghe.</td></tr>
+                <tr><td colspan="5">Chưa có dữ liệu lịch sử nghe.</td></tr>
             }
             else
             {
                 foreach (var row in lichSu)
                 {
+                    var thoiGianVietNam = ((DateTime)row.ThoiGianNghe).ToUniversalTime().Add(vietNamTimeZone);
+                    var nguonHienThi = ((string?)row.Nguon)?.ToUpperInvariant() switch
+                    {
+                        "GPS" => "Tự động gần POI",
+                        "QR" => "Quét QR",
+                        "LIST" => "Bấm từ danh sách",
+                        null or "" => "Khác",
+                        _ => row.Nguon
+                    };
+
                     <tr>
-                        <td>@row.ThoiGianNghe</td>
+                        <td>@sttLichSu</td>
+                        <td>@thoiGianVietNam.ToString("dd/MM/yyyy HH:mm:ss")</td>
                         <td>@row.PoiTen</td>
-                        <td>@row.Nguon</td>
+                        <td>@nguonHienThi</td>
                         <td>@row.ThoiLuongGiay</td>
                     </tr>
+                    sttLichSu++;
                 }
             }
         </tbody>
     </table>
 </div>
 
-<h2 style="font-size:1.2rem;font-weight:700;margin:18px 0 10px;">
-    Heatmap điểm di chuyển ẩn danh
+<h2 style="font-size:1.2rem;font-weight:700;margin:18px 0 8px;">
+    Bản đồ khu vực du khách di chuyển nhiều
 </h2>
+<p style="margin:0 0 12px;color:#5f6b7a;line-height:1.6;">
+    Vùng đỏ càng lớn nghĩa là có nhiều lượt thiết bị đi qua khu vực đó. Dữ liệu được ghi nhận ẩn danh từ app.
+</p>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
     <div style="background:#fff;border-radius:18px;overflow:hidden;">
         <div id="heatmapMap" style="height:380px;width:100%;"></div>
     </div>
 
-    <div class="vk-table-wrap">
-        <table class="vk-table">
-            <thead>
-                <tr>
-                    <th>Lat</th>
-                    <th>Lng</th>
-                    <th>Số lượt xuất hiện</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!heatmap.Any())
-                {
-                    <tr><td colspan="3">Chưa có dữ liệu route ping.</td></tr>
-                }
-                else
-                {
-                    foreach (var row in heatmap)
+    @if (!hasHeatmap)
+    {
+        <div style="background:#fff;border-radius:18px;padding:24px;color:#5f6b7a;line-height:1.7;">
+            Chưa có dữ liệu di chuyển. Hãy mở app, bật GPS và di chuyển gần các POI để hệ thống ghi nhận.
+        </div>
+    }
+    else
+    {
+        <div class="vk-table-wrap">
+            <table class="vk-table">
+                <thead>
+                    <tr>
+                        <th>Vĩ độ</th>
+                        <th>Kinh độ</th>
+                        <th>Lượt đi qua</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in heatmap)
                     {
                         <tr>
                             <td>@row.Lat</td>
@@ -115,10 +136,10 @@
                             <td><span class="badge-pill badge-priority">@row.SoLuot</span></td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 <div style="margin-top:14px;">
@@ -166,7 +187,6 @@
         });
     }
 
-    // Leaflet heatmap
     const heatPoints = [
         @foreach (var p in heatmap) {
             @Html.Raw($"[{p.Lat},{p.Lng},{p.SoLuot}],")
@@ -181,7 +201,7 @@
     const leafletScript = document.createElement('script');
     leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     leafletScript.onload = function() {
-        const map = L.map('heatmapMap').setView([10.7605, 106.7002], 15);
+        const map = L.map('heatmapMap').setView([10.7610, 106.7028], 15);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
             maxZoom: 19
@@ -201,7 +221,10 @@
 
         if (heatPoints.length > 0) {
             const bounds = L.latLngBounds(heatPoints.map(p => [p[0], p[1]]));
-            map.fitBounds(bounds.pad(0.3));
+            map.fitBounds(bounds.pad(0.25));
+            if (map.getZoom() < 14) {
+                map.setZoom(14);
+            }
         }
     };
     document.head.appendChild(leafletScript);

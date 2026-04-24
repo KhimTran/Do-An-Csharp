@@ -1,7 +1,7 @@
 @model VinhKhanhApi.ViewModels.MonitoringViewModel
 @using System.Globalization
 @{
-    ViewData["Title"] = "Device Monitoring";
+    ViewData["Title"] = "Theo dõi thiết bị đang dùng app";
 
     var usageMax = Math.Max(1, Model.WeeklyUsage.Max(x => x.DistinctSessions));
     var heatmapMax = Math.Max(1, Model.WeeklyHeatmap.Max(x => x.Count));
@@ -9,6 +9,7 @@
     var heatmapLookup = Model.WeeklyHeatmap.ToDictionary(
         item => $"{item.DayIndex}-{item.Hour}",
         item => item);
+    var generatedAtVietnam = Model.GeneratedAtUtc.ToUniversalTime().AddHours(7);
 }
 
 @section Head {
@@ -97,6 +98,14 @@
         color: var(--sidebar1);
     }
 
+    .monitor-bar-unit {
+        font-size: 13px;
+        color: #60708f;
+        font-weight: 600;
+        margin-top: -6px;
+        min-height: 18px;
+    }
+
     .monitor-bar-track {
         width: 100%;
         min-height: 220px;
@@ -170,34 +179,34 @@
     }
 </style>
 
-<h1 class="page-title">Device Monitoring</h1>
+<h1 class="page-title">Theo dõi thiết bị đang dùng app</h1>
 
 <div class="monitoring-stack">
     <section class="monitor-section">
-        <h2>Live Active Devices</h2>
-        <p class="monitor-subtitle">Tự động refresh mỗi 30 giây. Thiết bị được xem là online nếu heartbeat trong vòng 90 giây gần nhất.</p>
+        <h2>Thiết bị đang online</h2>
+        <p class="monitor-subtitle">Trang tự cập nhật mỗi 30 giây. Thiết bị được xem là online nếu app còn gửi tín hiệu hoạt động trong 90 giây gần nhất.</p>
 
         <div class="monitor-hero">
             <div class="monitor-live-card">
                 <div class="label">Thiết bị đang dùng app</div>
                 <div class="value">@Model.ActiveDeviceCount</div>
-                <div class="muted">Tính đến @Model.GeneratedAtUtc.ToString("HH:mm:ss 'UTC'")</div>
+                <div class="muted">Cập nhật lúc @generatedAtVietnam.ToString("HH:mm:ss")</div>
             </div>
 
             <div class="vk-table-wrap">
                 <table class="vk-table">
                     <thead>
                         <tr>
-                            <th>Session</th>
-                            <th>Platform</th>
-                            <th>App Version</th>
-                            <th>Last Seen</th>
+                            <th>Mã phiên</th>
+                            <th>Thiết bị</th>
+                            <th>Phiên bản app</th>
+                            <th>Hoạt động gần nhất</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.ActiveDevices.Count == 0)
                         {
-                            <tr><td colspan="4">Chưa có thiết bị nào online trong 90 giây gần đây.</td></tr>
+                            <tr><td colspan="4">Chưa có thiết bị nào đang mở app trong 90 giây gần nhất.</td></tr>
                         }
                         else
                         {
@@ -224,7 +233,7 @@
 
     <section class="monitor-section">
         <h2>Sử dụng 7 ngày gần đây</h2>
-        <p class="monitor-subtitle">Số session khác nhau đã gửi route ping trong từng ngày.</p>
+        <p class="monitor-subtitle">Số thiết bị khác nhau đã gửi vị trí trong từng ngày.</p>
 
         <div class="monitor-bars">
             @foreach (var item in Model.WeeklyUsage)
@@ -234,6 +243,7 @@
 
                 <div class="monitor-bar">
                     <div class="monitor-bar-value">@count</div>
+                    <div class="monitor-bar-unit">@(count > 0 ? "thiết bị" : "")</div>
                     <div class="monitor-bar-track">
                         <div class="monitor-bar-fill" style="height:@height.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
                     </div>
@@ -244,8 +254,8 @@
     </section>
 
     <section class="monitor-section">
-        <h2>Heatmap giờ x ngày</h2>
-        <p class="monitor-subtitle">Các ô đậm hơn nghĩa là có nhiều route ping hơn trong 7 ngày vừa qua.</p>
+        <h2>Khung giờ sử dụng app nhiều nhất</h2>
+        <p class="monitor-subtitle">Màu càng đậm nghĩa là có nhiều lượt ghi nhận vị trí hơn trong khung giờ đó.</p>
 
         <div class="monitor-heatmap">
             <div class="monitor-heatmap-header">
@@ -265,7 +275,7 @@
                         var key = $"{dayIndex}-{hour}";
                         var cell = heatmapLookup[key];
                         var opacity = cell.Count == 0 ? 0.06 : Math.Max(0.12, (double)cell.Count / heatmapMax);
-                        var title = $"{dayLabels[dayIndex]}, {hour:00}h: {cell.Count} lượt";
+                        var title = $"{dayLabels[dayIndex]}, {hour:00}h: {cell.Count} lượt ghi nhận vị trí";
 
                         <div class="monitor-cell"
                              title="@title"

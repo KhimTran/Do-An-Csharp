@@ -1,7 +1,10 @@
+@using System.Security.Claims
 @model List<VinhKhanhApi.Models.UserAccountModel>
 @{
     ViewData["Title"] = "Quản lý tài khoản";
     var pois = ViewData["Pois"] as List<VinhKhanhApi.Models.PoiModel> ?? new();
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var stt = 1;
 }
 
 <h1 class="page-title">Tài khoản hệ thống</h1>
@@ -12,9 +15,9 @@
     <h4>Tạo tài khoản quản trị viên</h4>
     <form asp-action="CreateAdminAccount" method="post" class="row g-3">
         @Html.AntiForgeryToken()
-        <div class="col-md-5"><input name="username" class="form-control" placeholder="Username admin" /></div>
-        <div class="col-md-5"><input name="password" class="form-control" placeholder="Password" type="password" /></div>
-        <div class="col-md-2"><button class="vk-btn primary w-100" type="submit">Tạo Admin</button></div>
+        <div class="col-md-5"><input name="username" class="form-control" placeholder="Tên đăng nhập" /></div>
+        <div class="col-md-5"><input name="password" class="form-control" placeholder="Mật khẩu" type="password" /></div>
+        <div class="col-md-2"><button class="vk-btn primary w-100" type="submit">Tạo quản trị viên</button></div>
     </form>
 </div>
 
@@ -22,8 +25,8 @@
     <h4>Tạo tài khoản chủ quán</h4>
     <form asp-action="CreateOwnerAccount" method="post" class="row g-3">
         @Html.AntiForgeryToken()
-        <div class="col-md-4"><input name="username" class="form-control" placeholder="Username owner" /></div>
-        <div class="col-md-3"><input name="password" class="form-control" placeholder="Password" type="password" /></div>
+        <div class="col-md-4"><input name="username" class="form-control" placeholder="Tên đăng nhập" /></div>
+        <div class="col-md-3"><input name="password" class="form-control" placeholder="Mật khẩu" type="password" /></div>
         <div class="col-md-3">
             <select name="poiId" class="form-control">
                 @foreach (var poi in pois)
@@ -32,7 +35,7 @@
                 }
             </select>
         </div>
-        <div class="col-md-2"><button class="vk-btn primary w-100" type="submit">Tạo Owner</button></div>
+        <div class="col-md-2"><button class="vk-btn primary w-100" type="submit">Tạo tài khoản chủ quán</button></div>
     </form>
 </div>
 
@@ -40,10 +43,10 @@
     <table class="vk-table">
         <thead>
             <tr>
-                <th>ID</th>
+                <th>STT</th>
                 <th>Username</th>
                 <th>Vai trò</th>
-                <th>POI</th>
+                <th>Quán được quản lý</th>
                 <th>Trạng thái</th>
                 <th>Hành động</th>
             </tr>
@@ -54,10 +57,19 @@
                 var poiName = u.PoiId.HasValue
                     ? pois.FirstOrDefault(p => p.Id == u.PoiId.Value)?.Ten ?? u.PoiId.Value.ToString()
                     : "Toàn hệ thống";
+                var roleName = u.Role switch
+                {
+                    "Admin" => "Quản trị viên",
+                    "Owner" => "Chủ quán",
+                    _ => u.Role
+                };
+                var isCurrentUser = currentUserId == u.Id.ToString();
+                var isDefaultAdmin = string.Equals(u.Username, "admin", StringComparison.OrdinalIgnoreCase);
+
                 <tr>
-                    <td>@u.Id</td>
+                    <td>@stt</td>
                     <td>@u.Username</td>
-                    <td>@u.Role</td>
+                    <td>@roleName</td>
                     <td>@poiName</td>
                     <td>
                         @if (u.IsActive)
@@ -70,20 +82,33 @@
                         }
                     </td>
                     <td class="d-flex gap-2 flex-wrap">
-                        <form asp-action="ToggleUserLock" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <button class="vk-btn @(u.IsActive ? "warning" : "primary")" type="submit">
-                                @(u.IsActive ? "Khóa" : "Mở khóa")
-                            </button>
-                        </form>
-                        <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Xóa tài khoản này?');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <button class="vk-btn danger" type="submit">Xóa</button>
-                        </form>
+                        @if (isCurrentUser)
+                        {
+                            <span>Tài khoản hiện tại</span>
+                        }
+                        else
+                        {
+                            <form asp-action="ToggleUserLock" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <button class="vk-btn @(u.IsActive ? "warning" : "primary")" type="submit">
+                                    @(u.IsActive ? "Khóa" : "Mở khóa")
+                                </button>
+                            </form>
+
+                            @if (!isDefaultAdmin)
+                            {
+                                <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Xóa tài khoản này?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button class="vk-btn danger" type="submit">Xóa</button>
+                                </form>
+                            }
+                        }
                     </td>
                 </tr>
+
+                stt++;
             }
         </tbody>
     </table>
