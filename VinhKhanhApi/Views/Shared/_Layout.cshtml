@@ -19,12 +19,20 @@
 
             @if (User.Identity?.IsAuthenticated == true)
             {
+                var currentRoleLabel = User.IsInRole("Admin")
+                    ? "Quản trị viên"
+                    : User.IsInRole("Owner")
+                        ? "Chủ quán"
+                        : null;
+
                 @if (User.IsInRole("Admin"))
                 {
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Index" ? "active" : "")"
                        href="@Url.Action("Index", "Cms")">Quản lý POI</a>
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Stats" ? "active" : "")"
                        href="@Url.Action("Stats", "Cms")">Thống kê tổng</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "QrCodes" ? "active" : "")"
+                       href="@Url.Action("QrCodes", "Cms")">Mã QR</a>
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Monitoring" ? "active" : "")"
                        href="@Url.Action("Monitoring", "Cms")">Monitoring</a>
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Users" ? "active" : "")"
@@ -33,9 +41,20 @@
 
                 @if (User.IsInRole("Owner"))
                 {
-                    <a class="nav-link @(currentController == "Owner" ? "active" : "")"
+                    <a class="nav-link @(currentController == "Owner" && currentAction == "Dashboard" ? "active" : "")"
                        href="@Url.Action("Dashboard", "Owner")">Quán của tôi</a>
+                    <a class="nav-link @(currentController == "Owner" && currentAction == "Stats" ? "active" : "")"
+                       href="@Url.Action("Stats", "Owner")">Thống kê quán</a>
                 }
+
+                <div class="sidebar-user">
+                    <div class="sidebar-user-label">Đang đăng nhập:</div>
+                    <div class="sidebar-user-name">@User.Identity?.Name</div>
+                    @if (!string.IsNullOrWhiteSpace(currentRoleLabel))
+                    {
+                        <div class="sidebar-user-role">Vai trò: @currentRoleLabel</div>
+                    }
+                </div>
 
                 <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:16px;">
                     @Html.AntiForgeryToken()

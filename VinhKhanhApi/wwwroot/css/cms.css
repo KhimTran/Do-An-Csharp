@@ -56,6 +56,37 @@ body.cms-body {
     border: 1px solid rgba(31, 181, 154, 0.2);
 }
 
+.sidebar-user {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-user-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.58);
+    margin-bottom: 6px;
+}
+
+.sidebar-user-name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.9);
+    word-break: break-word;
+}
+
+.sidebar-user-role {
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.66);
+}
+
 .cms-main {
     padding: clamp(20px, 2.2vw, 32px);
 }
@@ -459,6 +490,23 @@ body.cms-body {
     flex-wrap: wrap;
 }
 
+.poi-audio-current {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.poi-inline-delete-form {
+    margin: 0;
+}
+
+.poi-inline-delete-button {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+}
+
 .poi-alert {
     margin-bottom: 0;
     border-radius: 16px;
@@ -523,6 +571,127 @@ body.cms-body {
     white-space: nowrap;
 }
 
+.poi-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.poi-admin-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+}
+
+.poi-admin-media {
+    height: 180px;
+    background: linear-gradient(135deg, rgba(31, 181, 154, 0.12), rgba(47, 102, 255, 0.08));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.poi-admin-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.poi-admin-placeholder {
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.poi-admin-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.poi-admin-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.poi-admin-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.poi-admin-info-line {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+.poi-admin-preview {
+    border-radius: 16px;
+    border: 1px solid #dbe3ef;
+    background: #fbfcfe;
+    padding: 12px;
+}
+
+.poi-admin-preview-controls {
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+}
+
+.poi-preview-language {
+    min-height: 40px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.poi-preview-button {
+    width: 100%;
+    padding: 10px 14px;
+}
+
+.poi-preview-status {
+    margin-top: 8px;
+    min-height: 20px;
+    font-size: 13px;
+    color: #516074;
+}
+
+.poi-preview-status.is-error {
+    color: #c62828;
+}
+
+.poi-preview-audio {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.poi-admin-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: auto;
+}
+
+.poi-admin-actions form {
+    margin: 0;
+}
+
+.poi-admin-action-button {
+    padding: 9px 14px;
+    font-size: 13px;
+    border-radius: 12px;
+}
+
 @media (max-width: 1200px) {
     .cms-shell {
         grid-template-columns: 180px minmax(0, 1fr);
@@ -572,6 +741,10 @@ body.cms-body {
     .poi-map-reset {
         width: 100%;
         text-align: center;
+    }
+
+    .poi-admin-preview-controls {
+        grid-template-columns: 1fr;
     }
 }
 

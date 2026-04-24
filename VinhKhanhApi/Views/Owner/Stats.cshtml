@@ -1,0 +1,98 @@
+@model VinhKhanhApi.ViewModels.OwnerStatsViewModel
+@{
+    ViewData["Title"] = "Thống kê quán";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Thống kê quán - @Model.TenQuan</h1>
+        <p class="page-subtitle">Dữ liệu chỉ hiển thị cho quán đang được gán với tài khoản chủ quán hiện tại. Giờ hiển thị theo UTC+7.</p>
+    </div>
+    <div class="page-actions">
+        <a class="vk-btn secondary" href="@Url.Action("Dashboard", "Owner")">Quay lại quán của tôi</a>
+    </div>
+</div>
+
+<section class="poi-editor-card">
+    <div class="poi-grid">
+        <div class="poi-field">
+            <label>Tổng lượt nghe</label>
+            <div class="poi-empty-state">@Model.TongLuotNghe lượt</div>
+        </div>
+        <div class="poi-field">
+            <label>Thời lượng nghe trung bình</label>
+            <div class="poi-empty-state">@Model.ThoiLuongTrungBinhGiay.ToString("F1") giây</div>
+        </div>
+        <div class="poi-field poi-field-span-2">
+            <label>Lượt nghe 7 ngày gần đây</label>
+            <div class="poi-empty-state">@Model.LuotNghe7NgayGanDay lượt</div>
+        </div>
+    </div>
+</section>
+
+<section class="poi-editor-card">
+    <div class="poi-section-heading">
+        <div>
+            <h2>Lượt nghe theo thứ</h2>
+            <p>Thống kê trong 7 ngày gần đây, quy đổi sang giờ Việt Nam UTC+7.</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Thứ</th>
+                    <th>Lượt nghe</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.LuotNgheTheoThu)
+                {
+                    <tr>
+                        <td>@item.ThuLabel</td>
+                        <td>@item.SoLuot</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="poi-editor-card">
+    <div class="poi-section-heading">
+        <div>
+            <h2>Lịch sử nghe gần đây</h2>
+            <p>Danh sách các lượt nghe mới nhất của riêng quán này.</p>
+        </div>
+    </div>
+
+    @if (Model.LichSuGanDay.Count == 0)
+    {
+        <div class="poi-empty-state">Chưa có lượt nghe nào cho quán này.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Thời gian (UTC+7)</th>
+                        <th>Nguồn nghe</th>
+                        <th>Thời lượng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.LichSuGanDay)
+                    {
+                        <tr>
+                            <td>@item.ThoiGianVietNam.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            <td>@item.Nguon</td>
+                            <td>@item.ThoiLuongGiay giây</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

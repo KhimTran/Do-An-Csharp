@@ -22,6 +22,16 @@
     </div>
 </div>
 
+@if (TempData["ok"] != null)
+{
+    <div class="alert alert-success">@TempData["ok"]</div>
+}
+
+@if (TempData["err"] != null)
+{
+    <div class="alert alert-danger">@TempData["err"]</div>
+}
+
 <form asp-action="Edit" asp-controller="Cms" method="post" enctype="multipart/form-data" class="poi-editor-form">
     @Html.AntiForgeryToken()
     <input asp-for="Id" type="hidden" />
@@ -46,26 +56,6 @@
                 <label asp-for="Ten">Tên địa điểm *</label>
                 <input asp-for="Ten" class="form-control" placeholder="Ví dụ: Ốc Sáu Nở" />
                 <span asp-validation-for="Ten" class="text-danger"></span>
-            </div>
-
-            <div class="poi-field">
-                <label asp-for="SoDienThoai">Số điện thoại</label>
-                <input asp-for="SoDienThoai" class="form-control" placeholder="0901234567" />
-            </div>
-
-            <div class="poi-field">
-                <label asp-for="GioMoCua">Giờ mở cửa</label>
-                <input asp-for="GioMoCua" class="form-control" placeholder="08:00" />
-            </div>
-
-            <div class="poi-field">
-                <label asp-for="GioDongCua">Giờ đóng cửa</label>
-                <input asp-for="GioDongCua" class="form-control" placeholder="22:00" />
-            </div>
-
-            <div class="poi-field poi-field-span-2">
-                <label asp-for="MonDacTrung">Điểm nhấn / món đặc trưng</label>
-                <input asp-for="MonDacTrung" class="form-control" placeholder="Thông tin ngắn để nhận diện địa điểm" />
             </div>
 
             <div class="poi-field poi-field-span-2">
@@ -144,7 +134,7 @@
         </div>
 
         <div class="poi-translation-note">
-            Chỉ cần nhập 1 ngôn ngữ - hệ thống tự dịch sang các ngôn ngữ còn lại khi lưu.
+            Chỉ cần nhập 1 ngôn ngữ, hệ thống tự dịch sang các ngôn ngữ còn lại khi lưu.
         </div>
 
         <div class="poi-language-toolbar">
@@ -232,7 +222,19 @@
                 <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
                 @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Vi))
                 {
-                    <small class="muted">Hiện tại: @Model.TenFileAudio_Vi</small>
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_Vi</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Cms"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="language" value="vi" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
                 }
             </div>
 
@@ -241,7 +243,19 @@
                 <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
                 @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_En))
                 {
-                    <small class="muted">Hiện tại: @Model.TenFileAudio_En</small>
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_En</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Cms"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="language" value="en" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
                 }
             </div>
 
@@ -250,7 +264,19 @@
                 <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
                 @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Zh))
                 {
-                    <small class="muted">Hiện tại: @Model.TenFileAudio_Zh</small>
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_Zh</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Cms"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="language" value="zh" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
                 }
             </div>
         </div>

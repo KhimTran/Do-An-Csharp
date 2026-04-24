@@ -23,6 +23,8 @@ namespace App.ViewModels
         private bool _daKhoiDong;
         private bool _daCanhKhungTheoPoi;
         private bool _daCanhTheoNguoiDung;
+        private int? _poiCanMoSauDieuHuong;
+        private int? _poiCanCanhToi;
 
         public MapViewModel(
             LocalDatabase db,
@@ -41,6 +43,8 @@ namespace App.ViewModels
 
             TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
             TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
+            TrangThaiPhat = "Chưa phát thuyết minh";
+            _tts.PlaybackStateChanged += Tts_PlaybackStateChanged;
         }
 
         [ObservableProperty]
@@ -57,6 +61,9 @@ namespace App.ViewModels
 
         [ObservableProperty]
         private string trangThaiGps = string.Empty;
+
+        [ObservableProperty]
+        private string trangThaiPhat = string.Empty;
 
         [ObservableProperty]
         private bool hienThiPopupPoi;
@@ -147,9 +154,60 @@ namespace App.ViewModels
             PhatMapState();
         }
 
+        public async Task<bool> MoPoiTuDieuHuongAsync(int poiId)
+        {
+            if (poiId <= 0)
+                return false;
+
+            if (_danhSachPoi.Count == 0)
+            {
+                _poiCanMoSauDieuHuong = poiId;
+                return false;
+            }
+
+            var poi = _danhSachPoi.FirstOrDefault(p => p.Id == poiId);
+            if (poi == null)
+            {
+                _poiCanMoSauDieuHuong = null;
+                return false;
+            }
+
+            _poiDangTracking = null;
+            _poiDangMoPopup = poi;
+            _poiCanMoSauDieuHuong = null;
+            _poiCanCanhToi = poi.Id;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                CapNhatPopupPoi(poi);
+                HienThiPopupPoi = true;
+            });
+
+            PhatMapState();
+            return true;
+        }
+
+        public async Task XuLyPoiDangChoTuDieuHuongAsync()
+        {
+            int pendingPoiId = Preferences.Get(AppNavigationKeys.PendingMapPoiId, 0);
+            if (pendingPoiId > 0)
+            {
+                Preferences.Remove(AppNavigationKeys.PendingMapPoiId);
+
+                if (!await MoPoiTuDieuHuongAsync(pendingPoiId))
+                    _poiCanMoSauDieuHuong = pendingPoiId;
+
+                return;
+            }
+
+            if (_poiCanMoSauDieuHuong.HasValue)
+                await MoPoiTuDieuHuongAsync(_poiCanMoSauDieuHuong.Value);
+        }
+
         public async Task DongPopupAsync(bool capNhatBanDo = true)
         {
             _poiDangMoPopup = null;
+            _poiCanCanhToi = null;
             await MainThread.InvokeOnMainThreadAsync(() => HienThiPopupPoi = false);
 
             if (capNhatBanDo)
@@ -170,6 +228,7 @@ namespace App.ViewModels
                 return;
 
             _poiDangTracking = _poiDangMoPopup;
+            _poiCanCanhToi = null;
             await DongPopupAsync(capNhatBanDo: false);
             PhatMapState(focusOnRoute: _viTriNguoiDungHienTai != null);
         }
@@ -289,6 +348,8 @@ namespace App.ViewModels
         private MapRenderState TaoTrangThaiBanDo(bool fitToPois, bool focusOnRoute, bool followUser)
         {
             var geofenceRadius = Preferences.Get("geofence_radius", 100);
+            var focusPoiId = _poiCanCanhToi;
+            _poiCanCanhToi = null;
             var nearestPoi = _viTriNguoiDungHienTai == null
                 ? null
                 : TimPoiGanNhat(_viTriNguoiDungHienTai.Lat, _viTriNguoiDungHienTai.Lng);
@@ -349,6 +410,7 @@ namespace App.ViewModels
                 NearestPoiId = nearestPoi?.Id,
                 TrackingPoiId = _poiDangTracking?.Id,
                 PopupPoiId = _poiDangMoPopup?.Id,
+                FocusPoiId = focusPoiId,
                 FitToPois = fitToPois,
                 FocusOnRoute = focusOnRoute,
                 FollowUser = followUser
@@ -411,12 +473,29 @@ namespace App.ViewModels
                 return;
 
             string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
-            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
+            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
             if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
                 return;
 
             int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
+        }
+
+        private void Tts_PlaybackStateChanged(object? sender, TtsPlaybackStateChangedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(e.TenNoiDungHienThi))
+                return;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                TrangThaiPhat = e.State switch
+                {
+                    TtsPlaybackState.Started => $"Đang phát thuyết minh: {e.TenNoiDungHienThi}",
+                    TtsPlaybackState.Completed => $"Đã phát xong thuyết minh: {e.TenNoiDungHienThi}",
+                    TtsPlaybackState.Failed => $"Không thể phát thuyết minh: {e.TenNoiDungHienThi}",
+                    _ => TrangThaiPhat
+                };
+            });
         }
 
         private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)

@@ -1,47 +1,310 @@
 @model VinhKhanhApi.ViewModels.OwnerShopViewModel
 @{
     ViewData["Title"] = "Cổng Chủ quán";
+
+    var sourceLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(Model.SourceLanguage);
+    var activeLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(
+        string.IsNullOrWhiteSpace(Model.ActiveDescriptionTab) ? sourceLanguage : Model.ActiveDescriptionTab);
 }
 
-<h1 class="page-title">Chủ quán - @Model.Ten</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Chủ quán - @Model.Ten</h1>
+        <p class="page-subtitle">Cập nhật mô tả điểm theo một ngôn ngữ chính, hệ thống sẽ tự dịch sang các ngôn ngữ còn lại khi lưu.</p>
+    </div>
+    <div class="page-actions">
+        <a class="vk-btn secondary" href="@Url.Action("Stats", "Owner")">Xem thống kê quán</a>
+    </div>
+</div>
+
 @if (TempData["ok"] != null)
 {
     <div class="alert alert-success">@TempData["ok"]</div>
 }
 
-<form method="post" asp-action="Dashboard" enctype="multipart/form-data" class="vk-form">
+@if (TempData["err"] != null)
+{
+    <div class="alert alert-danger">@TempData["err"]</div>
+}
+
+<form method="post" asp-action="Dashboard" enctype="multipart/form-data" class="poi-editor-form">
     @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="PoiId" />
-    <div class="mb-3"><label>Mô tả VI</label><textarea asp-for="MoTa_Vi" class="form-control" rows="4"></textarea></div>
-    <div class="mb-3"><label>Mô tả EN</label><textarea asp-for="MoTa_En" class="form-control" rows="4"></textarea></div>
-    <div class="mb-3"><label>Mô tả ZH</label><textarea asp-for="MoTa_Zh" class="form-control" rows="4"></textarea></div>
-    <div class="mb-3">
-        <label>Ảnh minh họa POI</label>
-        <input asp-for="AnhMinhHoa" type="file" class="form-control" accept="image/*" />
-        @if (!string.IsNullOrWhiteSpace(Model.TenFileAnhMinhHoa))
-        {
-            <div class="mt-2">
-                <img src="~/images/poi/@Model.TenFileAnhMinhHoa" alt="Ảnh minh họa @Model.Ten" class="poi-preview-image" />
+    <input asp-for="PoiId" type="hidden" />
+    <input asp-for="ActiveDescriptionTab" type="hidden" />
+    <input asp-for="TenFileAudio_Vi" type="hidden" />
+    <input asp-for="TenFileAudio_En" type="hidden" />
+    <input asp-for="TenFileAudio_Zh" type="hidden" />
+    <input asp-for="TenFileAnhMinhHoa" type="hidden" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger poi-alert"></div>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
+                <h2>Thông tin quán</h2>
+                <p>Giữ nguyên ảnh minh họa và các file audio hiện có của quán.</p>
             </div>
-            <small class="muted">@Model.TenFileAnhMinhHoa</small>
-        }
-    </div>
+        </div>
 
-    <div class="mb-3">
-        <label>Audio VI (.mp3)</label>
-        <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-        <small class="muted">@Model.TenFileAudio_Vi</small>
-    </div>
-    <div class="mb-3">
-        <label>Audio EN (.mp3)</label>
-        <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-        <small class="muted">@Model.TenFileAudio_En</small>
-    </div>
-    <div class="mb-3">
-        <label>Audio ZH (.mp3)</label>
-        <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-        <small class="muted">@Model.TenFileAudio_Zh</small>
-    </div>
+        <div class="poi-grid poi-grid-audio">
+            <div class="poi-field poi-field-span-2">
+                <label>Ảnh minh họa POI</label>
+                <input asp-for="AnhMinhHoa" type="file" class="form-control" accept="image/*" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAnhMinhHoa))
+                {
+                    <div class="poi-image-preview">
+                        <img src="~/images/poi/@Model.TenFileAnhMinhHoa" alt="Ảnh minh họa @Model.Ten" class="poi-preview-image" />
+                        <div class="poi-image-preview-meta">
+                            <strong>Ảnh hiện tại</strong>
+                            <span>@Model.TenFileAnhMinhHoa</span>
+                        </div>
+                    </div>
+                }
+            </div>
 
-    <button type="submit" class="vk-btn primary">Lưu thay đổi</button>
+            <div class="poi-field">
+                <label>Audio VI (.mp3)</label>
+                <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Vi))
+                {
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_Vi</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Owner"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="language" value="vi" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label>Audio EN (.mp3)</label>
+                <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_En))
+                {
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_En</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Owner"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="language" value="en" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label>Audio ZH (.mp3)</label>
+                <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Zh))
+                {
+                    <div class="poi-audio-current">
+                        <small class="muted">Hiện tại: @Model.TenFileAudio_Zh</small>
+                        <form asp-action="DeleteAudio"
+                              asp-controller="Owner"
+                              method="post"
+                              class="poi-inline-delete-form"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="language" value="zh" />
+                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
+                <h2>Mô tả điểm</h2>
+                <p>Chủ quán chỉ cần nhập một ngôn ngữ, backend sẽ tự dịch sang hai ngôn ngữ còn lại khi lưu.</p>
+            </div>
+        </div>
+
+        <div class="poi-translation-note">
+            Nếu dịch lỗi, hệ thống sẽ báo rõ và không lưu dữ liệu mô tả sai.
+        </div>
+
+        <div class="poi-language-toolbar">
+            <div class="poi-field poi-source-picker">
+                <label asp-for="SourceLanguage">Ngôn ngữ nhập chính</label>
+                <select asp-for="SourceLanguage" class="form-select poi-source-select">
+                    <option value="vi">Việt</option>
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+                <span asp-validation-for="SourceLanguage" class="text-danger"></span>
+            </div>
+
+            <div class="poi-source-summary">
+                <span class="poi-source-summary-label">Đang dùng làm nguồn</span>
+                <strong class="poi-source-summary-value" data-source-language-label>
+                    @VinhKhanhApi.ViewModels.OwnerShopViewModel.GetDisplayNameForLanguage(sourceLanguage)
+                </strong>
+                <span class="poi-source-summary-text">Bạn vẫn xem được đủ 3 ngôn ngữ ngay trên form.</span>
+            </div>
+        </div>
+
+        <div class="poi-tabs" role="tablist" aria-label="Mô tả đa ngôn ngữ">
+            <button type="button" class="poi-tab-button @(activeLanguage == "vi" ? "is-active" : string.Empty)" data-description-tab="vi">
+                Việt
+            </button>
+            <button type="button" class="poi-tab-button @(activeLanguage == "en" ? "is-active" : string.Empty)" data-description-tab="en">
+                English
+            </button>
+            <button type="button" class="poi-tab-button @(activeLanguage == "zh" ? "is-active" : string.Empty)" data-description-tab="zh">
+                中文
+            </button>
+        </div>
+
+        <div class="poi-tab-panels">
+            <div class="poi-tab-panel @(activeLanguage == "vi" ? "is-active" : string.Empty)" data-description-panel="vi">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>Tiếng Việt</h3>
+                        <p class="poi-panel-caption" data-caption-for="vi"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="vi"></span>
+                </div>
+                <textarea asp-for="MoTa_Vi" rows="8" class="form-control poi-description-input" data-language="vi" placeholder="Mô tả bằng tiếng Việt..."></textarea>
+                <span asp-validation-for="MoTa_Vi" class="text-danger"></span>
+            </div>
+
+            <div class="poi-tab-panel @(activeLanguage == "en" ? "is-active" : string.Empty)" data-description-panel="en">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>English</h3>
+                        <p class="poi-panel-caption" data-caption-for="en"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="en"></span>
+                </div>
+                <textarea asp-for="MoTa_En" rows="8" class="form-control poi-description-input" data-language="en" placeholder="English description..."></textarea>
+                <span asp-validation-for="MoTa_En" class="text-danger"></span>
+            </div>
+
+            <div class="poi-tab-panel @(activeLanguage == "zh" ? "is-active" : string.Empty)" data-description-panel="zh">
+                <div class="poi-panel-head">
+                    <div>
+                        <h3>中文</h3>
+                        <p class="poi-panel-caption" data-caption-for="zh"></p>
+                    </div>
+                    <span class="poi-panel-badge" data-badge-for="zh"></span>
+                </div>
+                <textarea asp-for="MoTa_Zh" rows="8" class="form-control poi-description-input" data-language="zh" placeholder="中文描述..."></textarea>
+                <span asp-validation-for="MoTa_Zh" class="text-danger"></span>
+            </div>
+        </div>
+    </section>
+
+    <div class="poi-form-actions">
+        <button type="submit" class="vk-btn primary">Lưu thay đổi</button>
+    </div>
 </form>
+
+<script>
+    (() => {
+        const form = document.querySelector(".poi-editor-form");
+        if (!form) {
+            return;
+        }
+
+        const sourceSelect = form.querySelector(".poi-source-select");
+        const activeTabInput = form.querySelector("#ActiveDescriptionTab");
+        const tabButtons = Array.from(form.querySelectorAll("[data-description-tab]"));
+        const tabPanels = Array.from(form.querySelectorAll("[data-description-panel]"));
+        const descriptionInputs = Array.from(form.querySelectorAll(".poi-description-input"));
+        const sourceLabel = form.querySelector("[data-source-language-label]");
+
+        const languageLabels = {
+            vi: "Tiếng Việt",
+            en: "English",
+            zh: "中文"
+        };
+
+        const editableMessage = "Đây là ô nhập chính. Nội dung tại đây sẽ được dùng để dịch sang các ngôn ngữ còn lại khi lưu.";
+        const readonlyMessage = "Ô này đang ở chế độ xem. Hãy đổi ngôn ngữ nhập chính nếu bạn muốn sửa trực tiếp nội dung này.";
+
+        const normalizeLanguage = (language) => {
+            if (language === "en" || language === "zh") {
+                return language;
+            }
+
+            return "vi";
+        };
+
+        const setActiveTab = (language) => {
+            const normalizedLanguage = normalizeLanguage(language);
+
+            tabButtons.forEach((button) => {
+                const isActive = button.dataset.descriptionTab === normalizedLanguage;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+
+            tabPanels.forEach((panel) => {
+                panel.classList.toggle("is-active", panel.dataset.descriptionPanel === normalizedLanguage);
+            });
+
+            if (activeTabInput) {
+                activeTabInput.value = normalizedLanguage;
+            }
+        };
+
+        const applySourceLanguage = () => {
+            const sourceLanguage = normalizeLanguage(sourceSelect?.value);
+
+            if (sourceLabel) {
+                sourceLabel.textContent = languageLabels[sourceLanguage];
+            }
+
+            descriptionInputs.forEach((input) => {
+                const isSource = input.dataset.language === sourceLanguage;
+                input.readOnly = !isSource;
+                input.classList.toggle("is-readonly", !isSource);
+            });
+
+            ["vi", "en", "zh"].forEach((language) => {
+                const badge = form.querySelector(`[data-badge-for="${language}"]`);
+                const caption = form.querySelector(`[data-caption-for="${language}"]`);
+                const isSource = language === sourceLanguage;
+
+                if (badge) {
+                    badge.textContent = isSource ? "Ngôn ngữ gốc" : "Bản xem trước";
+                    badge.classList.toggle("is-active", isSource);
+                }
+
+                if (caption) {
+                    caption.textContent = isSource ? editableMessage : readonlyMessage;
+                }
+            });
+        };
+
+        tabButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                setActiveTab(button.dataset.descriptionTab);
+            });
+        });
+
+        if (sourceSelect) {
+            sourceSelect.addEventListener("change", () => {
+                const sourceLanguage = normalizeLanguage(sourceSelect.value);
+                applySourceLanguage();
+                setActiveTab(sourceLanguage);
+            });
+        }
+
+        applySourceLanguage();
+        setActiveTab(activeTabInput?.value || sourceSelect?.value || "vi");
+    })();
+</script>

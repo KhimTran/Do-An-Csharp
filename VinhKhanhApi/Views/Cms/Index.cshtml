@@ -1,3 +1,4 @@
+@using System.Text.Json
 @model List<VinhKhanhApi.Models.PoiModel>
 @{
     ViewData["Title"] = "Quản lý POI";
@@ -28,48 +29,203 @@
     </div>
 </section>
 
-<div class="vk-table-wrap">
-    <table class="vk-table">
-        <thead>
-            <tr>
-                <th>STT</th>
-                <th>Tên quán</th>
-                <th>Mô tả</th>
-                <th>Tọa độ</th>
-                <th>Bán kính</th>
-                <th>Ưu tiên</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @{
-                var stt = 1;
-            }
-            @foreach (var item in Model)
+<section class="poi-admin-grid">
+    @foreach (var item in Model)
+    {
+        var imageUrl = !string.IsNullOrWhiteSpace(item.TenFileAnhMinhHoa)
+            ? Url.Content($"~/images/poi/{item.TenFileAnhMinhHoa}")
+            : null;
+
+        var previewPayload = JsonSerializer.Serialize(new
+        {
+            vi = new
             {
-                <tr>
-                    <td><span class="badge-pill badge-id">#@stt</span></td>
-                    <td><strong>@item.Ten</strong></td>
-                    <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;
-                               white-space:nowrap;" title="@item.MoTa_Vi">
-                        @(item.MoTa_Vi?.Length > 60
-                            ? item.MoTa_Vi.Substring(0, 60) + "…"
-                            : item.MoTa_Vi)
-                    </td>
-                    <td>Lat: @item.Lat<br />Lng: @item.Lng</td>
-                    <td>@item.BanKinh m</td>
-                    <td><span class="badge-pill badge-priority">@item.UuTien</span></td>
-                    <td>
-                        <a class="vk-btn warning" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
-                        <form asp-action="Delete" asp-controller="Cms" method="post" style="display:inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button class="vk-btn danger" type="submit">Xóa</button>
-                        </form>
-                    </td>
-                </tr>
-                stt++;
+                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_Vi) ? Url.Content($"~/audio/{item.TenFileAudio_Vi}") : null,
+                text = item.MoTa_Vi
+            },
+            en = new
+            {
+                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_En) ? Url.Content($"~/audio/{item.TenFileAudio_En}") : null,
+                text = item.MoTa_En
+            },
+            zh = new
+            {
+                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_Zh) ? Url.Content($"~/audio/{item.TenFileAudio_Zh}") : null,
+                text = item.MoTa_Zh
             }
-        </tbody>
-    </table>
-</div>
+        });
+
+        var ngonNguCoMoTa = new List<string>();
+        if (!string.IsNullOrWhiteSpace(item.MoTa_Vi)) ngonNguCoMoTa.Add("VI");
+        if (!string.IsNullOrWhiteSpace(item.MoTa_En)) ngonNguCoMoTa.Add("EN");
+        if (!string.IsNullOrWhiteSpace(item.MoTa_Zh)) ngonNguCoMoTa.Add("ZH");
+
+        var soFileAudio = 0;
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Vi)) soFileAudio++;
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_En)) soFileAudio++;
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Zh)) soFileAudio++;
+
+        <article class="poi-admin-card" data-poi-card>
+            <div class="poi-admin-media">
+                @if (!string.IsNullOrWhiteSpace(imageUrl))
+                {
+                    <img src="@imageUrl" alt="Ảnh minh họa @item.Ten" class="poi-admin-image" />
+                }
+                else
+                {
+                    <div class="poi-admin-placeholder">Chưa có ảnh</div>
+                }
+            </div>
+
+            <div class="poi-admin-body">
+                <h2 class="poi-admin-title">@item.Ten</h2>
+
+                <div class="poi-admin-info-list">
+                    <div class="poi-admin-info-line">Tọa độ: @item.Lat.ToString("F6"), @item.Lng.ToString("F6")</div>
+                    <div class="poi-admin-info-line">Bán kính: @item.BanKinh m</div>
+                    <div class="poi-admin-info-line">Ngôn ngữ có mô tả: @(ngonNguCoMoTa.Count > 0 ? string.Join(" / ", ngonNguCoMoTa) : "Chưa có")</div>
+                    <div class="poi-admin-info-line">Số file thu âm: @soFileAudio</div>
+                    <div class="poi-admin-info-line">Ưu tiên: @item.UuTien</div>
+                </div>
+
+                <div class="poi-admin-preview"
+                     data-preview='@previewPayload'
+                     data-poi-name="@item.Ten">
+                    <div class="poi-admin-preview-controls">
+                        <select class="form-select poi-preview-language" aria-label="Chọn ngôn ngữ nghe thử">
+                            <option value="vi">Việt</option>
+                            <option value="en">English</option>
+                            <option value="zh">中文</option>
+                        </select>
+                        <button type="button" class="vk-btn secondary poi-preview-button">Nghe thử thuyết minh</button>
+                    </div>
+                    <div class="poi-preview-status" aria-live="polite"></div>
+                    <audio class="poi-preview-audio" preload="none"></audio>
+                </div>
+
+                <div class="poi-admin-actions">
+                    <a class="vk-btn warning poi-admin-action-button" href="@Url.Action("Edit", "Cms", new { id = item.Id })">Sửa</a>
+                    <form asp-action="Delete"
+                          asp-controller="Cms"
+                          method="post"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa POI này không? Hành động này không thể hoàn tác.');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button class="vk-btn danger poi-admin-action-button" type="submit">Xóa</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    }
+</section>
+
+<script>
+    (() => {
+        const cards = Array.from(document.querySelectorAll("[data-poi-card]"));
+        if (cards.length === 0) {
+            return;
+        }
+
+        let currentAudio = null;
+
+        const stopSpeech = () => {
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+        };
+
+        const stopCurrentAudio = () => {
+            if (!currentAudio) {
+                return;
+            }
+
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
+        };
+
+        const getVoiceForLanguage = (language) => {
+            if (!("speechSynthesis" in window)) {
+                return null;
+            }
+
+            const normalizedLanguage = language === "zh" ? "zh" : language;
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(voice => voice.lang?.toLowerCase().startsWith(normalizedLanguage))
+                ?? voices.find(voice => normalizedLanguage === "zh" && voice.lang?.toLowerCase().includes("zh"))
+                ?? null;
+        };
+
+        const updateStatus = (element, message, isError) => {
+            element.textContent = message;
+            element.classList.toggle("is-error", Boolean(isError));
+        };
+
+        const playWithSpeech = (language, text, statusElement) => {
+            if (!("speechSynthesis" in window)) {
+                updateStatus(statusElement, "Trình duyệt này chưa hỗ trợ đọc mô tả bằng giọng nói.", true);
+                return;
+            }
+
+            stopCurrentAudio();
+            stopSpeech();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = language === "zh" ? "zh-CN" : language === "en" ? "en-US" : "vi-VN";
+
+            const voice = getVoiceForLanguage(language);
+            if (voice) {
+                utterance.voice = voice;
+            }
+
+            utterance.onstart = () => updateStatus(statusElement, "Đang đọc mô tả bằng giọng nói trình duyệt.", false);
+            utterance.onend = () => updateStatus(statusElement, "Đã đọc xong mô tả.", false);
+            utterance.onerror = () => updateStatus(statusElement, "Không thể đọc mô tả bằng giọng nói trình duyệt.", true);
+
+            window.speechSynthesis.speak(utterance);
+        };
+
+        cards.forEach((card) => {
+            const previewContainer = card.querySelector("[data-preview]");
+            const payload = JSON.parse(previewContainer.dataset.preview || "{}");
+            const languageSelect = card.querySelector(".poi-preview-language");
+            const previewButton = card.querySelector(".poi-preview-button");
+            const statusElement = card.querySelector(".poi-preview-status");
+            const audioElement = card.querySelector(".poi-preview-audio");
+
+            previewButton.addEventListener("click", () => {
+                const selectedLanguage = languageSelect.value;
+                const content = payload[selectedLanguage];
+
+                stopSpeech();
+
+                if (content?.audio) {
+                    stopCurrentAudio();
+                    audioElement.src = content.audio;
+                    currentAudio = audioElement;
+
+                    audioElement.onplay = () => updateStatus(statusElement, "Đang phát file audio.", false);
+                    audioElement.onended = () => updateStatus(statusElement, "Đã phát xong audio.", false);
+                    audioElement.onerror = () => updateStatus(statusElement, "Không thể phát file audio này.", true);
+
+                    audioElement.play().catch(() => {
+                        updateStatus(statusElement, "Trình duyệt đã chặn phát audio. Hãy tương tác lại và thử lần nữa.", true);
+                    });
+                    return;
+                }
+
+                if (content?.text && content.text.trim().length > 0) {
+                    playWithSpeech(selectedLanguage, content.text.trim(), statusElement);
+                    return;
+                }
+
+                stopCurrentAudio();
+                updateStatus(statusElement, "Chưa có nội dung thuyết minh để nghe thử.", true);
+            });
+        });
+
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.onvoiceschanged = () => { };
+        }
+    })();
+</script>

@@ -11,6 +11,7 @@ public sealed class MapRenderState
     public int? NearestPoiId { get; init; }
     public int? TrackingPoiId { get; init; }
     public int? PopupPoiId { get; init; }
+    public int? FocusPoiId { get; init; }
     public bool FitToPois { get; init; }
     public bool FocusOnRoute { get; init; }
     public bool FollowUser { get; init; }

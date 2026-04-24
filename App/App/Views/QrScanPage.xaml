@@ -2,61 +2,64 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:App.ViewModels"
-             xmlns:services="clr-namespace:App.Services"
              x:DataType="vm:QrScanViewModel"
              x:Class="App.Views.QrScanPage"
-             Title="{Binding [QrPage_Title], Source={x:Static services:LocalizationResourceManager.Instance}}">
+             Title="Quét mã QR">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" Padding="12" RowSpacing="12">
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
+          Padding="14,10,14,14"
+          RowSpacing="8">
+        <Label Grid.Row="0"
+               Text="Quét mã QR"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center"
+               Margin="0,6,0,0" />
 
-        <Border Grid.Row="0" StrokeShape="RoundRectangle 12" HeightRequest="320">
+        <Label Grid.Row="1"
+               Text="Quét mã QR của quán để nghe thuyết minh"
+               FontSize="15"
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center"
+               Margin="8,0,8,0" />
+
+        <Border Grid.Row="2"
+                StrokeShape="RoundRectangle 16"
+                VerticalOptions="Fill"
+                MinimumHeightRequest="420"
+                Margin="0,0,0,4">
             <Grid>
                 <Grid x:Name="CameraHost" />
 
                 <Border x:Name="CameraFallbackOverlay"
-                        StrokeShape="RoundRectangle 10"
+                        StrokeShape="RoundRectangle 14"
                         BackgroundColor="#66000000"
                         HorizontalOptions="Fill"
                         VerticalOptions="Fill"
-                        Margin="12">
-                    <VerticalStackLayout
-                        Padding="14"
-                        Spacing="10"
-                        VerticalOptions="Center">
-                        <Label Text="{Binding [QrPage_CameraUnavailable], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                               TextColor="White" />
-                        <Label Text="Quet QR POI, link APK hoac URL ngrok"
-                               TextColor="White" />
+                        Margin="12"
+                        IsVisible="False">
+                    <VerticalStackLayout Padding="14"
+                                         Spacing="10"
+                                         VerticalOptions="Center">
+                        <Label Text="Camera chưa sẵn sàng trên thiết bị này."
+                               TextColor="White"
+                               HorizontalTextAlignment="Center" />
+                        <Label x:Name="CameraDebugHintLabel"
+                               Text="Nếu đang dùng emulator, hãy thử trên điện thoại thật để quét QR."
+                               TextColor="White"
+                               HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" StrokeShape="RoundRectangle 12" Padding="14">
-            <VerticalStackLayout Spacing="10">
-                <Label Text="{Binding [QrPage_ManualTitle], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                       FontAttributes="Bold" />
-                <Entry x:Name="ManualQrEntry"
-                       Placeholder="{Binding [QrPage_ManualPlaceholder], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                       ReturnType="Go"
-                       Completed="ManualQrEntry_Completed" />
-                <Button Text="{Binding [QrPage_ManualSubmit], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                        Clicked="ManualSubmitButton_Clicked" />
-            </VerticalStackLayout>
-        </Border>
-
-        <Label Grid.Row="2"
-               Text="{Binding ThongBao}"
-               FontSize="16"
+        <Label Grid.Row="3"
+               Text="{Binding TrangThaiQuet}"
+               FontSize="15"
                HorizontalOptions="Center"
-               Margin="10" />
-
-        <Button Grid.Row="3"
-                Text="{Binding [QrPage_TestButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
-                Command="{Binding XuLyQrCommand}"
-                CommandParameter="1"
-                Margin="10"
-                BackgroundColor="#1F5C99"
-                TextColor="White" />
+               HorizontalTextAlignment="Center"
+               LineBreakMode="WordWrap"
+               Margin="8,0,8,0" />
     </Grid>
 </ContentPage>

@@ -114,7 +114,7 @@ public partial class PoiListViewModel : ObservableObject
 
         string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
         string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
-        var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
+        var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
         if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
             return;
 
@@ -125,7 +125,7 @@ public partial class PoiListViewModel : ObservableObject
     [RelayCommand]
     private Task XemBanDoAsync(PoiListItemViewModel? item)
     {
-        if (item == null)
+        if (item == null || item.Id <= 0)
             return Task.CompletedTask;
 
         Preferences.Set(AppNavigationKeys.PendingMapPoiId, item.Id);

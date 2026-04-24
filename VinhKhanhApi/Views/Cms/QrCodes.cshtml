@@ -1,0 +1,206 @@
+@model VinhKhanhApi.ViewModels.CmsQrCodesViewModel
+
+@{
+    ViewData["Title"] = "Mã QR";
+}
+
+<style>
+    .qr-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .qr-stat-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(31, 60, 151, 0.08);
+    }
+
+    .qr-stat-card .label {
+        color: #60708f;
+        font-size: 15px;
+        margin-bottom: 6px;
+    }
+
+    .qr-stat-card .value {
+        font-size: clamp(32px, 3vw, 48px);
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .qr-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(31, 60, 151, 0.08);
+        display: grid;
+        gap: 14px;
+    }
+
+    .qr-code-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 220px;
+        padding: 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(31, 60, 151, 0.04), rgba(31, 60, 151, 0.10));
+    }
+
+    .qr-code-box img {
+        width: min(220px, 100%);
+        height: auto;
+        background: #fff;
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .qr-poi-name {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+
+    .qr-meta {
+        color: #60708f;
+        line-height: 1.6;
+        font-size: 14px;
+    }
+
+    .qr-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+
+    .qr-empty {
+        background: #fff;
+        border-radius: 18px;
+        padding: 28px;
+        color: #60708f;
+        box-shadow: 0 12px 30px rgba(31, 60, 151, 0.08);
+    }
+</style>
+
+<h1 class="page-title">Mã QR</h1>
+<p style="margin:0 0 18px;color:#60708f;line-height:1.7;">
+    Mỗi POI có một mã QR riêng. Khách chỉ cần mở app, vào tab quét QR và quét mã này để phát thuyết minh ngay mà không cần GPS.
+</p>
+
+<section class="qr-stats">
+    <div class="qr-stat-card">
+        <div class="label">Tổng POI</div>
+        <div class="value">@Model.TongPoi</div>
+    </div>
+    <div class="qr-stat-card">
+        <div class="label">Đã có QR</div>
+        <div class="value">@Model.DaCoQr</div>
+    </div>
+    <div class="qr-stat-card">
+        <div class="label">Chưa có QR</div>
+        <div class="value">@Model.ChuaCoQr</div>
+    </div>
+</section>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="qr-empty">Chưa có POI nào để tạo mã QR.</div>
+}
+else
+{
+    <section class="qr-grid">
+        @foreach (var item in Model.Items)
+        {
+            var imageDataUrl = $"data:image/png;base64,{item.QrImageBase64}";
+            var statusText = item.DaCoQr ? "Đã có QR" : "Chưa có QR";
+
+            <article class="qr-card">
+                <div class="qr-code-box">
+                    <img src="@imageDataUrl" alt="QR @item.TenPoi" />
+                </div>
+
+                <div class="qr-poi-name">@item.TenPoi</div>
+                <div class="qr-meta">@item.ViTriHienThi</div>
+                <div class="qr-meta">Trạng thái: <strong>@statusText</strong></div>
+
+                <div class="qr-actions">
+                    <a class="vk-btn primary"
+                       href="@imageDataUrl"
+                       download="poi-@item.Id-qr.png">Tải QR</a>
+                    <button class="vk-btn secondary"
+                            type="button"
+                            onclick="printQr('@item.TenPoi.Replace("'", "\\'")', '@imageDataUrl')">In QR</button>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+<script>
+    function printQr(poiName, imageDataUrl) {
+        const popup = window.open('', '_blank', 'width=720,height=820');
+        if (!popup) {
+            return;
+        }
+
+        popup.document.write(`
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+                <meta charset="utf-8" />
+                <title>In mã QR</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 32px;
+                        text-align: center;
+                    }
+
+                    .card {
+                        border: 2px solid #d8ddea;
+                        border-radius: 18px;
+                        padding: 24px;
+                        max-width: 420px;
+                        margin: 0 auto;
+                    }
+
+                    img {
+                        width: 280px;
+                        height: auto;
+                    }
+
+                    h1 {
+                        margin: 0 0 12px;
+                        font-size: 28px;
+                    }
+
+                    p {
+                        margin: 8px 0;
+                        font-size: 18px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>${poiName}</h1>
+                    <img src="${imageDataUrl}" alt="QR ${poiName}" />
+                    <p>Quét bằng app để phát thuyết minh ngay.</p>
+                </div>
+            </body>
+            </html>
+        `);
+        popup.document.close();
+        popup.focus();
+        popup.print();
+    }
+</script>

@@ -88,6 +88,21 @@
         return true;
     }
 
+    function focusPoi(poiId) {
+        const marker = state.poiMarkers[String(poiId)];
+        if (!marker) {
+            return false;
+        }
+
+        const latLng = marker.getLatLng();
+        const nextZoom = Math.max(state.map.getZoom() || 0, 17);
+        state.map.setView(latLng, nextZoom, {
+            animate: true
+        });
+
+        return true;
+    }
+
     function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, function (char) {
             return {
@@ -407,6 +422,10 @@
     }
 
     function applyViewport(mapState) {
+        if (mapState.focusPoiId !== null && mapState.focusPoiId !== undefined && focusPoi(mapState.focusPoiId)) {
+            return;
+        }
+
         if (mapState.focusOnRoute && focusRoute(mapState.route)) {
             return;
         }

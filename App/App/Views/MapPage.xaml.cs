@@ -41,6 +41,7 @@ public partial class MapPage : ContentPage
 
         await DamBaoDaTaiHtmlBanDoAsync();
         await _vm.KhoiDongAsync();
+        await _vm.XuLyPoiDangChoTuDieuHuongAsync();
     }
 
     protected override void OnDisappearing()
@@ -105,6 +106,7 @@ public partial class MapPage : ContentPage
             var serializedLiteral = JsonSerializer.Serialize(pendingJson);
             var script = $"window.mapBridge && window.mapBridge.setMapState(JSON.parse({serializedLiteral}));";
             await BanDoWebView.EvaluateJavaScriptAsync(script);
+            await _vm.XuLyPoiDangChoTuDieuHuongAsync();
         }
         catch (Exception ex)
         {

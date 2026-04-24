@@ -18,12 +18,15 @@ namespace App.Services
         private Locale[]? _boNhoGiongNoi;
         private bool _dangXuLyHangDoi;
 
+        public event EventHandler<TtsPlaybackStateChangedEventArgs>? PlaybackStateChanged;
+
         public bool DangPhat { get; private set; }
 
         public async Task<TtsPlaybackResult> PhatAmAsync(
             string vanBan,
             string maNgonNgu = "vi-VN",
-            string? khoaAmThanh = null)
+            string? khoaAmThanh = null,
+            string? tenNoiDungHienThi = null)
         {
             if (string.IsNullOrWhiteSpace(vanBan))
                 return TtsPlaybackResult.Rejected("empty");
@@ -31,7 +34,7 @@ namespace App.Services
             if (string.IsNullOrWhiteSpace(maNgonNgu))
                 maNgonNgu = Preferences.Get("tts_language", "vi-VN");
 
-            var yeuCau = ThemHoacNhapYeuCau(vanBan, maNgonNgu, khoaAmThanh, out bool canKhoiDongXuLy, out bool laYeuCauGop);
+            var yeuCau = ThemHoacNhapYeuCau(vanBan, maNgonNgu, khoaAmThanh, tenNoiDungHienThi, out bool canKhoiDongXuLy, out bool laYeuCauGop);
             if (yeuCau == null)
                 return TtsPlaybackResult.Rejected("queue-full");
 
@@ -77,6 +80,7 @@ namespace App.Services
             string vanBan,
             string maNgonNgu,
             string? khoaAmThanh,
+            string? tenNoiDungHienThi,
             out bool canKhoiDongXuLy,
             out bool laYeuCauGop)
         {
@@ -95,7 +99,7 @@ namespace App.Services
                 if (_hangDoi.Count >= GioiHanHangDoi)
                     return null;
 
-                var yeuCauMoi = new YeuCauPhatAm(khoa, vanBan, maNgonNgu);
+                var yeuCauMoi = new YeuCauPhatAm(khoa, vanBan, maNgonNgu, tenNoiDungHienThi);
                 _hangDoi.Enqueue(yeuCauMoi);
                 _yeuCauTheoKhoa[khoa] = yeuCauMoi;
 
@@ -131,6 +135,7 @@ namespace App.Services
 
                     _cts?.Dispose();
                     _cts = new CancellationTokenSource();
+                    PlaybackStateChanged?.Invoke(this, new TtsPlaybackStateChangedEventArgs(TtsPlaybackState.Started, item.TenNoiDungHienThi));
 
                     TtsPlaybackResult ketQua;
                     try
@@ -154,6 +159,12 @@ namespace App.Services
                         }
                     }
 
+                    var state = ketQua.Completed
+                        ? TtsPlaybackState.Completed
+                        : ketQua.Status == "failed"
+                            ? TtsPlaybackState.Failed
+                            : TtsPlaybackState.Cancelled;
+                    PlaybackStateChanged?.Invoke(this, new TtsPlaybackStateChangedEventArgs(state, item.TenNoiDungHienThi));
                     item.ChoHoanTat.TrySetResult(ketQua);
                 }
             }
@@ -267,11 +278,12 @@ namespace App.Services
 
         private sealed class YeuCauPhatAm
         {
-            public YeuCauPhatAm(string khoa, string vanBan, string maNgonNgu)
+            public YeuCauPhatAm(string khoa, string vanBan, string maNgonNgu, string? tenNoiDungHienThi)
             {
                 Khoa = khoa;
                 VanBan = vanBan;
                 MaNgonNgu = maNgonNgu;
+                TenNoiDungHienThi = tenNoiDungHienThi;
                 ChoHoanTat = new TaskCompletionSource<TtsPlaybackResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
@@ -280,6 +292,8 @@ namespace App.Services
             public string VanBan { get; }
 
             public string MaNgonNgu { get; }
+
+            public string? TenNoiDungHienThi { get; }
 
             public TaskCompletionSource<TtsPlaybackResult> ChoHoanTat { get; }
         }

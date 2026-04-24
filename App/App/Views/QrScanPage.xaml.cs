@@ -16,6 +16,9 @@ namespace App.Views
             _vm = vm;
             BindingContext = vm;
             _vm.AlertRequested += Vm_AlertRequested;
+#if !DEBUG
+            CameraDebugHintLabel.IsVisible = false;
+#endif
         }
 
         protected override void OnAppearing()
@@ -81,26 +84,6 @@ namespace App.Views
         private async void Vm_AlertRequested(object? sender, QrAlertRequestedEventArgs e)
         {
             await DisplayAlertAsync(e.Title, e.Message, "OK");
-        }
-
-        private async void ManualSubmitButton_Clicked(object? sender, EventArgs e)
-        {
-            await XuLyQrNhapTayAsync();
-        }
-
-        private async void ManualQrEntry_Completed(object? sender, EventArgs e)
-        {
-            await XuLyQrNhapTayAsync();
-        }
-
-        private async Task XuLyQrNhapTayAsync()
-        {
-            var rawValue = ManualQrEntry.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(rawValue))
-                return;
-
-            ManualQrEntry.Text = string.Empty;
-            await _vm.XuLyQrCommand.ExecuteAsync(rawValue);
         }
     }
 }

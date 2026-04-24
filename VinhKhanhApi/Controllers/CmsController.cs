@@ -15,12 +15,18 @@ namespace VinhKhanhApi.Controllers
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
         private readonly ITranslationService _translationService;
+        private readonly IQrCodeService _qrCodeService;
 
-        public CmsController(AppDbContext db, IWebHostEnvironment env, ITranslationService translationService)
+        public CmsController(
+            AppDbContext db,
+            IWebHostEnvironment env,
+            ITranslationService translationService,
+            IQrCodeService qrCodeService)
         {
             _db = db;
             _env = env;
             _translationService = translationService;
+            _qrCodeService = qrCodeService;
         }
 
         [HttpGet]
@@ -112,6 +118,36 @@ namespace VinhKhanhApi.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAudio(int id, string? language)
+        {
+            var poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == id);
+            if (poi == null)
+            {
+                return NotFound();
+            }
+
+            if (!TryGetAudioFileName(poi, language, out var normalizedLanguage, out var currentFileName))
+            {
+                TempData["err"] = "Ngôn ngữ audio không hợp lệ.";
+                return RedirectToAction(nameof(Edit), new { id });
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentFileName))
+            {
+                DeleteAudioFileIfExists(currentFileName);
+            }
+
+            SetAudioFileName(poi, normalizedLanguage, null);
+            poi.NguoiCapNhat = User.Identity?.Name ?? "admin";
+
+            await _db.SaveChangesAsync();
+
+            TempData["ok"] = "Đã xóa audio. App sẽ dùng thuyết minh tự động.";
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
 
         [HttpGet]
         public async Task<IActionResult> Users()
@@ -119,6 +155,60 @@ namespace VinhKhanhApi.Controllers
             var users = await _db.UserAccounts.OrderBy(x => x.Role).ThenBy(x => x.Username).ToListAsync();
             ViewData["Pois"] = await _db.POIs.OrderBy(x => x.Ten).ToListAsync();
             return View(users);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> QrCodes()
+        {
+            var pois = await _db.POIs
+                .OrderBy(x => x.UuTien)
+                .ThenBy(x => x.Ten)
+                .ToListAsync();
+
+            var changed = false;
+            foreach (var poi in pois)
+            {
+                var expectedQrContent = $"poi:{poi.Id}";
+                if (string.IsNullOrWhiteSpace(poi.QrCodeNoiDung))
+                {
+                    poi.QrCodeNoiDung = expectedQrContent;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await _db.SaveChangesAsync();
+            }
+
+            var items = pois
+                .Select(poi =>
+                {
+                    var qrContent = string.IsNullOrWhiteSpace(poi.QrCodeNoiDung)
+                        ? $"poi:{poi.Id}"
+                        : poi.QrCodeNoiDung!;
+
+                    return new CmsQrCodeItemViewModel
+                    {
+                        Id = poi.Id,
+                        TenPoi = poi.Ten,
+                        ViTriHienThi = $"Lat: {poi.Lat:F6} | Lng: {poi.Lng:F6}",
+                        QrContent = qrContent,
+                        DaCoQr = !string.IsNullOrWhiteSpace(poi.QrCodeNoiDung),
+                        QrImageBase64 = _qrCodeService.GenerateQrPngBase64(qrContent)
+                    };
+                })
+                .ToList();
+
+            var model = new CmsQrCodesViewModel
+            {
+                TongPoi = items.Count,
+                DaCoQr = items.Count(x => x.DaCoQr),
+                ChuaCoQr = items.Count(x => !x.DaCoQr),
+                Items = items
+            };
+
+            return View(model);
         }
 
         [HttpPost]
@@ -621,10 +711,6 @@ namespace VinhKhanhApi.Controllers
             poi.Lng = model.Lng;
             poi.BanKinh = model.BanKinh;
             poi.UuTien = model.UuTien;
-            poi.SoDienThoai = NormalizeOptionalText(model.SoDienThoai);
-            poi.GioMoCua = NormalizeOptionalText(model.GioMoCua);
-            poi.GioDongCua = NormalizeOptionalText(model.GioDongCua);
-            poi.MonDacTrung = NormalizeOptionalText(model.MonDacTrung);
         }
 
         private static void RestoreCurrentFiles(CmsPoiFormViewModel model, PoiModel? poi)
@@ -658,6 +744,62 @@ namespace VinhKhanhApi.Controllers
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);
             return tenMoi;
+        }
+
+        private void DeleteAudioFileIfExists(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
+
+            var duongDan = Path.Combine(_env.WebRootPath, "audio", fileName);
+            if (System.IO.File.Exists(duongDan))
+            {
+                System.IO.File.Delete(duongDan);
+            }
+        }
+
+        private static bool TryGetAudioFileName(
+            PoiModel poi,
+            string? language,
+            out string normalizedLanguage,
+            out string? fileName)
+        {
+            normalizedLanguage = NormalizeAudioLanguage(language);
+            fileName = normalizedLanguage switch
+            {
+                "en" => poi.TenFileAudio_En,
+                "zh" => poi.TenFileAudio_Zh,
+                "vi" => poi.TenFileAudio_Vi,
+                _ => null
+            };
+
+            return normalizedLanguage is "vi" or "en" or "zh";
+        }
+
+        private static void SetAudioFileName(PoiModel poi, string language, string? fileName)
+        {
+            switch (NormalizeAudioLanguage(language))
+            {
+                case "vi":
+                    poi.TenFileAudio_Vi = fileName;
+                    break;
+                case "en":
+                    poi.TenFileAudio_En = fileName;
+                    break;
+                case "zh":
+                    poi.TenFileAudio_Zh = fileName;
+                    break;
+            }
+        }
+
+        private static string NormalizeAudioLanguage(string? language)
+        {
+            var normalizedLanguage = language?.Trim().ToLowerInvariant();
+            return normalizedLanguage is "vi" or "en" or "zh"
+                ? normalizedLanguage
+                : string.Empty;
         }
 
         private async Task<string?> LuuFileAnhNeuCo(IFormFile? file, string? fileNameCu)

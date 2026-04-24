@@ -125,7 +125,7 @@ namespace App.ViewModels
 
             string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
             string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
-            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh);
+            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
             if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
                 return;
 

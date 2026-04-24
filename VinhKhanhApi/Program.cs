@@ -31,6 +31,7 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<TranslationOptions>(
     builder.Configuration.GetSection(TranslationOptions.SectionName));
 builder.Services.AddHttpClient<ITranslationService, TranslationService>();
+builder.Services.AddSingleton<IQrCodeService, QrCodeService>();
 
 builder.Services.AddCors(options =>
 {

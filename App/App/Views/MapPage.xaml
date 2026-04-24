@@ -116,6 +116,7 @@
                     Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                 <Label Text="{Binding TenPoiGanNhat}" />
                 <Label Text="{Binding KhoangCachGanNhat, StringFormat='{}{0:F0} m'}" />
+                <Label FontSize="12" Text="{Binding TrangThaiPhat}" TextColor="#1F5C99" />
                 <Label FontSize="12" Text="{Binding TrangThaiGps}" TextColor="#52606D" />
                 <Label FontSize="12" Text="{Binding ThongBaoBanDo}" TextColor="#52606D" />
             </VerticalStackLayout>
