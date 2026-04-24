@@ -56,93 +56,114 @@ namespace App.Services
             var danhSach = await LayDanhSachPoiCoCacheAsync();
             if (danhSach.Count == 0)
             {
-                return new GeofenceCheckResult(GeofenceCheckStatus.NoPoi, null, null, double.MaxValue, 0, "no-poi");
+                return new GeofenceCheckResult(
+                    GeofenceCheckStatus.NoPoi,
+                    null,
+                    null,
+                    double.MaxValue,
+                    0,
+                    "no-poi");
             }
 
-            // Lấy bán kính từ Settings (Người B tuần 4), mặc định 100m.
-            int banKinhMacDinh = Preferences.Get("geofence_radius", 100);
-            PoiModel? poiGanNhat = null;
-            double khoangCachGanNhat = double.MaxValue;
-            double banKinhGanNhat = 0;
+            int banKinhMacDinh = Math.Max(Preferences.Get("geofence_radius", 50), 30);
 
-            foreach (var poi in danhSach)
-            {
-                double khoangCach = TinhKhoangCachMetres(
-                    latNguoiDung, lngNguoiDung,
-                    poi.Lat, poi.Lng
-                );
-
-                // Dùng bán kính lớn hơn giữa bán kính POI và bán kính từ Settings.
-                double banKinhApDung = Math.Max(poi.BanKinh, banKinhMacDinh);
-                if (khoangCach < khoangCachGanNhat)
+            var ketQua = danhSach
+                .Select(poi =>
                 {
-                    poiGanNhat = poi;
-                    khoangCachGanNhat = khoangCach;
-                    banKinhGanNhat = banKinhApDung;
-                }
+                    double khoangCach = TinhKhoangCachMetres(
+                        latNguoiDung,
+                        lngNguoiDung,
+                        poi.Lat,
+                        poi.Lng);
 
-                bool dangNamTrongVung = khoangCach <= banKinhApDung;
+                    double banKinhApDung = Math.Max(poi.BanKinh, banKinhMacDinh);
 
-                if (!dangNamTrongVung)
-                {
-                    // Hysteresis: phải ra khỏi 1.5x bán kính mới cho phép vào lại.
-                    if (khoangCach > banKinhApDung * 1.5)
-                        _dangTrongVung.Remove(poi.Id);
-
-                    continue;
-                }
-
-                if (_dangTrongVung.Contains(poi.Id))
-                {
-                    // Nếu app vẫn đang trong vùng nhưng chưa có lịch sử phát gần đây,
-                    // cho phép phát lại. Tránh lỗi đứng trong vùng mà app không đọc gì.
-                    var lanPhatGanNhatTrongVung = await _db.LayLanPhatGpsGanNhatAsync(poi.Id);
-                    if (!lanPhatGanNhatTrongVung.HasValue ||
-                        DateTime.Now - lanPhatGanNhatTrongVung.Value >= CooldownMacDinh)
+                    return new
                     {
-                        _lanKichHoatCuoi[poi.Id] = DateTime.Now;
-                        return new GeofenceCheckResult(
-                            GeofenceCheckStatus.Triggered,
-                            poi,
-                            poiGanNhat,
-                            khoangCach,
-                            banKinhApDung,
-                            "inside-zone-no-recent-playback");
-                    }
+                        Poi = poi,
+                        KhoangCach = khoangCach,
+                        BanKinh = banKinhApDung,
+                        TrongVung = khoangCach <= (banKinhApDung + 15)
+                    };
+                })
+                .OrderBy(x => x.KhoangCach)
+                .ThenBy(x => x.Poi.UuTien)
+                .ToList();
 
-                    return new GeofenceCheckResult(
-                        GeofenceCheckStatus.Cooldown,
-                        poi,
-                        poiGanNhat,
-                        khoangCach,
-                        banKinhApDung,
-                        "inside-zone-cooldown");
-                }
-
-                if (!DaQuaCooldownBoNho(poi.Id))
-                {
-                    return new GeofenceCheckResult(GeofenceCheckStatus.Cooldown, poi, poiGanNhat, khoangCach, banKinhApDung, "memory-cooldown");
-                }
-
-                var lanPhatGanNhat = await _db.LayLanPhatGpsGanNhatAsync(poi.Id);
-                if (lanPhatGanNhat.HasValue && DateTime.Now - lanPhatGanNhat.Value < CooldownMacDinh)
-                {
-                    _lanKichHoatCuoi[poi.Id] = lanPhatGanNhat.Value;
-                    return new GeofenceCheckResult(GeofenceCheckStatus.Cooldown, poi, poiGanNhat, khoangCach, banKinhApDung, "sqlite-cooldown");
-                }
-
-                _dangTrongVung.Add(poi.Id);
-                _lanKichHoatCuoi[poi.Id] = DateTime.Now;
-                return new GeofenceCheckResult(GeofenceCheckStatus.Triggered, poi, poiGanNhat, khoangCach, banKinhApDung, "triggered");
+            var ganNhat = ketQua.FirstOrDefault();
+            if (ganNhat == null)
+            {
+                return new GeofenceCheckResult(
+                    GeofenceCheckStatus.NoPoi,
+                    null,
+                    null,
+                    double.MaxValue,
+                    0,
+                    "no-poi");
             }
+
+            foreach (var item in ketQua)
+            {
+                if (item.KhoangCach > item.BanKinh * 1.5)
+                    _dangTrongVung.Remove(item.Poi.Id);
+            }
+
+            var danhSachTrongVung = ketQua
+                .Where(x => x.TrongVung)
+                .OrderBy(x => x.KhoangCach)
+                .ThenBy(x => x.Poi.UuTien)
+                .ToList();
+
+            if (danhSachTrongVung.Count == 0)
+            {
+                return new GeofenceCheckResult(
+                    GeofenceCheckStatus.OutsideZone,
+                    null,
+                    ganNhat.Poi,
+                    ganNhat.KhoangCach,
+                    ganNhat.BanKinh,
+                    "outside-zone");
+            }
+
+            var mucTieu = danhSachTrongVung.First();
+            var poi = mucTieu.Poi;
+
+            var lanPhatGanNhat = await _db.LayLanPhatGpsGanNhatAsync(poi.Id);
+            if (lanPhatGanNhat.HasValue && DateTime.Now - lanPhatGanNhat.Value < CooldownMacDinh)
+            {
+                _dangTrongVung.Add(poi.Id);
+                _lanKichHoatCuoi[poi.Id] = lanPhatGanNhat.Value;
+
+                return new GeofenceCheckResult(
+                    GeofenceCheckStatus.Cooldown,
+                    poi,
+                    ganNhat.Poi,
+                    mucTieu.KhoangCach,
+                    mucTieu.BanKinh,
+                    "best-poi-sqlite-cooldown");
+            }
+
+            if (!DaQuaCooldownBoNho(poi.Id))
+            {
+                return new GeofenceCheckResult(
+                    GeofenceCheckStatus.Cooldown,
+                    poi,
+                    ganNhat.Poi,
+                    mucTieu.KhoangCach,
+                    mucTieu.BanKinh,
+                    "best-poi-memory-cooldown");
+            }
+
+            _dangTrongVung.Add(poi.Id);
+            _lanKichHoatCuoi[poi.Id] = DateTime.Now;
 
             return new GeofenceCheckResult(
-                GeofenceCheckStatus.OutsideZone,
-                null,
-                poiGanNhat,
-                khoangCachGanNhat,
-                banKinhGanNhat,
-                "outside-zone");
+                GeofenceCheckStatus.Triggered,
+                poi,
+                ganNhat.Poi,
+                mucTieu.KhoangCach,
+                mucTieu.BanKinh,
+                "best-poi-triggered");
         }
 
         private bool DaQuaCooldownBoNho(int poiId)

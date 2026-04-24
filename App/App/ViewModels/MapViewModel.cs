@@ -273,7 +273,7 @@ namespace App.ViewModels
                     }
                 }
 
-                int banKinhMacDinh = Preferences.Get("geofence_radius", 100);
+                int banKinhMacDinh = Math.Max(Preferences.Get("geofence_radius", 50), 30);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -287,7 +287,7 @@ namespace App.ViewModels
                     {
                         TenPoiGanNhat = ganNhat.Ten;
                         KhoangCachGanNhat = minKc;
-                        CoPoiGanNhat = minKc <= banKinhMacDinh * 3;
+                        CoPoiGanNhat = minKc <= banKinhMacDinh;
                     }
                 });
 
@@ -360,7 +360,7 @@ namespace App.ViewModels
 
         private MapRenderState TaoTrangThaiBanDo(bool fitToPois, bool focusOnRoute, bool followUser)
         {
-            var geofenceRadius = Preferences.Get("geofence_radius", 100);
+            var geofenceRadius = Math.Max(Preferences.Get("geofence_radius", 50), 30);
             var focusPoiId = _poiCanCanhToi;
             _poiCanCanhToi = null;
             var nearestPoi = _viTriNguoiDungHienTai == null

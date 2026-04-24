@@ -68,6 +68,9 @@
             margin: 0;
             min-width: 220px;
         }
+        .leaflet-popup-content {
+            overflow: visible !important;
+        }
 
         .leaflet-popup.poi-popup-shell .leaflet-popup-tip {
             box-shadow: none;
@@ -76,28 +79,41 @@
         .poi-popup {
             color: #1f2937;
             padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .poi-popup__title {
             font-size: 15px;
             font-weight: 700;
             line-height: 1.35;
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* thêm */
         }
 
         .poi-popup__image {
             border-radius: 10px;
             display: block;
-            height: 120px;
-            margin-bottom: 8px;
-            object-fit: cover;
             width: 100%;
+            height: auto;
+            max-height: 150px;
+            object-fit: cover;
+            margin: 8px 0 12px 0;
+            position: relative;
+            z-index: 1;
         }
 
         .poi-popup__description {
+            display: block;
+            clear: both;
             color: #4b5563;
             font-size: 12px;
-            line-height: 1.5;
+            line-height: 1.55;
+            margin-top: 10px;
+            max-height: 130px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 2;
         }
     </style>
 </head>

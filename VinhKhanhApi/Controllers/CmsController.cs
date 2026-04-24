@@ -186,7 +186,7 @@ namespace VinhKhanhApi.Controllers
 
             if (await _db.UserAccounts.AnyAsync(x => x.Username == username))
             {
-                TempData["err"] = "Username Ä‘Ã£ tá»“n táº¡i";
+                TempData["err"] = "Username đã tồn tại";
                 return RedirectToAction(nameof(Users));
             }
 
@@ -200,7 +200,7 @@ namespace VinhKhanhApi.Controllers
                 CreatedAt = DateTime.UtcNow
             });
             await _db.SaveChangesAsync();
-            TempData["ok"] = "ÄÃ£ táº¡o tÃ i khoáº£n chá»§ quÃ¡n";
+            TempData["ok"] = "Đã tạo tài khoản chủ quán";
             return RedirectToAction(nameof(Users));
         }
 
@@ -213,7 +213,7 @@ namespace VinhKhanhApi.Controllers
 
             if (await _db.UserAccounts.AnyAsync(x => x.Username == username))
             {
-                TempData["err"] = "Username Ä‘Ã£ tá»“n táº¡i";
+                TempData["err"] = "Username đã tồn tại";
                 return RedirectToAction(nameof(Users));
             }
 
@@ -227,7 +227,7 @@ namespace VinhKhanhApi.Controllers
                 CreatedAt = DateTime.UtcNow
             });
             await _db.SaveChangesAsync();
-            TempData["ok"] = "ÄÃ£ táº¡o tÃ i khoáº£n quáº£n trá»‹ viÃªn";
+            TempData["ok"] = "Đã tạo tài khoản quản trị viên";
             return RedirectToAction(nameof(Users));
         }
 
@@ -241,14 +241,14 @@ namespace VinhKhanhApi.Controllers
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (currentUserId == user.Id.ToString())
             {
-                TempData["err"] = "KhÃ´ng thá»ƒ tá»± khÃ³a tÃ i khoáº£n Ä‘ang Ä‘Äƒng nháº­p";
+                TempData["err"] = "Không thể tự khóa tài khoản đang đăng nhập";
                 return RedirectToAction(nameof(Users));
             }
 
             user.IsActive = !user.IsActive;
             await _db.SaveChangesAsync();
 
-            TempData["ok"] = user.IsActive ? "ÄÃ£ má»Ÿ khÃ³a tÃ i khoáº£n" : "ÄÃ£ khÃ³a tÃ i khoáº£n";
+            TempData["ok"] = user.IsActive ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản";
             return RedirectToAction(nameof(Users));
         }
 
@@ -262,14 +262,14 @@ namespace VinhKhanhApi.Controllers
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (currentUserId == user.Id.ToString())
             {
-                TempData["err"] = "KhÃ´ng thá»ƒ xÃ³a tÃ i khoáº£n Ä‘ang Ä‘Äƒng nháº­p";
+                TempData["err"] = "Không thể xóa tài khoản đang đăng nhập";
                 return RedirectToAction(nameof(Users));
             }
 
             _db.UserAccounts.Remove(user);
             await _db.SaveChangesAsync();
 
-            TempData["ok"] = "ÄÃ£ xÃ³a tÃ i khoáº£n";
+            TempData["ok"] = "Đã xóa tài khoản";
             return RedirectToAction(nameof(Users));
         }
 
@@ -382,13 +382,13 @@ namespace VinhKhanhApi.Controllers
 
             var orderedDays = new[]
             {
-                new { Day = DayOfWeek.Monday, Label = "Thá»© 2", Index = 0 },
-                new { Day = DayOfWeek.Tuesday, Label = "Thá»© 3", Index = 1 },
-                new { Day = DayOfWeek.Wednesday, Label = "Thá»© 4", Index = 2 },
-                new { Day = DayOfWeek.Thursday, Label = "Thá»© 5", Index = 3 },
-                new { Day = DayOfWeek.Friday, Label = "Thá»© 6", Index = 4 },
-                new { Day = DayOfWeek.Saturday, Label = "Thá»© 7", Index = 5 },
-                new { Day = DayOfWeek.Sunday, Label = "Chá»§ nháº­t", Index = 6 }
+                new { Day = DayOfWeek.Monday, Label = "Thứ 2", Index = 0 },
+                new { Day = DayOfWeek.Tuesday, Label = "Thứ 3", Index = 1 },
+                new { Day = DayOfWeek.Wednesday, Label = "Thứ 4", Index = 2 },
+                new { Day = DayOfWeek.Thursday, Label = "Thứ 5", Index = 3 },
+                new { Day = DayOfWeek.Friday, Label = "Thứ 6", Index = 4 },
+                new { Day = DayOfWeek.Saturday, Label = "Thứ 7", Index = 5 },
+                new { Day = DayOfWeek.Sunday, Label = "Chủ nhật", Index = 6 }
             };
 
             var weeklyUsage = orderedDays
@@ -496,7 +496,7 @@ namespace VinhKhanhApi.Controllers
             {
                 ModelState.AddModelError(
                     string.Empty,
-                    translationResult.ErrorMessage ?? "KhÃ´ng thá»ƒ tá»± Ä‘á»™ng dá»‹ch mÃ´ táº£ lÃºc nÃ y.");
+                    translationResult.ErrorMessage ?? "Không thể tự động dịch mô tả lúc này.");
                 return false;
             }
 
