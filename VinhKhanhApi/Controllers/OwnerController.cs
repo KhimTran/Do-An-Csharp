@@ -110,13 +110,13 @@ namespace VinhKhanhApi.Controllers
 
             var thuTrongTuan = new[]
             {
-                new { Day = DayOfWeek.Monday, Label = "Thá»© 2" },
-                new { Day = DayOfWeek.Tuesday, Label = "Thá»© 3" },
-                new { Day = DayOfWeek.Wednesday, Label = "Thá»© 4" },
-                new { Day = DayOfWeek.Thursday, Label = "Thá»© 5" },
-                new { Day = DayOfWeek.Friday, Label = "Thá»© 6" },
-                new { Day = DayOfWeek.Saturday, Label = "Thá»© 7" },
-                new { Day = DayOfWeek.Sunday, Label = "Chá»§ nháº­t" }
+                DayOfWeek.Monday,
+                DayOfWeek.Tuesday,
+                DayOfWeek.Wednesday,
+                DayOfWeek.Thursday,
+                DayOfWeek.Friday,
+                DayOfWeek.Saturday,
+                DayOfWeek.Sunday
             };
 
             var model = new OwnerStatsViewModel
@@ -126,10 +126,10 @@ namespace VinhKhanhApi.Controllers
                 ThoiLuongTrungBinhGiay = logs.Count == 0 ? 0 : logs.Average(x => x.ThoiLuongGiay),
                 LuotNghe7NgayGanDay = logs7NgayGanDay.Count,
                 LuotNgheTheoThu = thuTrongTuan
-                    .Select(item => new OwnerStatsDayItemViewModel
+                    .Select(day => new OwnerStatsDayItemViewModel
                     {
-                        ThuLabel = item.Label,
-                        SoLuot = logs7NgayGanDay.Count(x => x.ThoiGianVietNam.DayOfWeek == item.Day)
+                        ThuLabel = GetVietnameseDayLabel(day),
+                        SoLuot = logs7NgayGanDay.Count(x => x.ThoiGianVietNam.DayOfWeek == day)
                     })
                     .ToList(),
                 LichSuGanDay = logsVn
@@ -375,6 +375,18 @@ namespace VinhKhanhApi.Controllers
 
             return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtc, VietnamTimeZone);
         }
+
+        private static string GetVietnameseDayLabel(DayOfWeek dayOfWeek) => dayOfWeek switch
+        {
+            DayOfWeek.Monday => "Th\u1EE9 2",
+            DayOfWeek.Tuesday => "Th\u1EE9 3",
+            DayOfWeek.Wednesday => "Th\u1EE9 4",
+            DayOfWeek.Thursday => "Th\u1EE9 5",
+            DayOfWeek.Friday => "Th\u1EE9 6",
+            DayOfWeek.Saturday => "Th\u1EE9 7",
+            DayOfWeek.Sunday => "Ch\u1EE7 nh\u1EADt",
+            _ => dayOfWeek.ToString()
+        };
 
         private static TimeZoneInfo ResolveVietnamTimeZone()
         {

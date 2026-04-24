@@ -12,12 +12,11 @@
 
 body.cms-body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Be Vietnam Pro", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text);
-    background:
-        radial-gradient(circle at top right, rgba(31, 181, 154, 0.08), transparent 28%),
-        radial-gradient(circle at top left, rgba(47, 102, 255, 0.08), transparent 24%),
-        var(--bg);
+    background: radial-gradient(circle at top right, rgba(31, 181, 154, 0.08), transparent 28%), radial-gradient(circle at top left, rgba(47, 102, 255, 0.08), transparent 24%), var(--bg);
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .cms-shell {
@@ -769,3 +768,29 @@ body.cms-body {
         min-height: 300px;
     }
 }
+/* ===== FIX FONT OWNER STATS ===== */
+.owner-stats-page,
+.owner-stats-page * {
+    font-family: "Be Vietnam Pro", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+    .owner-stats-page .table {
+        font-size: 14px;
+    }
+
+        .owner-stats-page .table th {
+            font-weight: 700;
+            color: #334155;
+            background: #f1f5f9;
+            white-space: nowrap;
+        }
+
+        .owner-stats-page .table td {
+            color: #475569;
+            vertical-align: middle;
+        }
+
+    .owner-stats-page .poi-empty-state {
+        font-weight: 700;
+        color: #0f172a;
+    }

@@ -8,7 +8,7 @@ namespace App.Services
 {
     public class TtsService : ITtsService
     {
-        private const int GioiHanHangDoi = 3;
+        private const int GioiHanHangDoi = 6;
 
         private readonly object _khoaHangDoi = new();
         private readonly ConcurrentQueue<YeuCauPhatAm> _hangDoi = new();
@@ -24,11 +24,15 @@ namespace App.Services
         public bool DangPhat { get; private set; }
 
         public async Task<TtsPlaybackResult> PhatAmAsync(
+
             string vanBan,
             string maNgonNgu = "vi-VN",
             string? khoaAmThanh = null,
             string? tenNoiDungHienThi = null)
         {
+            // Chống spam khi hàng đợi đã đầy
+            if (DangPhat && _hangDoi.Count >= GioiHanHangDoi)
+                return TtsPlaybackResult.Rejected("busy");
             if (string.IsNullOrWhiteSpace(vanBan))
                 return TtsPlaybackResult.Rejected("empty");
 
@@ -98,7 +102,14 @@ namespace App.Services
                 }
 
                 if (_hangDoi.Count >= GioiHanHangDoi)
-                    return null;
+                {
+                    // Luôn bỏ request cũ nhất để nhường chỗ cho request mới
+                    if (_hangDoi.TryDequeue(out var removed))
+                    {
+                        _yeuCauTheoKhoa.Remove(removed.Khoa);
+                        removed.ChoHoanTat.TrySetResult(TtsPlaybackResult.Cancelled(true));
+                    }
+                }
 
                 var yeuCauMoi = new YeuCauPhatAm(khoa, vanBan, maNgonNgu, tenNoiDungHienThi);
                 _hangDoi.Enqueue(yeuCauMoi);

@@ -25,7 +25,7 @@ namespace App.ViewModels
         private bool _daCanhTheoNguoiDung;
         private int? _poiCanMoSauDieuHuong;
         private int? _poiCanCanhToi;
-
+        private DateTime _lanPhatGanNhat = DateTime.MinValue;
         public MapViewModel(
             LocalDatabase db,
             SyncService sync,
@@ -490,8 +490,21 @@ namespace App.ViewModels
             }
 
             string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
+
+            if (nguon == "GPS" && (DateTime.Now - _lanPhatGanNhat).TotalSeconds < 5)
+            {
+                TrangThaiPhat = "Đang xử lý hàng đợi audio, vui lòng chờ...";
+                return;
+            }
+
             TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", poi.Ten);
+
             var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
+
+            if (ketQuaPhat.Completed)
+            {
+                _lanPhatGanNhat = DateTime.Now;
+            }
             if (!ketQuaPhat.Completed)
             {
                 TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", poi.Ten);
