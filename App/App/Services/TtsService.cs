@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Storage;
 
@@ -194,7 +195,7 @@ namespace App.Services
 
             foreach (var doan in TachDoanVanBan(vanBanDaLamSach))
             {
-                await TextToSpeech.SpeakAsync(doan, tuyChinh, token);
+                await MainThread.InvokeOnMainThreadAsync(() => TextToSpeech.SpeakAsync(doan, tuyChinh, token));
                 await Task.Delay(180, token);
             }
 
@@ -203,7 +204,7 @@ namespace App.Services
 
         private async Task<Locale?> TimGiongNoiPhuHopAsync(string maNgonNgu)
         {
-            _boNhoGiongNoi ??= (await TextToSpeech.GetLocalesAsync()).ToArray();
+            _boNhoGiongNoi ??= (await MainThread.InvokeOnMainThreadAsync(TextToSpeech.GetLocalesAsync)).ToArray();
 
             string maDayDu = ChuanHoaMaNgonNgu(maNgonNgu);
             string maNgan = maDayDu.Split('-')[0];

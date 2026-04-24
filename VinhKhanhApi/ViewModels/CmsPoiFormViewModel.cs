@@ -46,14 +46,7 @@ namespace VinhKhanhApi.ViewModels
         public double BanKinh { get; set; } = 50;
         public int UuTien { get; set; } = 5;
 
-        public string? TenFileAudio_Vi { get; set; }
-        public string? TenFileAudio_En { get; set; }
-        public string? TenFileAudio_Zh { get; set; }
         public string? TenFileAnhMinhHoa { get; set; }
-
-        public IFormFile? AudioVi { get; set; }
-        public IFormFile? AudioEn { get; set; }
-        public IFormFile? AudioZh { get; set; }
         public IFormFile? AnhMinhHoa { get; set; }
 
         public string? SoDienThoai { get; set; }
@@ -62,7 +55,6 @@ namespace VinhKhanhApi.ViewModels
         public string? MonDacTrung { get; set; }
         public string? GalleryJson { get; set; }
         public string? QrCodeNoiDung { get; set; }
-
         public string? TtsVoiceCode { get; set; } = "vi-VN";
 
         public string TrangThaiDuyet { get; set; } = "Approved";

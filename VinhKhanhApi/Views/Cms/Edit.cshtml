@@ -36,9 +36,6 @@
     @Html.AntiForgeryToken()
     <input asp-for="Id" type="hidden" />
     <input asp-for="ActiveDescriptionTab" type="hidden" />
-    <input asp-for="TenFileAudio_Vi" type="hidden" />
-    <input asp-for="TenFileAudio_En" type="hidden" />
-    <input asp-for="TenFileAudio_Zh" type="hidden" />
     <input asp-for="TenFileAnhMinhHoa" type="hidden" />
 
     <div asp-validation-summary="ModelOnly" class="alert alert-danger poi-alert"></div>
@@ -204,80 +201,6 @@
                 </div>
                 <textarea asp-for="MoTa_Zh" rows="8" class="form-control poi-description-input" data-language="zh" placeholder="中文描述..."></textarea>
                 <span asp-validation-for="MoTa_Zh" class="text-danger"></span>
-            </div>
-        </div>
-    </section>
-
-    <section class="poi-editor-card">
-        <div class="poi-section-heading">
-            <div>
-                <h2>Audio thuyết minh</h2>
-                <p>Giữ nguyên flow upload hiện có cho từng ngôn ngữ.</p>
-            </div>
-        </div>
-
-        <div class="poi-grid poi-grid-audio">
-            <div class="poi-field">
-                <label asp-for="AudioVi">Audio VI (.mp3)</label>
-                <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Vi))
-                {
-                    <div class="poi-audio-current">
-                        <small class="muted">Hiện tại: @Model.TenFileAudio_Vi</small>
-                        <form asp-action="DeleteAudio"
-                              asp-controller="Cms"
-                              method="post"
-                              class="poi-inline-delete-form"
-                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="language" value="vi" />
-                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
-                        </form>
-                    </div>
-                }
-            </div>
-
-            <div class="poi-field">
-                <label asp-for="AudioEn">Audio EN (.mp3)</label>
-                <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_En))
-                {
-                    <div class="poi-audio-current">
-                        <small class="muted">Hiện tại: @Model.TenFileAudio_En</small>
-                        <form asp-action="DeleteAudio"
-                              asp-controller="Cms"
-                              method="post"
-                              class="poi-inline-delete-form"
-                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="language" value="en" />
-                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
-                        </form>
-                    </div>
-                }
-            </div>
-
-            <div class="poi-field">
-                <label asp-for="AudioZh">Audio ZH (.mp3)</label>
-                <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
-                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Zh))
-                {
-                    <div class="poi-audio-current">
-                        <small class="muted">Hiện tại: @Model.TenFileAudio_Zh</small>
-                        <form asp-action="DeleteAudio"
-                              asp-controller="Cms"
-                              method="post"
-                              class="poi-inline-delete-form"
-                              onsubmit="return confirm('Bạn có chắc muốn xóa audio này không? App sẽ chuyển sang đọc thuyết minh tự động.');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="language" value="zh" />
-                            <button type="submit" class="vk-btn danger poi-inline-delete-button">Xóa audio</button>
-                        </form>
-                    </div>
-                }
             </div>
         </div>
     </section>

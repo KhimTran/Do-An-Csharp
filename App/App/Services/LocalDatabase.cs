@@ -5,6 +5,7 @@ namespace App.Services
 {
     public class LocalDatabase
     {
+        private const string PoiCacheSchemaVersion = "2026-04-24-poi-text-tts-v1";
         private SQLiteAsyncConnection? _db;
 
         public async Task KhoiTaoAsync()
@@ -20,9 +21,20 @@ namespace App.Services
             await DamBaoCotMoiPoiAsync();
             await _db.CreateTableAsync<LichSuPhatModel>();
             await _db.CreateTableAsync<AppSettingModel>();
+            await DamBaoPhienBanCachePoiAsync();
 
             if (await _db.Table<PoiModel>().CountAsync() == 0)
                 await ThemDuLieuMau();
+        }
+
+        private async Task DamBaoPhienBanCachePoiAsync()
+        {
+            var schemaVersion = await LayCaiDatNoiBoAsync("poi_cache_schema_version");
+            if (string.Equals(schemaVersion, PoiCacheSchemaVersion, StringComparison.Ordinal))
+                return;
+
+            await _db!.DeleteAllAsync<PoiModel>();
+            await LuuCaiDatNoiBoAsync("poi_cache_schema_version", PoiCacheSchemaVersion);
         }
 
         private async Task DamBaoCotMoiPoiAsync()
@@ -140,6 +152,21 @@ namespace App.Services
 
         public async Task<bool> KiemTraCooldownAsync(int poiId)
         {
+            return await KiemTraCooldownAsync(poiId, TimeSpan.FromMinutes(5));
+        }
+
+        public async Task<bool> KiemTraCooldownAsync(int poiId, TimeSpan cooldown)
+        {
+            await KhoiTaoAsync();
+
+            var lanCuoi = await LayLanPhatGpsGanNhatAsync(poiId);
+            if (!lanCuoi.HasValue) return true;
+
+            return DateTime.Now - lanCuoi.Value >= cooldown;
+        }
+
+        public async Task<DateTime?> LayLanPhatGpsGanNhatAsync(int poiId)
+        {
             await KhoiTaoAsync();
 
             var lanCuoi = await _db!.Table<LichSuPhatModel>()
@@ -147,15 +174,24 @@ namespace App.Services
                 .OrderByDescending(l => l.ThoiGianPhat)
                 .FirstOrDefaultAsync();
 
-            if (lanCuoi == null) return true;
-
-            return (DateTime.Now - lanCuoi.ThoiGianPhat).TotalMinutes >= 5;
+            return lanCuoi?.ThoiGianPhat;
         }
 
         public async Task<string?> LayCaiDatAsync(string key)
         {
             await KhoiTaoAsync();
 
+            return await LayCaiDatNoiBoAsync(key);
+        }
+
+        public async Task LuuCaiDatAsync(string key, string value)
+        {
+            await KhoiTaoAsync();
+            await LuuCaiDatNoiBoAsync(key, value);
+        }
+
+        private async Task<string?> LayCaiDatNoiBoAsync(string key)
+        {
             var setting = await _db!.Table<AppSettingModel>()
                 .Where(x => x.Key == key)
                 .FirstOrDefaultAsync();
@@ -163,10 +199,8 @@ namespace App.Services
             return setting?.Value;
         }
 
-        public async Task LuuCaiDatAsync(string key, string value)
+        private async Task LuuCaiDatNoiBoAsync(string key, string value)
         {
-            await KhoiTaoAsync();
-
             var setting = await _db!.Table<AppSettingModel>()
                 .Where(x => x.Key == key)
                 .FirstOrDefaultAsync();

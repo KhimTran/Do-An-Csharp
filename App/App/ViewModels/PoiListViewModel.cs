@@ -10,6 +10,7 @@ namespace App.ViewModels;
 
 public partial class PoiListViewModel : ObservableObject
 {
+    private const string EmptyDescriptionMessage = "Chưa có nội dung thuyết minh.";
     private readonly LocalDatabase _db;
     private readonly SyncService _sync;
     private readonly ILocationService _gps;
@@ -108,9 +109,12 @@ public partial class PoiListViewModel : ObservableObject
             return;
 
         string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-        string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
+        string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
         if (string.IsNullOrWhiteSpace(noiDung))
+        {
+            ThongBao = EmptyDescriptionMessage;
             return;
+        }
 
         string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
         string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
@@ -264,28 +268,10 @@ public partial class PoiListViewModel : ObservableObject
             : $"{moTaRutGon[..117].TrimEnd()}...";
     }
 
-    private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
-    {
-        if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-            return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-        if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-        return poi.MoTa_Vi;
-    }
-
     private static string ChonMoTaTheoNgonNgu(PoiModel poi)
     {
         string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
-
-        if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-            return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-        if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-        return poi.MoTa_Vi;
+        return PoiDescriptionResolver.GetBestDescriptionOrDefault(poi, maNgonNgu, EmptyDescriptionMessage);
     }
 
     private static string RutGonMaNgonNgu(string maNgonNgu)

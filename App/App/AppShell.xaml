@@ -9,7 +9,7 @@
     <TabBar>
         <ShellContent
             x:Name="ListTab"
-            Title="Địa điểm"
+            Title="{Binding [Shell_List], Source={x:Static services:LocalizationResourceManager.Instance}}"
             Route="list"
             ContentTemplate="{DataTemplate views:PoiListPage}" />
 

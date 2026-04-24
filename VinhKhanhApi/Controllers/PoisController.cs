@@ -15,7 +15,7 @@ namespace VinhKhanhApi.Controllers
 
         // GET api/pois — App MAUI gọi để lấy danh sách POI đã duyệt.
         [HttpGet]
-        public async Task<ActionResult<List<PoiModel>>> GetAll([FromQuery] bool includePending = false)
+        public async Task<ActionResult<List<PoiApiItemDto>>> GetAll([FromQuery] bool includePending = false)
         {
             ApplyNoCacheHeaders();
 
@@ -26,19 +26,24 @@ namespace VinhKhanhApi.Controllers
             if (!includePending)
                 query = query.Where(p => p.TrangThaiDuyet == "Approved");
 
-            var danhSach = await query.OrderBy(p => p.UuTien).ToListAsync();
+            var danhSach = await query
+                .OrderBy(p => p.UuTien)
+                .Select(MapToDtoExpression())
+                .ToListAsync();
             return Ok(danhSach);
         }
 
         // GET api/pois/1 — Lấy 1 POI theo Id
         [HttpGet("{id}")]
-        public async Task<ActionResult<PoiModel>> GetById(int id)
+        public async Task<ActionResult<PoiApiItemDto>> GetById(int id)
         {
             ApplyNoCacheHeaders();
 
             var poi = await _db.POIs
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == id);
+                .Where(p => p.Id == id)
+                .Select(MapToDtoExpression())
+                .FirstOrDefaultAsync();
             if (poi == null) return NotFound();
             return Ok(poi);
         }
@@ -142,6 +147,49 @@ namespace VinhKhanhApi.Controllers
             public string? LyDoTuChoi { get; set; }
             public string? AdminName { get; set; }
         }
+
+        public class PoiApiItemDto
+        {
+            public int Id { get; set; }
+            public string Ten { get; set; } = string.Empty;
+            public string? MoTa_Vi { get; set; }
+            public string? MoTa_En { get; set; }
+            public string? MoTa_Zh { get; set; }
+            public double Lat { get; set; }
+            public double Lng { get; set; }
+            public double BanKinh { get; set; }
+            public int UuTien { get; set; }
+            public string? TenFileAnhMinhHoa { get; set; }
+            public string? SoDienThoai { get; set; }
+            public string? GioMoCua { get; set; }
+            public string? GioDongCua { get; set; }
+            public string? MonDacTrung { get; set; }
+            public string? GalleryJson { get; set; }
+            public string? TrangThaiDuyet { get; set; }
+            public string? QrCodeNoiDung { get; set; }
+        }
+
+        private static System.Linq.Expressions.Expression<Func<PoiModel, PoiApiItemDto>> MapToDtoExpression() =>
+            poi => new PoiApiItemDto
+            {
+                Id = poi.Id,
+                Ten = poi.Ten,
+                MoTa_Vi = poi.MoTa_Vi,
+                MoTa_En = poi.MoTa_En,
+                MoTa_Zh = poi.MoTa_Zh,
+                Lat = poi.Lat,
+                Lng = poi.Lng,
+                BanKinh = poi.BanKinh,
+                UuTien = poi.UuTien,
+                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
+                SoDienThoai = poi.SoDienThoai,
+                GioMoCua = poi.GioMoCua,
+                GioDongCua = poi.GioDongCua,
+                MonDacTrung = poi.MonDacTrung,
+                GalleryJson = poi.GalleryJson,
+                TrangThaiDuyet = poi.TrangThaiDuyet,
+                QrCodeNoiDung = poi.QrCodeNoiDung
+            };
 
         private void ApplyNoCacheHeaders()
         {

@@ -1,4 +1,4 @@
-using App.Models;
+﻿using App.Models;
 using App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Maui.ApplicationModel;
@@ -43,7 +43,7 @@ namespace App.ViewModels
 
             TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
             TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
-            TrangThaiPhat = "Chưa phát thuyết minh";
+            TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackIdle"];
             _tts.PlaybackStateChanged += Tts_PlaybackStateChanged;
         }
 
@@ -88,6 +88,7 @@ namespace App.ViewModels
                 return;
 
             _daKhoiDong = true;
+            _geofence.ResetTrangThaiTamThoi();
 
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -301,9 +302,21 @@ namespace App.ViewModels
                 }
                 else
                 {
-                    var poiCanPhat = await _geofence.KiemTraVungAsync(lat, lng);
-                    if (poiCanPhat != null)
-                        await DocThuyetMinhTheoNgonNguAsync(poiCanPhat, "GPS");
+                    var geofenceResult = await _geofence.KiemTraVungChiTietAsync(lat, lng);
+                    GhiLogGeofence(geofenceResult);
+
+                    switch (geofenceResult.Status)
+                    {
+                        case GeofenceService.GeofenceCheckStatus.Triggered when geofenceResult.Poi != null:
+                            await DocThuyetMinhTheoNgonNguAsync(geofenceResult.Poi, "GPS");
+                            break;
+                        case GeofenceService.GeofenceCheckStatus.Cooldown:
+                            await MainThread.InvokeOnMainThreadAsync(() =>
+                            {
+                                TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackCooldown"];
+                            });
+                            break;
+                    }
                 }
 
                 PhatMapState(followUser: followUser);
@@ -466,19 +479,51 @@ namespace App.ViewModels
 
         private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi, string nguon)
         {
-            string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-            string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
+            string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
+            string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
 
             if (string.IsNullOrWhiteSpace(noiDung))
+            {
+                TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackEmpty"];
+                _geofence.HoanTacLanKichHoat(poi.Id);
                 return;
+            }
 
             string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
+            TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", poi.Ten);
             var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
-            if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
+            if (!ketQuaPhat.Completed)
+            {
+                TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", poi.Ten);
+                _geofence.HoanTacLanKichHoat(poi.Id);
                 return;
+            }
+
+            TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackCompleted", poi.Ten);
+            if (!ketQuaPhat.CreatedNewSession)
+                return;
+
+            await _db.GhiLichSuPhatAsync(new LichSuPhatModel
+            {
+                PoiId = poi.Id,
+                TenPoi = poi.Ten,
+                NgonNgu = RutGonMaNgonNgu(maNgonNgu),
+                ThoiGianPhat = DateTime.Now,
+                NguonKichHoat = nguon
+            });
 
             int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
+        }
+
+        private static void GhiLogGeofence(GeofenceService.GeofenceCheckResult result)
+        {
+            var poiTen = result.Poi?.Ten ?? result.NearestPoi?.Ten ?? "none";
+            var khoangCach = double.IsFinite(result.DistanceMeters) ? result.DistanceMeters.ToString("0.##") : "n/a";
+            var banKinh = double.IsFinite(result.RadiusMeters) ? result.RadiusMeters.ToString("0.##") : "n/a";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[Geofence] poi={poiTen}, distance={khoangCach}m, radius={banKinh}m, status={result.Status}, reason={result.Reason}");
         }
 
         private void Tts_PlaybackStateChanged(object? sender, TtsPlaybackStateChangedEventArgs e)
@@ -490,36 +535,21 @@ namespace App.ViewModels
             {
                 TrangThaiPhat = e.State switch
                 {
-                    TtsPlaybackState.Started => $"Đang phát thuyết minh: {e.TenNoiDungHienThi}",
-                    TtsPlaybackState.Completed => $"Đã phát xong thuyết minh: {e.TenNoiDungHienThi}",
-                    TtsPlaybackState.Failed => $"Không thể phát thuyết minh: {e.TenNoiDungHienThi}",
+                    TtsPlaybackState.Started => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", e.TenNoiDungHienThi),
+                    TtsPlaybackState.Completed => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackCompleted", e.TenNoiDungHienThi),
+                    TtsPlaybackState.Failed => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", e.TenNoiDungHienThi),
                     _ => TrangThaiPhat
                 };
             });
         }
 
-        private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
-        {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-            return poi.MoTa_Vi;
-        }
-
         private static string ChonMoTaTheoNgonNgu(PoiModel poi)
         {
             string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
-
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-            return poi.MoTa_Vi;
+            return PoiDescriptionResolver.GetBestDescriptionOrDefault(
+                poi,
+                maNgonNgu,
+                LocalizationResourceManager.Instance["MapPage_PlaybackEmpty"]);
         }
 
         private static string RutGonMaNgonNgu(string maNgonNgu)
@@ -534,3 +564,5 @@ namespace App.ViewModels
         }
     }
 }
+
+

@@ -21,6 +21,7 @@ namespace App.ViewModels
     public partial class QrScanViewModel : ObservableObject
     {
         private const int ThoiGianChanQuetLapGiay = 4;
+        private const string EmptyDescriptionMessage = "Chưa có nội dung thuyết minh.";
 
         private readonly LocalDatabase _db;
         private readonly ITtsService _tts;
@@ -101,7 +102,13 @@ namespace App.ViewModels
             }
 
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-            string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
+            string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
+
+            if (string.IsNullOrWhiteSpace(noiDung))
+            {
+                TrangThaiQuet = EmptyDescriptionMessage;
+                return;
+            }
 
             TrangThaiQuet = $"Đang phát thuyết minh: {poi.Ten}";
 
@@ -137,17 +144,6 @@ namespace App.ViewModels
         {
             await Task.Delay(1200);
             DangQuet = true;
-        }
-
-        private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
-        {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-            return poi.MoTa_Vi;
         }
 
         private static string RutGonMaNgonNgu(string maNgonNgu)

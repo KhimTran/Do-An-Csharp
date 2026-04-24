@@ -119,7 +119,7 @@ namespace App.ViewModels
                 return;
 
             string maNgonNgu = ChuyenMaNgonNgu(item.NgonNgu);
-            string noiDung = ChonNoiDungTheoNgonNgu(poi, maNgonNgu);
+            string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
             if (string.IsNullOrWhiteSpace(noiDung))
                 return;
 
@@ -142,17 +142,6 @@ namespace App.ViewModels
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, item.NguonKichHoat, thoiLuongGiay);
 
             await TaiDuLieuAsync();
-        }
-
-        private static string ChonNoiDungTheoNgonNgu(PoiModel poi, string maNgonNgu)
-        {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_En) ? poi.MoTa_Vi : poi.MoTa_En;
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? poi.MoTa_Vi : poi.MoTa_Zh;
-
-            return poi.MoTa_Vi;
         }
 
         private static string ChuyenMaNgonNgu(string maNgonNgu)

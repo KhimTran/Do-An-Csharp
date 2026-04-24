@@ -2,9 +2,10 @@
 @model List<VinhKhanhApi.Models.PoiModel>
 @{
     ViewData["Title"] = "Quản lý POI";
-    var soPoiAudio = Model.Count(x => !string.IsNullOrWhiteSpace(x.TenFileAudio_Vi)
-        || !string.IsNullOrWhiteSpace(x.TenFileAudio_En)
-        || !string.IsNullOrWhiteSpace(x.TenFileAudio_Zh));
+    var soPoiCoMoTa = Model.Count(x =>
+        !string.IsNullOrWhiteSpace(x.MoTa_Vi) ||
+        !string.IsNullOrWhiteSpace(x.MoTa_En) ||
+        !string.IsNullOrWhiteSpace(x.MoTa_Zh));
 }
 
 <h1 class="page-title">Quản trị POI phố Vĩnh Khánh</h1>
@@ -24,8 +25,8 @@
         <div class="value">@Model.Count(x => x.UuTien <= 2)</div>
     </div>
     <div class="stat-card">
-        <div class="label">POI có audio</div>
-        <div class="value">@soPoiAudio</div>
+        <div class="label">POI có mô tả</div>
+        <div class="value">@soPoiCoMoTa</div>
     </div>
 </section>
 
@@ -38,32 +39,15 @@
 
         var previewPayload = JsonSerializer.Serialize(new
         {
-            vi = new
-            {
-                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_Vi) ? Url.Content($"~/audio/{item.TenFileAudio_Vi}") : null,
-                text = item.MoTa_Vi
-            },
-            en = new
-            {
-                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_En) ? Url.Content($"~/audio/{item.TenFileAudio_En}") : null,
-                text = item.MoTa_En
-            },
-            zh = new
-            {
-                audio = !string.IsNullOrWhiteSpace(item.TenFileAudio_Zh) ? Url.Content($"~/audio/{item.TenFileAudio_Zh}") : null,
-                text = item.MoTa_Zh
-            }
+            vi = item.MoTa_Vi,
+            en = item.MoTa_En,
+            zh = item.MoTa_Zh
         });
 
         var ngonNguCoMoTa = new List<string>();
         if (!string.IsNullOrWhiteSpace(item.MoTa_Vi)) ngonNguCoMoTa.Add("VI");
         if (!string.IsNullOrWhiteSpace(item.MoTa_En)) ngonNguCoMoTa.Add("EN");
         if (!string.IsNullOrWhiteSpace(item.MoTa_Zh)) ngonNguCoMoTa.Add("ZH");
-
-        var soFileAudio = 0;
-        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Vi)) soFileAudio++;
-        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_En)) soFileAudio++;
-        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Zh)) soFileAudio++;
 
         <article class="poi-admin-card" data-poi-card>
             <div class="poi-admin-media">
@@ -84,7 +68,6 @@
                     <div class="poi-admin-info-line">Tọa độ: @item.Lat.ToString("F6"), @item.Lng.ToString("F6")</div>
                     <div class="poi-admin-info-line">Bán kính: @item.BanKinh m</div>
                     <div class="poi-admin-info-line">Ngôn ngữ có mô tả: @(ngonNguCoMoTa.Count > 0 ? string.Join(" / ", ngonNguCoMoTa) : "Chưa có")</div>
-                    <div class="poi-admin-info-line">Số file thu âm: @soFileAudio</div>
                     <div class="poi-admin-info-line">Ưu tiên: @item.UuTien</div>
                 </div>
 
@@ -100,7 +83,6 @@
                         <button type="button" class="vk-btn secondary poi-preview-button">Nghe thử</button>
                     </div>
                     <div class="poi-preview-status" aria-live="polite"></div>
-                    <audio class="poi-preview-audio" preload="none"></audio>
                 </div>
 
                 <div class="poi-admin-actions">
@@ -126,22 +108,17 @@
             return;
         }
 
-        let currentAudio = null;
-
-        const stopSpeech = () => {
-            if ("speechSynthesis" in window) {
-                window.speechSynthesis.cancel();
-            }
+        const updateStatus = (element, message, isError) => {
+            element.textContent = message;
+            element.classList.toggle("is-error", Boolean(isError));
         };
 
-        const stopCurrentAudio = () => {
-            if (!currentAudio) {
-                return;
+        const normalizeLanguage = (language) => {
+            if (language === "en" || language === "zh") {
+                return language;
             }
 
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-            currentAudio = null;
+            return "vi";
         };
 
         const getVoiceForLanguage = (language) => {
@@ -149,16 +126,30 @@
                 return null;
             }
 
-            const normalizedLanguage = language === "zh" ? "zh" : language;
+            const normalizedLanguage = normalizeLanguage(language);
             const voices = window.speechSynthesis.getVoices();
-            return voices.find(voice => voice.lang?.toLowerCase().startsWith(normalizedLanguage))
-                ?? voices.find(voice => normalizedLanguage === "zh" && voice.lang?.toLowerCase().includes("zh"))
+
+            return voices.find((voice) => voice.lang?.toLowerCase().startsWith(normalizedLanguage))
+                ?? voices.find((voice) => normalizedLanguage === "zh" && voice.lang?.toLowerCase().includes("zh"))
                 ?? null;
         };
 
-        const updateStatus = (element, message, isError) => {
-            element.textContent = message;
-            element.classList.toggle("is-error", Boolean(isError));
+        const pickDescription = (payload, language) => {
+            const normalizedLanguage = normalizeLanguage(language);
+            const priorities = normalizedLanguage === "en"
+                ? ["en", "vi", "zh"]
+                : normalizedLanguage === "zh"
+                    ? ["zh", "vi", "en"]
+                    : ["vi", "en", "zh"];
+
+            for (const key of priorities) {
+                const value = payload[key];
+                if (typeof value === "string" && value.trim().length > 0) {
+                    return { language: key, text: value.trim() };
+                }
+            }
+
+            return { language: normalizedLanguage, text: "" };
         };
 
         const playWithSpeech = (language, text, statusElement) => {
@@ -167,8 +158,7 @@
                 return;
             }
 
-            stopCurrentAudio();
-            stopSpeech();
+            window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = language === "zh" ? "zh-CN" : language === "en" ? "en-US" : "vi-VN";
@@ -191,36 +181,17 @@
             const languageSelect = card.querySelector(".poi-preview-language");
             const previewButton = card.querySelector(".poi-preview-button");
             const statusElement = card.querySelector(".poi-preview-status");
-            const audioElement = card.querySelector(".poi-preview-audio");
 
             previewButton.addEventListener("click", () => {
                 const selectedLanguage = languageSelect.value;
-                const content = payload[selectedLanguage];
+                const content = pickDescription(payload, selectedLanguage);
 
-                stopSpeech();
-
-                if (content?.audio) {
-                    stopCurrentAudio();
-                    audioElement.src = content.audio;
-                    currentAudio = audioElement;
-
-                    audioElement.onplay = () => updateStatus(statusElement, "Đang phát file audio.", false);
-                    audioElement.onended = () => updateStatus(statusElement, "Đã phát xong audio.", false);
-                    audioElement.onerror = () => updateStatus(statusElement, "Không thể phát file audio này.", true);
-
-                    audioElement.play().catch(() => {
-                        updateStatus(statusElement, "Trình duyệt đã chặn phát audio. Hãy tương tác lại và thử lần nữa.", true);
-                    });
+                if (!content.text) {
+                    updateStatus(statusElement, "Chưa có nội dung thuyết minh để nghe thử.", true);
                     return;
                 }
 
-                if (content?.text && content.text.trim().length > 0) {
-                    playWithSpeech(selectedLanguage, content.text.trim(), statusElement);
-                    return;
-                }
-
-                stopCurrentAudio();
-                updateStatus(statusElement, "Chưa có nội dung thuyết minh để nghe thử.", true);
+                playWithSpeech(content.language, content.text, statusElement);
             });
         });
 

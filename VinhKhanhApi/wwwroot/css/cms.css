@@ -308,6 +308,10 @@ body.cms-body {
     grid-column: span 2;
 }
 
+.owner-media-field {
+    grid-column: 1 / -1;
+}
+
 .poi-help-text {
     font-size: 13px;
     color: #64748b;

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -62,45 +62,12 @@ namespace VinhKhanhApi.Controllers
             poi.MoTa_Vi = NormalizeText(model.MoTa_Vi);
             poi.MoTa_En = NormalizeText(model.MoTa_En);
             poi.MoTa_Zh = NormalizeText(model.MoTa_Zh);
-            poi.TenFileAudio_Vi = await LuuFileAudioNeuCo(model.AudioVi, poi.TenFileAudio_Vi);
-            poi.TenFileAudio_En = await LuuFileAudioNeuCo(model.AudioEn, poi.TenFileAudio_En);
-            poi.TenFileAudio_Zh = await LuuFileAudioNeuCo(model.AudioZh, poi.TenFileAudio_Zh);
             poi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.TenFileAnhMinhHoa);
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync(cancellationToken);
 
-            TempData["ok"] = "Đã lưu mô tả, ảnh và audio cho quán.";
-            return RedirectToAction(nameof(Dashboard));
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteAudio(string? language)
-        {
-            var poi = await LayPoiTheoOwnerAsync();
-            if (poi == null)
-            {
-                return Forbid();
-            }
-
-            if (!TryGetAudioFileName(poi, language, out var normalizedLanguage, out var currentFileName))
-            {
-                TempData["err"] = "Ngôn ngữ audio không hợp lệ.";
-                return RedirectToAction(nameof(Dashboard));
-            }
-
-            if (!string.IsNullOrWhiteSpace(currentFileName))
-            {
-                DeleteAudioFileIfExists(currentFileName);
-            }
-
-            SetAudioFileName(poi, normalizedLanguage, null);
-            poi.NguoiCapNhat = User.Identity?.Name;
-
-            await _db.SaveChangesAsync();
-
-            TempData["ok"] = "Đã xóa audio. App sẽ dùng thuyết minh tự động.";
+            TempData["ok"] = "Đã lưu mô tả và ảnh cho quán.";
             return RedirectToAction(nameof(Dashboard));
         }
 
@@ -143,13 +110,13 @@ namespace VinhKhanhApi.Controllers
 
             var thuTrongTuan = new[]
             {
-                new { Day = DayOfWeek.Monday, Label = "Thứ 2" },
-                new { Day = DayOfWeek.Tuesday, Label = "Thứ 3" },
-                new { Day = DayOfWeek.Wednesday, Label = "Thứ 4" },
-                new { Day = DayOfWeek.Thursday, Label = "Thứ 5" },
-                new { Day = DayOfWeek.Friday, Label = "Thứ 6" },
-                new { Day = DayOfWeek.Saturday, Label = "Thứ 7" },
-                new { Day = DayOfWeek.Sunday, Label = "Chủ nhật" }
+                new { Day = DayOfWeek.Monday, Label = "Thá»© 2" },
+                new { Day = DayOfWeek.Tuesday, Label = "Thá»© 3" },
+                new { Day = DayOfWeek.Wednesday, Label = "Thá»© 4" },
+                new { Day = DayOfWeek.Thursday, Label = "Thá»© 5" },
+                new { Day = DayOfWeek.Friday, Label = "Thá»© 6" },
+                new { Day = DayOfWeek.Saturday, Label = "Thá»© 7" },
+                new { Day = DayOfWeek.Sunday, Label = "Chá»§ nháº­t" }
             };
 
             var model = new OwnerStatsViewModel
@@ -183,7 +150,14 @@ namespace VinhKhanhApi.Controllers
         {
             var poiId = LayPoiIdTuClaims();
             if (!poiId.HasValue)
+            {
+                poiId = await LayPoiIdTuTaiKhoanAsync();
+            }
+
+            if (!poiId.HasValue)
+            {
                 return null;
+            }
 
             return await _db.POIs.FirstOrDefaultAsync(x => x.Id == poiId.Value);
         }
@@ -201,9 +175,6 @@ namespace VinhKhanhApi.Controllers
                 MoTa_Zh = poi.MoTa_Zh,
                 SourceLanguage = sourceLanguage,
                 ActiveDescriptionTab = sourceLanguage,
-                TenFileAudio_Vi = poi.TenFileAudio_Vi,
-                TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh,
                 TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa
             };
         }
@@ -252,7 +223,7 @@ namespace VinhKhanhApi.Controllers
             {
                 ModelState.AddModelError(
                     string.Empty,
-                    translationResult.ErrorMessage ?? "Không thể tự động dịch mô tả lúc này.");
+                    translationResult.ErrorMessage ?? "KhÃ´ng thá»ƒ tá»± Ä‘á»™ng dá»‹ch mÃ´ táº£ lÃºc nÃ y.");
                 return false;
             }
 
@@ -346,9 +317,6 @@ namespace VinhKhanhApi.Controllers
 
         private static void RestoreCurrentFiles(OwnerShopViewModel model, PoiModel poi)
         {
-            model.TenFileAudio_Vi ??= poi.TenFileAudio_Vi;
-            model.TenFileAudio_En ??= poi.TenFileAudio_En;
-            model.TenFileAudio_Zh ??= poi.TenFileAudio_Zh;
             model.TenFileAnhMinhHoa ??= poi.TenFileAnhMinhHoa;
         }
 
@@ -361,77 +329,6 @@ namespace VinhKhanhApi.Controllers
         }
 
         private static string NormalizeText(string? value) => value?.Trim() ?? string.Empty;
-
-        private async Task<string?> LuuFileAudioNeuCo(IFormFile? file, string? fileNameCu)
-        {
-            if (file == null || file.Length == 0) return fileNameCu;
-
-            var thuMucAudio = Path.Combine(_env.WebRootPath, "audio");
-            Directory.CreateDirectory(thuMucAudio);
-
-            var tenMoi = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
-            var duongDan = Path.Combine(thuMucAudio, tenMoi);
-
-            await using var stream = System.IO.File.Create(duongDan);
-            await file.CopyToAsync(stream);
-            return tenMoi;
-        }
-
-        private void DeleteAudioFileIfExists(string? fileName)
-        {
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                return;
-            }
-
-            var duongDan = Path.Combine(_env.WebRootPath, "audio", fileName);
-            if (System.IO.File.Exists(duongDan))
-            {
-                System.IO.File.Delete(duongDan);
-            }
-        }
-
-        private static bool TryGetAudioFileName(
-            PoiModel poi,
-            string? language,
-            out string normalizedLanguage,
-            out string? fileName)
-        {
-            normalizedLanguage = NormalizeAudioLanguage(language);
-            fileName = normalizedLanguage switch
-            {
-                "en" => poi.TenFileAudio_En,
-                "zh" => poi.TenFileAudio_Zh,
-                "vi" => poi.TenFileAudio_Vi,
-                _ => null
-            };
-
-            return normalizedLanguage is "vi" or "en" or "zh";
-        }
-
-        private static void SetAudioFileName(PoiModel poi, string language, string? fileName)
-        {
-            switch (NormalizeAudioLanguage(language))
-            {
-                case "vi":
-                    poi.TenFileAudio_Vi = fileName;
-                    break;
-                case "en":
-                    poi.TenFileAudio_En = fileName;
-                    break;
-                case "zh":
-                    poi.TenFileAudio_Zh = fileName;
-                    break;
-            }
-        }
-
-        private static string NormalizeAudioLanguage(string? language)
-        {
-            var normalizedLanguage = language?.Trim().ToLowerInvariant();
-            return normalizedLanguage is "vi" or "en" or "zh"
-                ? normalizedLanguage
-                : string.Empty;
-        }
 
         private async Task<string?> LuuFileAnhNeuCo(IFormFile? file, string? fileNameCu)
         {
@@ -453,6 +350,21 @@ namespace VinhKhanhApi.Controllers
             var value = User.FindFirstValue("poi_id");
             if (int.TryParse(value, out var poiId)) return poiId;
             return null;
+        }
+
+        private async Task<int?> LayPoiIdTuTaiKhoanAsync()
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return null;
+            }
+
+            return await _db.UserAccounts
+                .AsNoTracking()
+                .Where(x => x.Username == username)
+                .Select(x => x.PoiId)
+                .FirstOrDefaultAsync();
         }
 
         private static DateTime ChuyenSangGioVietNam(DateTime utcDateTime)
@@ -484,3 +396,4 @@ namespace VinhKhanhApi.Controllers
         }
     }
 }
+
