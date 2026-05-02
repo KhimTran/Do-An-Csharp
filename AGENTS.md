@@ -1,142 +1,223 @@
-🎯 Mục tiêu
+# AGENTS.md - DoAnCsharp
 
-Repo này là đồ án .NET MAUI 10 (C#).
+## Goal
 
-Khi sửa code, agent phải:
+This repository contains a .NET MAUI 10 mobile app and an ASP.NET Core 10 API written in C#.
 
-Giữ project build được
-Không phá kiến trúc hiện có
-Ưu tiên chạy ổn định trên điện thoại Android thật
-Code phải demo được, không chỉ “compile cho qua”
-⚙️ Quy tắc nền tảng (BẮT BUỘC)
-Không downgrade:
-❌ net9.0
-❌ SDK thấp hơn
-Luôn dùng:
-✅ net10.0-android
-Không tự ý đổi:
-Target framework
-Kiến trúc project
-Không xóa code khi chưa chắc chắn
-Không thêm thư viện nếu không cần thiết
-🏗️ Kiến trúc (Architecture Rules)
+When modifying code, the agent must:
 
-Project dùng MVVM
+- Keep the project buildable.
+- Preserve the existing architecture.
+- Ensure the app runs on a real Android device.
+- Deliver working features (not just compiling code).
 
-Layer	Vai trò
-Models	Dữ liệu (POI, History...)
-ViewModels	Logic
-Views	UI
-Services	GPS, DB, API, TTS
-Bắt buộc:
-Không nhét logic vào View (.xaml.cs)
-Không gọi DB trực tiếp trong View
-Logic phải nằm ở ViewModel hoặc Service
-🔄 Quy tắc sửa code
+---
 
-Khi sửa bất kỳ feature nào:
+## Repo Map
 
-1. Đọc trước khi sửa
-Tìm hiểu flow hiện tại
-Không sửa mù
-2. Sửa tối thiểu
-Chỉ sửa đúng phần cần
-Không refactor lan rộng nếu không cần
-3. Không phá code cũ
-Nếu thay công nghệ → phải xóa sạch phần cũ
-Không để “code chết”
-📱 Quy tắc Android thật (CỰC QUAN TRỌNG)
+- `App/App/App.csproj`: .NET MAUI mobile app
+- `App/App/Models`: data models (POI, history, settings)
+- `App/App/ViewModels`: UI logic and commands
+- `App/App/Views`: XAML UI, minimal code-behind
+- `App/App/Services`: GPS, SQLite, API sync, TTS, QR, navigation
+- `App/App/Resources/Raw/map`: local Leaflet assets (no CDN)
 
-Mọi feature phải ưu tiên:
+- `VinhKhanhApi/VinhKhanhApi.csproj`: ASP.NET Core API
+- `VinhKhanhApi/Controllers`: API endpoints
+- `VinhKhanhApi/Data`, `Models`, `Services`, `Migrations`: backend logic and database
 
-✅ Chạy trên điện thoại thật
-❌ Không chỉ chạy emulator
-Cấm:
-Hardcode localhost
-Code chỉ chạy với 10.0.2.2
-Bắt buộc:
-API phải cấu hình được (IP LAN hoặc public)
-Nếu API fail → phải có fallback local (SQLite / sample data)
-🌐 Quy tắc làm việc với API
-Không assume API luôn chạy
-Phải handle:
-mất mạng
-timeout
-lỗi JSON
-Bắt buộc:
-Có fallback:
-SQLite
-hoặc data mẫu
-💾 Quy tắc dữ liệu (SQLite)
-Không làm app phụ thuộc hoàn toàn server
-POI phải load được offline
-Khi có mạng → sync
-Khi không có mạng → vẫn chạy
-🗺️ Quy tắc Map (áp dụng nếu có)
-Không dùng Google Maps
-Nếu dùng Leaflet:
-Bắt buộc WebView
-HTML/CSS/JS local
-Không dùng CDN
-Nếu API lỗi → vẫn phải hiện map + POI local
-📍 GPS / Sensor
-Phải xin quyền đúng cách
-Không crash nếu:
-user từ chối quyền
-GPS tắt
-Phải handle null location
-🔊 Audio / TTS
-Không phát chồng âm
-Có cơ chế stop / cancel
-Không crash nếu:
-không có voice phù hợp
-📷 QR / Camera (nếu có)
-Handle:
-không có quyền camera
-scan fail
-Không crash khi không đọc được QR
-⚡ Hiệu năng & ổn định
-Không block UI thread
-Luôn dùng async/await đúng cách
-Không loop vô hạn
-Không spam API/GPS
-🧪 Quy tắc build & kiểm tra
+Do NOT modify generated files unless explicitly required:
 
-Sau khi sửa:
+- `.codex-build/`
+- `bin/`
+- `obj/`
+- `*.csproj.user`
 
-BẮT BUỘC:
+---
+
+## Platform Rules
+
+Do NOT downgrade:
+
+- Do not change to `net9.0`
+- Do not lower SDK version
+
+Always keep:
+
+- App: `net10.0-android`
+- API: `net10.0`
+
+Do NOT:
+
+- Change target framework
+- Change project structure
+- Add new dependencies without strong reason
+- Delete existing code without understanding its flow
+
+---
+
+## Windows Shell Notes
+
+- Prefer `rg` for searching when available
+- If `rg` fails with "Access Denied" or cannot execute:
+  - Use PowerShell:
+    - `Get-ChildItem -Recurse -File`
+    - `Select-String`
+    - `Get-Content`
+- Do NOT retry `rg` repeatedly after it fails once
+
+---
+
+## Architecture (MAUI)
+
+The app follows MVVM:
+
+| Layer | Responsibility |
+|------|--------------|
+| Models | Data |
+| ViewModels | UI logic |
+| Views | UI only |
+| Services | API, DB, GPS, TTS, QR |
+
+Rules:
+
+- No business logic in `.xaml.cs`
+- No direct DB access in Views
+- Logic must be in ViewModel or Service
+- Code-behind only for UI lifecycle or minimal events
+
+---
+
+## Editing Rules
+
+- Make minimal changes only
+- Do NOT refactor large areas unless explicitly required
+- Do NOT rename files/classes/methods unless necessary
+
+When fixing features:
+
+1. Read before editing
+2. Identify current flow and related files
+3. Modify only what is needed
+4. Avoid wide refactors
+5. Remove dead code if clearly obsolete
+6. Use async/await correctly
+7. Avoid UI blocking
+8. Avoid infinite loops or API spam
+
+---
+
+## Android Device Requirement
+
+All features must work on a real Android device.
+
+Do NOT:
+
+- Hardcode `localhost`
+- Only support emulator (`10.0.2.2`)
+- Depend on local dev machine
+
+Must:
+
+- Support configurable API base URL (LAN IP / public / QR)
+- Work offline using SQLite or sample data
+- Handle network errors, timeout, invalid JSON
+
+---
+
+## Data & API Rules
+
+Do NOT assume API is always available.
+
+POI loading must support:
+
+- Online → sync API → save SQLite
+- Offline → load SQLite or sample data
+
+App must NOT crash if:
+
+- API returns invalid JSON
+- Timeout occurs
+- HTTP error occurs
+
+If modifying API:
+
+- Do NOT expose real secrets
+- Do NOT hardcode production connection string
+- Keep backward compatibility with app
+
+---
+
+## Map Rules
+
+- Do NOT use Google Maps
+- Use Leaflet in WebView
+- All assets must be local (`Resources/Raw/map`)
+- No CDN usage
+
+Must still work if API fails
+
+---
+
+## GPS / TTS / QR Rules
+
+GPS:
+
+- Handle permission denied
+- Handle null location
+- Do NOT crash
+
+TTS:
+
+- Avoid overlapping audio
+- Support stop/cancel
+- Handle missing voice
+
+QR:
+
+- Handle no camera permission
+- Handle invalid QR
+- Do NOT crash
+
+---
+
+## Build & Verification
+
+### Build App (MAUI)
+
+```powershell
 dotnet restore App/App/App.csproj
 dotnet build App/App/App.csproj --framework net10.0-android --configuration Debug
-Không được:
-Báo “xong” khi chưa build
-Fake build success
-✅ Điều kiện hoàn thành
+Build API
+dotnet restore VinhKhanhApi/VinhKhanhApi.csproj
+dotnet build VinhKhanhApi/VinhKhanhApi.csproj --configuration Debug
 
-Chỉ được coi là xong khi:
+Run both if both are modified.
 
-Build PASS
-Không lỗi compile
-Feature chạy logic đúng
-Không crash
-📋 Báo cáo bắt buộc
+Build Lock Issues
 
-Agent phải ghi rõ:
+If build fails due to file lock (bin/ or obj/):
 
-File đã sửa
-File đã thêm
-File đã xóa
-Framework đã build
-Kết quả build
-🧠 Nguyên tắc quan trọng nhất
+Check if app/API is running
+Stop only related processes
+Retry the same build command
+Do NOT delete source files
+Done Criteria
 
-❗ Code phải chạy được trên điện thoại thật
-❗ Không phụ thuộc môi trường dev
-❗ Không làm kiểu “compile được nhưng không dùng được”
+Task is complete ONLY if:
 
-📝 Commit message
+Build succeeds
+No compile errors
+No new issues introduced
+Logic matches requirements
+Changes are minimal
+Required Report
 
-Ngắn gọn, rõ nghĩa:
+After finishing, the agent must report:
 
-feat: thêm qr scan
-fix: sửa crash gps null
-refactor: tách service map
+Files modified
+Files added
+Files deleted
+Framework built
+Build result
+Remaining risks (if any)

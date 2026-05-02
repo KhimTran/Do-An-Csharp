@@ -3,13 +3,18 @@
     const defaultCenter = [10.7605, 106.7002];
     const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     const defaultTileAttribution = "&copy; OpenStreetMap contributors";
+    const colors = {
+        user: "#1d8cf8",
+        poi: "#dc2626",
+        nearest: "#f59e0b",
+        route: "#0d6efd"
+    };
 
     const state = {
         map: null,
         tileLayer: null,
         tileKey: "",
         poiLayer: null,
-        geofenceLayer: null,
         routeLayer: null,
         userLayer: null,
         routeRequestId: 0,
@@ -42,9 +47,8 @@
 
         state.map.setView(defaultCenter, 16);
 
-        state.poiLayer = L.layerGroup().addTo(state.map);
-        state.geofenceLayer = L.layerGroup().addTo(state.map);
         state.routeLayer = L.layerGroup().addTo(state.map);
+        state.poiLayer = L.layerGroup().addTo(state.map);
         state.userLayer = L.layerGroup().addTo(state.map);
 
         notifyHost("ready");
@@ -71,7 +75,6 @@
 
     function clearDynamicLayers() {
         state.poiLayer.clearLayers();
-        state.geofenceLayer.clearLayers();
         state.routeLayer.clearLayers();
         state.userLayer.clearLayers();
         state.poiMarkers = {};
@@ -162,13 +165,47 @@
     }
 
     function renderPois(pois, popupPoiId) {
+        const activePoiId = popupPoiId === null || popupPoiId === undefined
+            ? null
+            : String(popupPoiId);
+        const priorityMarkers = [];
+
         (pois || []).forEach(function (poi) {
-            const color = poi.isTracking ? "#0d6efd" : poi.isNearest ? "#f59e0b" : "#d92d20";
+            const isActive = (activePoiId !== null && activePoiId === String(poi.id)) || !!poi.isTracking;
+            const isNearest = !!poi.isNearest;
+            const markerColor = isNearest ? colors.nearest : colors.poi;
+            const markerRadius = isNearest ? 7 : isActive ? 6 : 5;
+
+            if (isNearest || isActive) {
+                const geofenceColor = isNearest ? colors.nearest : colors.poi;
+                L.circle([poi.lat, poi.lng], {
+                    radius: Math.max(poi.banKinh || 0, 20),
+                    color: geofenceColor,
+                    opacity: 0.65,
+                    weight: 1.25,
+                    fillColor: geofenceColor,
+                    fillOpacity: 0.12,
+                    interactive: false
+                }).addTo(state.poiLayer);
+            }
+
+            if (isNearest) {
+                L.circleMarker([poi.lat, poi.lng], {
+                    radius: 12,
+                    color: colors.nearest,
+                    weight: 2,
+                    opacity: 0.22,
+                    fillColor: colors.nearest,
+                    fillOpacity: 0.12,
+                    interactive: false
+                }).addTo(state.poiLayer);
+            }
+
             const marker = L.circleMarker([poi.lat, poi.lng], {
-                radius: poi.isTracking ? 10 : poi.isNearest ? 9 : 8,
+                radius: markerRadius,
                 color: "#ffffff",
-                weight: 2,
-                fillColor: color,
+                weight: isNearest ? 1.75 : 1.25,
+                fillColor: markerColor,
                 fillOpacity: 0.95
             });
 
@@ -205,17 +242,15 @@
             });
 
             marker.addTo(state.poiLayer);
-            marker.bringToFront();
             state.poiMarkers[String(poi.id)] = marker;
 
-            L.circle([poi.lat, poi.lng], {
-                radius: Math.max(poi.banKinh || 0, 20),
-                color: color,
-                weight: 2,
-                fillColor: color,
-                fillOpacity: 0.14,
-                interactive: false
-            }).addTo(state.geofenceLayer);
+            if (isNearest || isActive) {
+                priorityMarkers.push(marker);
+            }
+        });
+
+        priorityMarkers.forEach(function (marker) {
+            marker.bringToFront();
         });
 
         if (popupPoiId !== null && popupPoiId !== undefined) {
@@ -227,23 +262,16 @@
         state.routeLayer.clearLayers();
 
         const latLngs = [[start.lat, start.lng], [end.lat, end.lng]];
-        const opacity = isTemporary ? 0.35 : 0.7;
+        const opacity = isTemporary ? 0.45 : 0.7;
 
         L.polyline(latLngs, {
-            color: "#ffffff",
-            weight: 10,
-            opacity: opacity * 0.9,
-            lineCap: "round",
-            dashArray: isTemporary ? "8, 8" : null,
-            interactive: false
-        }).addTo(state.routeLayer);
-
-        L.polyline(latLngs, {
-            color: "#0d6efd",
-            weight: 6,
+            color: colors.route,
+            weight: 3,
             opacity: opacity,
             lineCap: "round",
-            dashArray: isTemporary ? "8, 8" : null,
+            lineJoin: "round",
+            smoothFactor: 1.2,
+            dashArray: isTemporary ? "6, 8" : null,
             interactive: false
         }).addTo(state.routeLayer);
     }
@@ -293,20 +321,12 @@
             });
 
             L.polyline(latLngs, {
-                color: "#ffffff",
-                weight: 10,
-                opacity: 0.9,
+                color: colors.route,
+                weight: 3,
+                opacity: 0.7,
                 lineCap: "round",
                 lineJoin: "round",
-                interactive: false
-            }).addTo(state.routeLayer);
-
-            L.polyline(latLngs, {
-                color: "#0d6efd",
-                weight: 6,
-                opacity: 1,
-                lineCap: "round",
-                lineJoin: "round",
+                smoothFactor: 1.2,
                 interactive: false
             }).addTo(state.routeLayer);
         } catch (error) {
@@ -322,19 +342,20 @@
         }
 
         L.circle([userLocation.lat, userLocation.lng], {
-            radius: 14,
-            color: "#90caf9",
+            radius: 25,
+            color: colors.user,
+            opacity: 0.28,
             weight: 1,
-            fillColor: "#42a5f5",
-            fillOpacity: 0.2,
+            fillColor: colors.user,
+            fillOpacity: 0.16,
             interactive: false
         }).addTo(state.userLayer);
 
         L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 7,
+            radius: 5,
             color: "#ffffff",
             weight: 2,
-            fillColor: "#1e88e5",
+            fillColor: colors.user,
             fillOpacity: 1,
             interactive: false
         }).addTo(state.userLayer);

@@ -76,30 +76,30 @@
 
         <Border
             Grid.Row="0"
-            Margin="12"
-            Padding="10,8"
+            Margin="8"
+            Padding="7,5"
             HorizontalOptions="Start"
             VerticalOptions="Start"
-            BackgroundColor="#CCFFFFFF"
-            Stroke="#22000000"
-            StrokeShape="RoundRectangle 10"
+            BackgroundColor="#99FFFFFF"
+            Stroke="#1A000000"
+            StrokeShape="RoundRectangle 8"
             ZIndex="5">
-            <VerticalStackLayout Spacing="2">
+            <VerticalStackLayout Spacing="1">
                 <Label
                     FontAttributes="Bold"
-                    FontSize="12"
+                    FontSize="10"
                     Text="{Binding [MapPage_LegendTitle], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                 <Label
-                    FontSize="12"
+                    FontSize="10"
                     Text="{Binding [MapPage_LegendUser], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                 <Label
-                    FontSize="12"
+                    FontSize="10"
                     Text="{Binding [MapPage_LegendPoi], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                 <Label
-                    FontSize="12"
+                    FontSize="10"
                     Text="{Binding [MapPage_LegendNearest], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                 <Label
-                    FontSize="12"
+                    FontSize="10"
                     Text="{Binding [MapPage_LegendRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" />
             </VerticalStackLayout>
         </Border>

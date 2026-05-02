@@ -416,3 +416,43 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# DoAnCsharp local/build artifacts
+.codex-build/
+**/bin/
+**/obj/
+*.csproj.user
+*.user
+*.db
+*.db3
+*.sqlite
+*.sqlite3
+
+# Repo-specific generated files
+.codex-build/
+**/bin/
+**/obj/
+
+# Local databases
+*.db
+*.db3
+*.sqlite
+*.sqlite3
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Android signing / packages
+*.keystore
+*.jks
+key.properties
+*.apk
+*.aab
+
+# IDE / local
+*.csproj.user
+*.suo
+.vs/
