@@ -159,6 +159,9 @@ namespace VinhKhanhApi.Controllers
             public double Lng { get; set; }
             public double BanKinh { get; set; }
             public int UuTien { get; set; }
+            public string? TenFileAudio_Vi { get; set; }
+            public string? TenFileAudio_En { get; set; }
+            public string? TenFileAudio_Zh { get; set; }
             public string? TenFileAnhMinhHoa { get; set; }
             public string? SoDienThoai { get; set; }
             public string? GioMoCua { get; set; }
@@ -181,6 +184,9 @@ namespace VinhKhanhApi.Controllers
                 Lng = poi.Lng,
                 BanKinh = poi.BanKinh,
                 UuTien = poi.UuTien,
+                TenFileAudio_Vi = poi.TenFileAudio_Vi,
+                TenFileAudio_En = poi.TenFileAudio_En,
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
                 TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
                 SoDienThoai = poi.SoDienThoai,
                 GioMoCua = poi.GioMoCua,

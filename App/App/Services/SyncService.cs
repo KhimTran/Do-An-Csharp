@@ -127,6 +127,9 @@ namespace App.Services
                         foreach (var poi in danhSach)
                         {
                             poi.TenFileAnhMinhHoa = ChuanHoaUrlAnh(poi.TenFileAnhMinhHoa, mayChu.BaseUrl);
+                            poi.TenFileAudio_Vi = ChuanHoaTenFileAudio(poi.TenFileAudio_Vi);
+                            poi.TenFileAudio_En = ChuanHoaTenFileAudio(poi.TenFileAudio_En);
+                            poi.TenFileAudio_Zh = ChuanHoaTenFileAudio(poi.TenFileAudio_Zh);
                             await _db.LuuPoiAsync(poi);
                         }
 
@@ -185,6 +188,12 @@ namespace App.Services
 
         private static string? ChuanHoaUrlAnh(string? tenFileAnh, string baseUrl) =>
             ApiEndpointResolver.BuildPoiImageUrl(baseUrl, tenFileAnh);
+
+        private static string? ChuanHoaTenFileAudio(string? tenFileAudio)
+        {
+            var normalized = tenFileAudio?.Trim();
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
 
         private async Task<List<PoiModel>?> TaiDanhSachPoiTuServerAsync(string poiApiUrl)
         {

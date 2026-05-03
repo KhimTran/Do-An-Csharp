@@ -14,7 +14,7 @@ public partial class PoiListViewModel : ObservableObject
     private readonly LocalDatabase _db;
     private readonly SyncService _sync;
     private readonly ILocationService _gps;
-    private readonly ITtsService _tts;
+    private readonly INarrationService _narration;
     private readonly AnalyticsService _analytics;
 
     private List<PoiModel> _poiGoc = [];
@@ -25,13 +25,13 @@ public partial class PoiListViewModel : ObservableObject
         LocalDatabase db,
         SyncService sync,
         ILocationService gps,
-        ITtsService tts,
+        INarrationService narration,
         AnalyticsService analytics)
     {
         _db = db;
         _sync = sync;
         _gps = gps;
-        _tts = tts;
+        _narration = narration;
         _analytics = analytics;
     }
 
@@ -109,20 +109,14 @@ public partial class PoiListViewModel : ObservableObject
             return;
 
         string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-        string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
-        if (string.IsNullOrWhiteSpace(noiDung))
-        {
+        var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+        if (ketQuaPhat.Status == "empty")
             ThongBao = EmptyDescriptionMessage;
-            return;
-        }
 
-        string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
-        string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
-        var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
         if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
             return;
 
-        int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+        int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(ketQuaPhat.TextForAnalytics);
         await _analytics.GuiLogAsync(poi.Id, poi.Ten, "LIST", thoiLuongGiay);
     }
 
@@ -274,14 +268,4 @@ public partial class PoiListViewModel : ObservableObject
         return PoiDescriptionResolver.GetBestDescriptionOrDefault(poi, maNgonNgu, EmptyDescriptionMessage);
     }
 
-    private static string RutGonMaNgonNgu(string maNgonNgu)
-    {
-        if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-            return "en";
-
-        if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            return "zh";
-
-        return "vi";
-    }
 }

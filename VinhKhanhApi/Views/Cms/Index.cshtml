@@ -49,6 +49,11 @@
         if (!string.IsNullOrWhiteSpace(item.MoTa_En)) ngonNguCoMoTa.Add("EN");
         if (!string.IsNullOrWhiteSpace(item.MoTa_Zh)) ngonNguCoMoTa.Add("ZH");
 
+        var ngonNguCoAudio = new List<string>();
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Vi)) ngonNguCoAudio.Add("VI");
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_En)) ngonNguCoAudio.Add("EN");
+        if (!string.IsNullOrWhiteSpace(item.TenFileAudio_Zh)) ngonNguCoAudio.Add("ZH");
+
         <article class="poi-admin-card" data-poi-card>
             <div class="poi-admin-media">
                 @if (!string.IsNullOrWhiteSpace(imageUrl))
@@ -68,6 +73,22 @@
                     <div class="poi-admin-info-line">Tọa độ: @item.Lat.ToString("F6"), @item.Lng.ToString("F6")</div>
                     <div class="poi-admin-info-line">Bán kính: @item.BanKinh m</div>
                     <div class="poi-admin-info-line">Ngôn ngữ có mô tả: @(ngonNguCoMoTa.Count > 0 ? string.Join(" / ", ngonNguCoMoTa) : "Chưa có")</div>
+                    <div class="poi-admin-info-line">
+                        Audio MP3:
+                        @if (ngonNguCoAudio.Count > 0)
+                        {
+                            <span class="poi-audio-badges">
+                                @foreach (var ngonNgu in ngonNguCoAudio)
+                                {
+                                    <span class="badge-pill poi-audio-badge">@ngonNgu</span>
+                                }
+                            </span>
+                        }
+                        else
+                        {
+                            <span>Chưa có audio</span>
+                        }
+                    </div>
                     <div class="poi-admin-info-line">Ưu tiên: @item.UuTien</div>
                 </div>
 

@@ -69,6 +69,83 @@
     <section class="poi-editor-card">
         <div class="poi-section-heading">
             <div>
+                <h2>Audio MP3 thuyết minh</h2>
+                <p>Upload file MP3 cho từng ngôn ngữ. Nếu chưa có audio, app sẽ dùng TTS.</p>
+            </div>
+        </div>
+
+        <div class="poi-grid poi-grid-audio">
+            <div class="poi-field">
+                <label asp-for="AudioVi">Audio tiếng Việt (.mp3)</label>
+                <input asp-for="AudioVi" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                <span asp-validation-for="AudioVi" class="text-danger"></span>
+
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Vi))
+                {
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_Vi}")"></audio>
+                        <span class="poi-audio-file-name">@Model.TenFileAudio_Vi</span>
+                        <label class="poi-audio-delete-option">
+                            <input asp-for="XoaAudioVi" type="checkbox" />
+                            <span>Xóa audio tiếng Việt hiện tại</span>
+                        </label>
+                    </div>
+                }
+                else
+                {
+                    <div class="poi-empty-state">Chưa có audio tiếng Việt.</div>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="AudioEn">Audio tiếng Anh (.mp3)</label>
+                <input asp-for="AudioEn" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                <span asp-validation-for="AudioEn" class="text-danger"></span>
+
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_En))
+                {
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_En}")"></audio>
+                        <span class="poi-audio-file-name">@Model.TenFileAudio_En</span>
+                        <label class="poi-audio-delete-option">
+                            <input asp-for="XoaAudioEn" type="checkbox" />
+                            <span>Xóa audio tiếng Anh hiện tại</span>
+                        </label>
+                    </div>
+                }
+                else
+                {
+                    <div class="poi-empty-state">Chưa có audio tiếng Anh.</div>
+                }
+            </div>
+
+            <div class="poi-field">
+                <label asp-for="AudioZh">Audio tiếng Hoa (.mp3)</label>
+                <input asp-for="AudioZh" type="file" class="form-control" accept=".mp3,audio/mpeg" />
+                <span asp-validation-for="AudioZh" class="text-danger"></span>
+
+                @if (!string.IsNullOrWhiteSpace(Model.TenFileAudio_Zh))
+                {
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_Zh}")"></audio>
+                        <span class="poi-audio-file-name">@Model.TenFileAudio_Zh</span>
+                        <label class="poi-audio-delete-option">
+                            <input asp-for="XoaAudioZh" type="checkbox" />
+                            <span>Xóa audio tiếng Hoa hiện tại</span>
+                        </label>
+                    </div>
+                }
+                else
+                {
+                    <div class="poi-empty-state">Chưa có audio tiếng Hoa.</div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="poi-editor-card">
+        <div class="poi-section-heading">
+            <div>
                 <h2>Mô tả điểm</h2>
                 <p>Chủ quán chỉ cần nhập một ngôn ngữ, backend sẽ tự dịch sang hai ngôn ngữ còn lại khi lưu.</p>
             </div>

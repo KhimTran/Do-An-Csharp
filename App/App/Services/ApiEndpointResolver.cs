@@ -130,6 +130,9 @@ public static class ApiEndpointResolver
     public static string? BuildPoiImageUrl(string? tenFileAnh)
         => BuildPoiImageUrl(GetConfiguredBaseUrl(), tenFileAnh);
 
+    public static string? BuildPoiAudioUrl(string? tenFileAudio)
+        => BuildPoiAudioUrl(GetConfiguredBaseUrl(), tenFileAudio);
+
     public static string? BuildPoiImageUrl(string? baseUrl, string? tenFileAnh)
     {
         if (string.IsNullOrWhiteSpace(tenFileAnh))
@@ -147,6 +150,29 @@ public static class ApiEndpointResolver
         }
 
         return BuildAbsoluteUrl(normalizedBaseUrl, $"images/poi/{raw.TrimStart('/')}");
+    }
+
+    public static string? BuildPoiAudioUrl(string? baseUrl, string? tenFileAudio)
+    {
+        if (string.IsNullOrWhiteSpace(tenFileAudio))
+            return null;
+
+        var raw = tenFileAudio.Trim();
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var absoluteUri) &&
+            (absoluteUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+             absoluteUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            return absoluteUri.ToString();
+        }
+
+        var normalizedBaseUrl = NormalizeBaseUrl(baseUrl ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(normalizedBaseUrl) ||
+            !Uri.TryCreate(normalizedBaseUrl, UriKind.Absolute, out _))
+        {
+            return null;
+        }
+
+        return BuildAbsoluteUrl(normalizedBaseUrl, $"audio/{raw.TrimStart('/')}");
     }
 
     public static string BuildPoiApiUrl(string baseUrl)

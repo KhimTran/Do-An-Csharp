@@ -1,4 +1,5 @@
 using SQLite;
+using System.Text.Json.Serialization;
 
 namespace App.Models
 {
@@ -17,6 +18,12 @@ namespace App.Models
         public double BanKinh { get; set; } = 50;
         public int UuTien { get; set; } = 5;
         public string? TenFileAnhMinhHoa { get; set; }
+        [JsonPropertyName("tenFileAudio_Vi")]
+        public string? TenFileAudio_Vi { get; set; }
+        [JsonPropertyName("tenFileAudio_En")]
+        public string? TenFileAudio_En { get; set; }
+        [JsonPropertyName("tenFileAudio_Zh")]
+        public string? TenFileAudio_Zh { get; set; }
 
         public string? SoDienThoai { get; set; }
         public string? GioMoCua { get; set; }

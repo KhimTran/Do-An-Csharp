@@ -12,7 +12,7 @@ namespace App.ViewModels
         private readonly SyncService _sync;
         private readonly ILocationService _gps;
         private readonly GeofenceService _geofence;
-        private readonly ITtsService _tts;
+        private readonly INarrationService _narration;
         private readonly AnalyticsService _analytics;
 
         private List<PoiModel> _danhSachPoi = [];
@@ -31,14 +31,14 @@ namespace App.ViewModels
             SyncService sync,
             ILocationService gps,
             GeofenceService geofence,
-            ITtsService tts,
+            INarrationService narration,
             AnalyticsService analytics)
         {
             _db = db;
             _sync = sync;
             _gps = gps;
             _geofence = geofence;
-            _tts = tts;
+            _narration = narration;
             _analytics = analytics;
 
             TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
@@ -47,7 +47,6 @@ namespace App.ViewModels
             KhoangCachDiemHienThiText = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
             TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
             TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackIdle"];
-            _tts.PlaybackStateChanged += Tts_PlaybackStateChanged;
         }
 
         [ObservableProperty]
@@ -552,16 +551,6 @@ namespace App.ViewModels
         private async Task DocThuyetMinhTheoNgonNguAsync(PoiModel poi, string nguon)
         {
             string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
-            string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
-
-            if (string.IsNullOrWhiteSpace(noiDung))
-            {
-                TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackEmpty"];
-                _geofence.HoanTacLanKichHoat(poi.Id);
-                return;
-            }
-
-            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}";
 
             if (nguon == "GPS" && (DateTime.Now - _lanPhatGanNhat).TotalSeconds < 5)
             {
@@ -571,7 +560,7 @@ namespace App.ViewModels
 
             TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", poi.Ten);
 
-            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
+            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
 
             if (ketQuaPhat.Completed)
             {
@@ -579,7 +568,9 @@ namespace App.ViewModels
             }
             if (!ketQuaPhat.Completed)
             {
-                TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", poi.Ten);
+                TrangThaiPhat = ketQuaPhat.Status == "empty"
+                    ? LocalizationResourceManager.Instance["MapPage_PlaybackEmpty"]
+                    : LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", poi.Ten);
                 _geofence.HoanTacLanKichHoat(poi.Id);
                 return;
             }
@@ -592,12 +583,12 @@ namespace App.ViewModels
             {
                 PoiId = poi.Id,
                 TenPoi = poi.Ten,
-                NgonNgu = RutGonMaNgonNgu(maNgonNgu),
+                NgonNgu = ketQuaPhat.Language,
                 ThoiGianPhat = DateTime.Now,
                 NguonKichHoat = nguon
             });
 
-            int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+            int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(ketQuaPhat.TextForAnalytics);
             await _analytics.GuiLogAsync(poi.Id, poi.Ten, nguon, thoiLuongGiay);
         }
 
@@ -611,23 +602,6 @@ namespace App.ViewModels
                 $"[Geofence] poi={poiTen}, distance={khoangCach}m, radius={banKinh}m, status={result.Status}, reason={result.Reason}");
         }
 
-        private void Tts_PlaybackStateChanged(object? sender, TtsPlaybackStateChangedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(e.TenNoiDungHienThi))
-                return;
-
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                TrangThaiPhat = e.State switch
-                {
-                    TtsPlaybackState.Started => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", e.TenNoiDungHienThi),
-                    TtsPlaybackState.Completed => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackCompleted", e.TenNoiDungHienThi),
-                    TtsPlaybackState.Failed => LocalizationResourceManager.Instance.Translate("MapPage_PlaybackFailed", e.TenNoiDungHienThi),
-                    _ => TrangThaiPhat
-                };
-            });
-        }
-
         private static string ChonMoTaTheoNgonNgu(PoiModel poi)
         {
             string maNgonNgu = Preferences.Get("app_language", Preferences.Get("tts_language", "vi-VN"));
@@ -637,16 +611,6 @@ namespace App.ViewModels
                 LocalizationResourceManager.Instance["MapPage_PlaybackEmpty"]);
         }
 
-        private static string RutGonMaNgonNgu(string maNgonNgu)
-        {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return "en";
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return "zh";
-
-            return "vi";
-        }
     }
 }
 

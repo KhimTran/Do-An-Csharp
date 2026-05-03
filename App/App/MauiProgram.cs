@@ -46,6 +46,8 @@ namespace App
             builder.Services.AddSingleton<SyncService>();
             builder.Services.AddSingleton<GeofenceService>();
             builder.Services.AddSingleton<ITtsService, TtsService>();
+            builder.Services.AddSingleton<IAudioPlaybackService, AudioPlaybackService>();
+            builder.Services.AddSingleton<INarrationService, NarrationService>();
             builder.Services.AddSingleton<ILocationService, LocationService>();
 
             builder.Services.AddTransient<PoiListViewModel>();

@@ -12,6 +12,7 @@ namespace VinhKhanhApi.Controllers
     [Authorize(Roles = "Owner")]
     public class OwnerController : Controller
     {
+        private const long KichThuocAudioToiDa = 20 * 1024 * 1024;
         private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
         private readonly AppDbContext _db;
@@ -59,15 +60,41 @@ namespace VinhKhanhApi.Controllers
                 return View(model);
             }
 
+            var tenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.TenFileAnhMinhHoa);
+            var tenFileAudioVi = await CapNhatFileAudioAsync(
+                model.AudioVi,
+                poi.TenFileAudio_Vi,
+                model.XoaAudioVi,
+                nameof(OwnerShopViewModel.AudioVi));
+            var tenFileAudioEn = await CapNhatFileAudioAsync(
+                model.AudioEn,
+                poi.TenFileAudio_En,
+                model.XoaAudioEn,
+                nameof(OwnerShopViewModel.AudioEn));
+            var tenFileAudioZh = await CapNhatFileAudioAsync(
+                model.AudioZh,
+                poi.TenFileAudio_Zh,
+                model.XoaAudioZh,
+                nameof(OwnerShopViewModel.AudioZh));
+
+            if (!ModelState.IsValid)
+            {
+                RestoreCurrentFiles(model, poi);
+                return View(model);
+            }
+
             poi.MoTa_Vi = NormalizeText(model.MoTa_Vi);
             poi.MoTa_En = NormalizeText(model.MoTa_En);
             poi.MoTa_Zh = NormalizeText(model.MoTa_Zh);
-            poi.TenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.TenFileAnhMinhHoa);
+            poi.TenFileAnhMinhHoa = tenFileAnhMinhHoa;
+            poi.TenFileAudio_Vi = tenFileAudioVi;
+            poi.TenFileAudio_En = tenFileAudioEn;
+            poi.TenFileAudio_Zh = tenFileAudioZh;
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync(cancellationToken);
 
-            TempData["ok"] = "Đã lưu mô tả và ảnh cho quán.";
+            TempData["ok"] = "Đã lưu mô tả, ảnh và audio cho quán.";
             return RedirectToAction(nameof(Dashboard));
         }
 
@@ -175,7 +202,10 @@ namespace VinhKhanhApi.Controllers
                 MoTa_Zh = poi.MoTa_Zh,
                 SourceLanguage = sourceLanguage,
                 ActiveDescriptionTab = sourceLanguage,
-                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa
+                TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
+                TenFileAudio_Vi = poi.TenFileAudio_Vi,
+                TenFileAudio_En = poi.TenFileAudio_En,
+                TenFileAudio_Zh = poi.TenFileAudio_Zh
             };
         }
 
@@ -318,6 +348,9 @@ namespace VinhKhanhApi.Controllers
         private static void RestoreCurrentFiles(OwnerShopViewModel model, PoiModel poi)
         {
             model.TenFileAnhMinhHoa ??= poi.TenFileAnhMinhHoa;
+            model.TenFileAudio_Vi ??= poi.TenFileAudio_Vi;
+            model.TenFileAudio_En ??= poi.TenFileAudio_En;
+            model.TenFileAudio_Zh ??= poi.TenFileAudio_Zh;
         }
 
         private static string ResolveSourceLanguage(PoiModel poi)
@@ -343,6 +376,68 @@ namespace VinhKhanhApi.Controllers
             await using var stream = System.IO.File.Create(duongDan);
             await file.CopyToAsync(stream);
             return tenMoi;
+        }
+
+        private async Task<string?> LuuFileAudioNeuCo(IFormFile? file, string? tenFileCu, string fieldName)
+        {
+            if (file == null || file.Length == 0) return tenFileCu;
+
+            var extension = Path.GetExtension(file.FileName);
+            var laFileMp3 = string.Equals(extension, ".mp3", StringComparison.OrdinalIgnoreCase);
+            var laContentTypeMpeg = string.Equals(file.ContentType, "audio/mpeg", StringComparison.OrdinalIgnoreCase);
+
+            if (!laFileMp3 && !laContentTypeMpeg)
+            {
+                ModelState.AddModelError(fieldName, "Chỉ cho phép upload file audio MP3.");
+                return tenFileCu;
+            }
+
+            if (file.Length > KichThuocAudioToiDa)
+            {
+                ModelState.AddModelError(fieldName, "File audio không được vượt quá 20MB.");
+                return tenFileCu;
+            }
+
+            var webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+            var thuMucAudio = Path.Combine(webRootPath, "audio");
+            Directory.CreateDirectory(thuMucAudio);
+
+            var duoiFile = laFileMp3 ? extension.ToLowerInvariant() : ".mp3";
+            var tenMoi = $"{Guid.NewGuid():N}{duoiFile}";
+            var duongDan = Path.Combine(thuMucAudio, tenMoi);
+
+            try
+            {
+                await using var stream = System.IO.File.Create(duongDan);
+                await file.CopyToAsync(stream);
+                return tenMoi;
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(fieldName, "Không thể lưu file audio. Vui lòng thử lại.");
+                return tenFileCu;
+            }
+        }
+
+        private async Task<string?> CapNhatFileAudioAsync(
+            IFormFile? fileMoi,
+            string? tenFileCu,
+            bool xoaFileCu,
+            string fieldName)
+        {
+            if (fileMoi != null && fileMoi.Length > 0)
+            {
+                return await LuuFileAudioNeuCo(fileMoi, tenFileCu, fieldName);
+            }
+
+            if (xoaFileCu)
+            {
+                return null;
+            }
+
+            return tenFileCu;
         }
 
         private int? LayPoiIdTuClaims()

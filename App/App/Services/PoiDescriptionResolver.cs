@@ -6,6 +6,11 @@ namespace App.Services
     {
         public static string GetBestDescription(PoiModel poi, string? preferredLanguage)
         {
+            return GetBestDescriptionWithLanguage(poi, preferredLanguage).Text;
+        }
+
+        public static (string Language, string Text) GetBestDescriptionWithLanguage(PoiModel poi, string? preferredLanguage)
+        {
             foreach (var language in BuildLanguagePriority(preferredLanguage))
             {
                 var content = language switch
@@ -17,11 +22,11 @@ namespace App.Services
 
                 if (!string.IsNullOrWhiteSpace(content))
                 {
-                    return content.Trim();
+                    return (language, content.Trim());
                 }
             }
 
-            return string.Empty;
+            return (NormalizeLanguage(preferredLanguage), string.Empty);
         }
 
         public static string GetBestDescriptionOrDefault(PoiModel poi, string? preferredLanguage, string fallbackMessage)

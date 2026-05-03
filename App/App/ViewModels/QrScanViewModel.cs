@@ -24,7 +24,7 @@ namespace App.ViewModels
         private const string EmptyDescriptionMessage = "Chưa có nội dung thuyết minh.";
 
         private readonly LocalDatabase _db;
-        private readonly ITtsService _tts;
+        private readonly INarrationService _narration;
         private readonly AnalyticsService _analytics;
         private readonly SyncService _sync;
 
@@ -33,10 +33,10 @@ namespace App.ViewModels
 
         public event EventHandler<QrAlertRequestedEventArgs>? AlertRequested;
 
-        public QrScanViewModel(LocalDatabase db, ITtsService tts, AnalyticsService analytics, SyncService sync)
+        public QrScanViewModel(LocalDatabase db, INarrationService narration, AnalyticsService analytics, SyncService sync)
         {
             _db = db;
-            _tts = tts;
+            _narration = narration;
             _analytics = analytics;
             _sync = sync;
         }
@@ -102,38 +102,31 @@ namespace App.ViewModels
             }
 
             string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-            string noiDung = PoiDescriptionResolver.GetBestDescription(poi, maNgonNgu);
-
-            if (string.IsNullOrWhiteSpace(noiDung))
-            {
-                TrangThaiQuet = EmptyDescriptionMessage;
-                return;
-            }
 
             TrangThaiQuet = $"Đang phát thuyết minh: {poi.Ten}";
+
+            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+
+            if (!ketQuaPhat.Completed)
+            {
+                TrangThaiQuet = ketQuaPhat.Status == "empty"
+                    ? EmptyDescriptionMessage
+                    : $"Không thể phát thuyết minh: {poi.Ten}";
+                return;
+            }
 
             await _db.GhiLichSuPhatAsync(new LichSuPhatModel
             {
                 PoiId = poi.Id,
                 TenPoi = poi.Ten,
-                NgonNgu = RutGonMaNgonNgu(maNgonNgu),
+                NgonNgu = ketQuaPhat.Language,
                 ThoiGianPhat = DateTime.Now,
                 NguonKichHoat = "QR"
             });
 
-            string khoaNoiDung = StringComparer.Ordinal.GetHashCode(noiDung.Trim()).ToString("X");
-            string khoaAmThanh = $"poi:{poi.Id}:{RutGonMaNgonNgu(maNgonNgu)}:{khoaNoiDung}";
-            var ketQuaPhat = await _tts.PhatAmAsync(noiDung, maNgonNgu, khoaAmThanh, poi.Ten);
-
-            if (!ketQuaPhat.Completed)
-            {
-                TrangThaiQuet = $"Không thể phát thuyết minh: {poi.Ten}";
-                return;
-            }
-
             if (ketQuaPhat.CreatedNewSession)
             {
-                int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(noiDung);
+                int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(ketQuaPhat.TextForAnalytics);
                 await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
             }
 
@@ -146,15 +139,5 @@ namespace App.ViewModels
             DangQuet = true;
         }
 
-        private static string RutGonMaNgonNgu(string maNgonNgu)
-        {
-            if (maNgonNgu.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                return "en";
-
-            if (maNgonNgu.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-                return "zh";
-
-            return "vi";
-        }
     }
 }

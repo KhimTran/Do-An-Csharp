@@ -498,6 +498,55 @@ body.cms-body {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+    padding: 12px;
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
+    background: #fbfcfe;
+}
+
+.poi-audio-current audio {
+    width: 100%;
+}
+
+.poi-audio-file-name {
+    font-size: 13px;
+    color: #64748b;
+    word-break: break-word;
+}
+
+.poi-audio-delete-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.poi-audio-delete-option input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.poi-audio-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-left: 6px;
+}
+
+.poi-audio-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+    background: rgba(31, 181, 154, 0.14);
+    color: #0f766e;
 }
 
 .poi-inline-delete-form {
