@@ -10,6 +10,7 @@
         android:supportsRtl="true">
 		<service
             android:name=".LocationForegroundService"
+            android:exported="false"
             android:foregroundServiceType="location" />
 	</application>
 
@@ -22,5 +23,6 @@
 	<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 </manifest>

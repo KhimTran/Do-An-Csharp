@@ -30,6 +30,8 @@ public class LocationService : ILocationService
             return;
         }
 
+        StartAndroidForegroundService();
+
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
@@ -143,6 +145,7 @@ public class LocationService : ILocationService
         _cts.Dispose();
         _cts = null;
         _lastEmittedLocation = null;
+        StopAndroidForegroundService();
     }
 
     public async Task<LocationSnapshot?> LayViTriHienTaiAsync()
@@ -193,5 +196,45 @@ public class LocationService : ILocationService
             snapshot.Lng);
 
         return khoangCach >= 3;
+    }
+
+    private static void StartAndroidForegroundService()
+    {
+#if ANDROID
+        try
+        {
+            var context = Android.App.Application.Context;
+            var intent = new Android.Content.Intent(context, typeof(global::App.LocationForegroundService));
+
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
+                context.StartForegroundService(intent);
+            else
+                context.StartService(intent);
+
+            System.Diagnostics.Debug.WriteLine("[GPS] Android foreground service started.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GPS] Could not start Android foreground service: {ex.Message}");
+        }
+#endif
+    }
+
+    private static void StopAndroidForegroundService()
+    {
+#if ANDROID
+        try
+        {
+            var context = Android.App.Application.Context;
+            var intent = new Android.Content.Intent(context, typeof(global::App.LocationForegroundService));
+            context.StopService(intent);
+
+            System.Diagnostics.Debug.WriteLine("[GPS] Android foreground service stopped.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GPS] Could not stop Android foreground service: {ex.Message}");
+        }
+#endif
     }
 }

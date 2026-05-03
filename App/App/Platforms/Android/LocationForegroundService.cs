@@ -5,7 +5,9 @@ using Android.OS;
 
 namespace App
 {
-    [Service(ForegroundServiceType = Android.Content.PM.ForegroundService.TypeLocation)]
+    [Service(
+        Exported = false,
+        ForegroundServiceType = Android.Content.PM.ForegroundService.TypeLocation)]
     public class LocationForegroundService : Android.App.Service
     {
         private const string ChannelId = "location_channel";
@@ -22,6 +24,23 @@ namespace App
 
             StartForeground(1, notification);
             return StartCommandResult.Sticky;
+        }
+
+        public override void OnDestroy()
+        {
+            try
+            {
+                if (OperatingSystem.IsAndroidVersionAtLeast(24))
+                    StopForeground(StopForegroundFlags.Remove);
+                else
+                    StopForeground(true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GPS] Could not remove foreground notification: {ex.Message}");
+            }
+
+            base.OnDestroy();
         }
 
         [SupportedOSPlatform("android26.0")]

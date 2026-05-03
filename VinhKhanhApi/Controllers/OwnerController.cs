@@ -18,15 +18,18 @@ namespace VinhKhanhApi.Controllers
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
         private readonly ITranslationService _translationService;
+        private readonly IAudioFileCleanupService _audioFileCleanupService;
 
         public OwnerController(
             AppDbContext db,
             IWebHostEnvironment env,
-            ITranslationService translationService)
+            ITranslationService translationService,
+            IAudioFileCleanupService audioFileCleanupService)
         {
             _db = db;
             _env = env;
             _translationService = translationService;
+            _audioFileCleanupService = audioFileCleanupService;
         }
 
         [HttpGet]
@@ -59,6 +62,11 @@ namespace VinhKhanhApi.Controllers
                 RestoreCurrentFiles(model, poi);
                 return View(model);
             }
+
+            var audioDeXuatCuCanXoa = new List<string?>();
+            var tenFileAudioViDeXuatCu = poi.AudioFileViDeXuat;
+            var tenFileAudioEnDeXuatCu = poi.AudioFileEnDeXuat;
+            var tenFileAudioZhDeXuatCu = poi.AudioFileZhDeXuat;
 
             var imagePathDeXuat = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.ImagePathDeXuat);
             var tenFileAudioVi = await CapNhatFileAudioAsync(
@@ -101,6 +109,11 @@ namespace VinhKhanhApi.Controllers
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync(cancellationToken);
+
+            ThemAudioCuCanXoa(audioDeXuatCuCanXoa, tenFileAudioViDeXuatCu, poi.AudioFileViDeXuat);
+            ThemAudioCuCanXoa(audioDeXuatCuCanXoa, tenFileAudioEnDeXuatCu, poi.AudioFileEnDeXuat);
+            ThemAudioCuCanXoa(audioDeXuatCuCanXoa, tenFileAudioZhDeXuatCu, poi.AudioFileZhDeXuat);
+            await XoaAudioKhongConSuDungAsync(audioDeXuatCuCanXoa, cancellationToken);
 
             TempData["ok"] = "Đã gửi đề xuất thay đổi. Vui lòng chờ Admin duyệt trước khi nội dung hiển thị công khai.";
             return RedirectToAction(nameof(Dashboard));
@@ -405,6 +418,27 @@ namespace VinhKhanhApi.Controllers
         {
             var normalizedValue = value?.Trim();
             return string.IsNullOrWhiteSpace(normalizedValue) ? null : normalizedValue;
+        }
+
+        private static void ThemAudioCuCanXoa(ICollection<string?> audioCanXoa, string? tenFileCu, string? tenFileMoi)
+        {
+            if (!string.IsNullOrWhiteSpace(tenFileCu) &&
+                !string.Equals(tenFileCu, tenFileMoi, StringComparison.OrdinalIgnoreCase))
+            {
+                audioCanXoa.Add(tenFileCu);
+            }
+        }
+
+        private async Task XoaAudioKhongConSuDungAsync(
+            IEnumerable<string?> audioCanXoa,
+            CancellationToken cancellationToken = default)
+        {
+            foreach (var tenFile in audioCanXoa)
+            {
+                await _audioFileCleanupService.DeleteAudioFileIfUnusedAsync(
+                    tenFile,
+                    cancellationToken: cancellationToken);
+            }
         }
 
         private static string? NormalizeProposalText(string? proposedValue, string currentPublicValue)
