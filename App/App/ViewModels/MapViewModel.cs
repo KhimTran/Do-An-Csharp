@@ -42,6 +42,9 @@ namespace App.ViewModels
             _analytics = analytics;
 
             TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
+            TieuDeDiemHienThi = LocalizationResourceManager.Instance["MapPage_NearbyPlaceLabel"];
+            TenDiemHienThi = TenPoiGanNhat;
+            KhoangCachDiemHienThiText = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
             TrangThaiGps = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
             TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackIdle"];
             _tts.PlaybackStateChanged += Tts_PlaybackStateChanged;
@@ -55,6 +58,21 @@ namespace App.ViewModels
 
         [ObservableProperty]
         private bool coPoiGanNhat;
+
+        [ObservableProperty]
+        private string tieuDeDiemHienThi = string.Empty;
+
+        [ObservableProperty]
+        private string tenDiemHienThi = string.Empty;
+
+        [ObservableProperty]
+        private double khoangCachDiemHienThi;
+
+        [ObservableProperty]
+        private string khoangCachDiemHienThiText = string.Empty;
+
+        [ObservableProperty]
+        private bool dangTheoDoiPoi;
 
         [ObservableProperty]
         private string thongBaoBanDo = string.Empty;
@@ -150,6 +168,7 @@ namespace App.ViewModels
             {
                 CapNhatPopupPoi(poi);
                 HienThiPopupPoi = true;
+                CapNhatThongTinDiemHienThi();
             });
 
             PhatMapState();
@@ -230,6 +249,7 @@ namespace App.ViewModels
 
             _poiDangTracking = _poiDangMoPopup;
             _poiCanCanhToi = null;
+            await MainThread.InvokeOnMainThreadAsync(CapNhatThongTinDiemHienThi);
             await DongPopupAsync(capNhatBanDo: false);
             PhatMapState(focusOnRoute: _viTriNguoiDungHienTai != null);
         }
@@ -244,6 +264,7 @@ namespace App.ViewModels
             if (string.IsNullOrWhiteSpace(TenPoiGanNhat))
                 TenPoiGanNhat = LocalizationResourceManager.Instance["MapPage_NoNearest"];
 
+            CapNhatThongTinDiemHienThi();
             PhatMapState();
             return Task.CompletedTask;
         }
@@ -289,6 +310,8 @@ namespace App.ViewModels
                         KhoangCachGanNhat = minKc;
                         CoPoiGanNhat = minKc <= banKinhMacDinh;
                     }
+
+                    CapNhatThongTinDiemHienThi();
                 });
 
                 _ = _analytics.GuiRoutePingAsync(lat, lng, "GPS");
@@ -466,6 +489,55 @@ namespace App.ViewModels
                 .FirstOrDefault();
         }
 
+        private void CapNhatThongTinDiemHienThi()
+        {
+            var viTri = _viTriNguoiDungHienTai;
+            var poiDangTracking = _poiDangTracking;
+            DangTheoDoiPoi = poiDangTracking != null;
+
+            if (poiDangTracking != null)
+            {
+                TieuDeDiemHienThi = LocalizationResourceManager.Instance["MapPage_TrackingPlaceLabel"];
+                TenDiemHienThi = poiDangTracking.Ten;
+
+                if (viTri == null)
+                {
+                    KhoangCachDiemHienThi = 0;
+                    KhoangCachDiemHienThiText = LocalizationResourceManager.Instance["MapPage_WaitingGps"];
+                    return;
+                }
+
+                var khoangCach = GeofenceService.TinhKhoangCachMetres(
+                    viTri.Lat,
+                    viTri.Lng,
+                    poiDangTracking.Lat,
+                    poiDangTracking.Lng);
+
+                KhoangCachDiemHienThi = khoangCach;
+                KhoangCachDiemHienThiText = DinhDangKhoangCach(khoangCach);
+                return;
+            }
+
+            TieuDeDiemHienThi = LocalizationResourceManager.Instance["MapPage_NearbyPlaceLabel"];
+            TenDiemHienThi = string.IsNullOrWhiteSpace(TenPoiGanNhat)
+                ? LocalizationResourceManager.Instance["MapPage_NoNearest"]
+                : TenPoiGanNhat;
+            KhoangCachDiemHienThi = KhoangCachGanNhat;
+            KhoangCachDiemHienThiText = viTri == null || TenDiemHienThi == LocalizationResourceManager.Instance["MapPage_NoNearest"]
+                ? LocalizationResourceManager.Instance["MapPage_WaitingGps"]
+                : DinhDangKhoangCach(KhoangCachGanNhat);
+        }
+
+        private static string DinhDangKhoangCach(double khoangCachMet)
+        {
+            if (!double.IsFinite(khoangCachMet) || khoangCachMet < 0)
+                return LocalizationResourceManager.Instance["MapPage_WaitingGps"];
+
+            return khoangCachMet < 1000
+                ? $"Cách bạn {khoangCachMet:F0} m"
+                : $"Cách bạn {khoangCachMet / 1000:F1} km";
+        }
+
         private void CapNhatPopupPoi(PoiModel poi)
         {
             TieuDePopupPoi = poi.Ten;
@@ -493,7 +565,7 @@ namespace App.ViewModels
 
             if (nguon == "GPS" && (DateTime.Now - _lanPhatGanNhat).TotalSeconds < 5)
             {
-                TrangThaiPhat = "Đang xử lý hàng đợi audio, vui lòng chờ...";
+                TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackCooldown"];
                 return;
             }
 

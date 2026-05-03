@@ -23,12 +23,12 @@
                 VerticalOptions="Center"
                 WidthRequest="340"
                 MaximumWidthRequest="420"
-                MaximumHeightRequest="460"
-                Padding="16,14"
+                MaximumHeightRequest="430"
+                Padding="16,12"
                 BackgroundColor="White"
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 12">
-                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
                     <Label
                         Grid.Row="0"
                         FontSize="20"
@@ -36,14 +36,18 @@
                         Text="{Binding TieuDePopupPoi}"
                         TextColor="#1E1E1E" />
 
-                    <Image
+                    <Border
                         Grid.Row="1"
-                        Aspect="AspectFill"
-                        HeightRequest="170"
+                        HeightRequest="140"
                         IsVisible="{Binding CoAnhPopupPoi}"
-                        Source="{Binding UrlAnhPopupPoi}" />
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 10">
+                        <Image
+                            Aspect="AspectFill"
+                            Source="{Binding UrlAnhPopupPoi}" />
+                    </Border>
 
-                    <ScrollView Grid.Row="2" HeightRequest="170">
+                    <ScrollView Grid.Row="2" MaximumHeightRequest="96">
                         <Label
                             Margin="2,0"
                             CharacterSpacing="0.1"
@@ -54,7 +58,7 @@
                             TextColor="#3F4552" />
                     </ScrollView>
 
-                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,0">
+                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
                         <Label />
                         <Button
                             Grid.Column="1"
@@ -106,19 +110,52 @@
 
         <Border Grid.Row="1"
                 Margin="12"
-                Padding="12"
+                Padding="14,12"
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 12"
                 ZIndex="5">
-            <VerticalStackLayout Spacing="6">
+            <VerticalStackLayout Spacing="10">
                 <Label
                     FontAttributes="Bold"
-                    Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}" />
-                <Label Text="{Binding TenPoiGanNhat}" />
-                <Label Text="{Binding KhoangCachGanNhat, StringFormat='{}{0:F0} m'}" />
-                <Label FontSize="12" Text="{Binding TrangThaiPhat}" TextColor="#1F5C99" />
-                <Label FontSize="12" Text="{Binding TrangThaiGps}" TextColor="#52606D" />
-                <Label FontSize="12" Text="{Binding ThongBaoBanDo}" TextColor="#52606D" />
+                    FontSize="16"
+                    Text="{Binding [MapPage_NearestRoute], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                    TextColor="#1E1E1E" />
+
+                <VerticalStackLayout Spacing="3">
+                    <Label
+                        FontSize="12"
+                        FontAttributes="Bold"
+                        Text="{Binding TieuDeDiemHienThi}"
+                        TextColor="#52606D" />
+                    <Label
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        Text="{Binding TenDiemHienThi}"
+                        TextColor="#1E1E1E" />
+                    <Label
+                        FontSize="13"
+                        Text="{Binding KhoangCachDiemHienThiText}"
+                        TextColor="#3F4552" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="3">
+                    <Label
+                        FontSize="12"
+                        FontAttributes="Bold"
+                        Text="{Binding [MapPage_SuggestedRouteLabel], Source={x:Static services:LocalizationResourceManager.Instance}}"
+                        TextColor="#52606D" />
+                    <Label
+                        FontSize="13"
+                        LineBreakMode="WordWrap"
+                        Text="{Binding TenDiemHienThi, StringFormat='Bắt đầu từ {0} và khám phá thêm các địa điểm nổi bật gần đó.'}"
+                        TextColor="#3F4552" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="3">
+                    <Label FontSize="12" Text="{Binding TrangThaiPhat}" TextColor="#1F5C99" />
+                    <Label FontSize="12" Text="{Binding TrangThaiGps}" TextColor="#52606D" />
+                    <Label FontSize="12" Text="{Binding ThongBaoBanDo}" TextColor="#52606D" />
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </Border>
     </Grid>
