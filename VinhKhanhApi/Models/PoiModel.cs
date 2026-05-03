@@ -30,6 +30,12 @@
 
         // --- Luồng duyệt nội dung chủ quán submit ---
         public string? NoiDungDeXuat { get; set; }
+        public string? MoTaEnDeXuat { get; set; }
+        public string? MoTaZhDeXuat { get; set; }
+        public string? AudioFileViDeXuat { get; set; }
+        public string? AudioFileEnDeXuat { get; set; }
+        public string? AudioFileZhDeXuat { get; set; }
+        public string? ImagePathDeXuat { get; set; }
         public string TrangThaiDuyet { get; set; } = "Approved"; // Pending | Approved | Rejected
         public DateTime? NgayDeXuat { get; set; }
         public DateTime? NgayDuyet { get; set; }

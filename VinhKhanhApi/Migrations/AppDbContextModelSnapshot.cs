@@ -69,6 +69,15 @@ namespace VinhKhanhApi.Migrations
                     b.Property<double>("BanKinh")
                         .HasColumnType("float");
 
+                    b.Property<string>("AudioFileEnDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AudioFileViDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AudioFileZhDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Lat")
                         .HasColumnType("float");
 
@@ -84,10 +93,19 @@ namespace VinhKhanhApi.Migrations
                     b.Property<string>("GioMoCua")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ImagePathDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("LyDoTuChoi")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MonDacTrung")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MoTaEnDeXuat")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MoTaZhDeXuat")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("NgayDeXuat")

@@ -1,0 +1,155 @@
+@model List<VinhKhanhApi.Models.PoiModel>
+@{
+    ViewData["Title"] = "Đề xuất Owner";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Đề xuất Owner</h1>
+        <p class="page-subtitle">Duyệt hoặc từ chối các thay đổi mô tả, audio và ảnh do chủ quán gửi.</p>
+    </div>
+    <div class="page-actions">
+        <a class="vk-btn secondary" href="@Url.Action("Index", "Cms")">Quay lại POI</a>
+    </div>
+</div>
+
+@if (TempData["ok"] != null)
+{
+    <div class="alert alert-success">@TempData["ok"]</div>
+}
+
+@if (TempData["err"] != null)
+{
+    <div class="alert alert-danger">@TempData["err"]</div>
+}
+
+@if (Model.Count == 0)
+{
+    <section class="poi-editor-card">
+        <div class="poi-empty-state">Hiện không có đề xuất nào đang chờ duyệt.</div>
+    </section>
+}
+else
+{
+    <section class="poi-editor-form">
+        @foreach (var poi in Model)
+        {
+            <article class="poi-editor-card">
+                <div class="poi-section-heading">
+                    <div>
+                        <h2>@poi.Ten</h2>
+                        <p>
+                            Ngày gửi:
+                            @(poi.NgayDeXuat.HasValue ? poi.NgayDeXuat.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa có")
+                        </p>
+                    </div>
+                    <span class="badge-pill badge-pending">Pending</span>
+                </div>
+
+                <div class="owner-submission-compare">
+                    <div>
+                        <h3>Nội dung hiện tại</h3>
+                        <div class="owner-submission-block">
+                            <strong>Tiếng Việt</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.MoTa_Vi) ? "Chưa có nội dung." : poi.MoTa_Vi)</p>
+                        </div>
+                        <div class="owner-submission-block">
+                            <strong>English</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.MoTa_En) ? "Chưa có nội dung." : poi.MoTa_En)</p>
+                        </div>
+                        <div class="owner-submission-block">
+                            <strong>Tiếng Hoa</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.MoTa_Zh) ? "Chưa có nội dung." : poi.MoTa_Zh)</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3>Nội dung đề xuất</h3>
+                        <div class="owner-submission-block is-proposed">
+                            <strong>Tiếng Việt</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.NoiDungDeXuat) ? "Không thay đổi." : poi.NoiDungDeXuat)</p>
+                        </div>
+                        <div class="owner-submission-block is-proposed">
+                            <strong>English</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.MoTaEnDeXuat) ? "Không thay đổi." : poi.MoTaEnDeXuat)</p>
+                        </div>
+                        <div class="owner-submission-block is-proposed">
+                            <strong>Tiếng Hoa</strong>
+                            <p>@(string.IsNullOrWhiteSpace(poi.MoTaZhDeXuat) ? "Không thay đổi." : poi.MoTaZhDeXuat)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="owner-submission-media-grid">
+                    <div>
+                        <h3>Audio hiện tại</h3>
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "Tiếng Việt", FileName: poi.TenFileAudio_Vi))
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "English", FileName: poi.TenFileAudio_En))
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "Tiếng Hoa", FileName: poi.TenFileAudio_Zh))
+                    </div>
+
+                    <div>
+                        <h3>Audio đề xuất</h3>
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "Tiếng Việt", FileName: poi.AudioFileViDeXuat))
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "English", FileName: poi.AudioFileEnDeXuat))
+                        @await Html.PartialAsync("_OwnerSubmissionAudio", (Label: "Tiếng Hoa", FileName: poi.AudioFileZhDeXuat))
+                    </div>
+                </div>
+
+                <div class="owner-submission-media-grid">
+                    <div>
+                        <h3>Ảnh hiện tại</h3>
+                        @if (!string.IsNullOrWhiteSpace(poi.TenFileAnhMinhHoa))
+                        {
+                            <img src="~/images/poi/@poi.TenFileAnhMinhHoa" alt="Ảnh hiện tại @poi.Ten" class="poi-preview-image" />
+                            <div class="poi-audio-file-name mt-2">@poi.TenFileAnhMinhHoa</div>
+                        }
+                        else
+                        {
+                            <div class="poi-empty-state">Chưa có ảnh hiện tại.</div>
+                        }
+                    </div>
+
+                    <div>
+                        <h3>Ảnh đề xuất</h3>
+                        @if (!string.IsNullOrWhiteSpace(poi.ImagePathDeXuat))
+                        {
+                            <img src="~/images/poi/@poi.ImagePathDeXuat" alt="Ảnh đề xuất @poi.Ten" class="poi-preview-image" />
+                            <div class="poi-audio-file-name mt-2">@poi.ImagePathDeXuat</div>
+                        }
+                        else
+                        {
+                            <div class="poi-empty-state">Không có ảnh đề xuất.</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="owner-submission-actions">
+                    <form asp-action="ApproveOwnerSubmission"
+                          asp-controller="Cms"
+                          asp-route-id="@poi.Id"
+                          method="post"
+                          onsubmit="return confirm('Duyệt đề xuất này và cập nhật nội dung public?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="vk-btn primary">Duyệt</button>
+                    </form>
+
+                    <form asp-action="RejectOwnerSubmission"
+                          asp-controller="Cms"
+                          asp-route-id="@poi.Id"
+                          method="post"
+                          class="owner-submission-reject-form"
+                          onsubmit="return confirm('Từ chối đề xuất này? Nội dung public sẽ không thay đổi.');">
+                        @Html.AntiForgeryToken()
+                        <input type="text"
+                               name="lyDoTuChoi"
+                               class="form-control approve-reason"
+                               placeholder="Lý do từ chối"
+                               required />
+                        <button type="submit" class="vk-btn danger">Từ chối</button>
+                    </form>
+                </div>
+            </article>
+        }
+    </section>
+}

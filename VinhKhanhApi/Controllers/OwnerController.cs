@@ -60,41 +60,49 @@ namespace VinhKhanhApi.Controllers
                 return View(model);
             }
 
-            var tenFileAnhMinhHoa = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.TenFileAnhMinhHoa);
+            var imagePathDeXuat = await LuuFileAnhNeuCo(model.AnhMinhHoa, poi.ImagePathDeXuat);
             var tenFileAudioVi = await CapNhatFileAudioAsync(
                 model.AudioVi,
-                poi.TenFileAudio_Vi,
+                poi.AudioFileViDeXuat,
                 model.XoaAudioVi,
                 nameof(OwnerShopViewModel.AudioVi));
             var tenFileAudioEn = await CapNhatFileAudioAsync(
                 model.AudioEn,
-                poi.TenFileAudio_En,
+                poi.AudioFileEnDeXuat,
                 model.XoaAudioEn,
                 nameof(OwnerShopViewModel.AudioEn));
             var tenFileAudioZh = await CapNhatFileAudioAsync(
                 model.AudioZh,
-                poi.TenFileAudio_Zh,
+                poi.AudioFileZhDeXuat,
                 model.XoaAudioZh,
                 nameof(OwnerShopViewModel.AudioZh));
 
             if (!ModelState.IsValid)
             {
+                model.ImagePathDeXuat = imagePathDeXuat;
+                model.AudioFileViDeXuat = tenFileAudioVi;
+                model.AudioFileEnDeXuat = tenFileAudioEn;
+                model.AudioFileZhDeXuat = tenFileAudioZh;
                 RestoreCurrentFiles(model, poi);
                 return View(model);
             }
 
-            poi.MoTa_Vi = NormalizeText(model.MoTa_Vi);
-            poi.MoTa_En = NormalizeText(model.MoTa_En);
-            poi.MoTa_Zh = NormalizeText(model.MoTa_Zh);
-            poi.TenFileAnhMinhHoa = tenFileAnhMinhHoa;
-            poi.TenFileAudio_Vi = tenFileAudioVi;
-            poi.TenFileAudio_En = tenFileAudioEn;
-            poi.TenFileAudio_Zh = tenFileAudioZh;
+            poi.NoiDungDeXuat = NormalizeProposalText(model.MoTa_Vi, poi.MoTa_Vi);
+            poi.MoTaEnDeXuat = NormalizeProposalText(model.MoTa_En, poi.MoTa_En);
+            poi.MoTaZhDeXuat = NormalizeProposalText(model.MoTa_Zh, poi.MoTa_Zh);
+            poi.ImagePathDeXuat = imagePathDeXuat;
+            poi.AudioFileViDeXuat = tenFileAudioVi;
+            poi.AudioFileEnDeXuat = tenFileAudioEn;
+            poi.AudioFileZhDeXuat = tenFileAudioZh;
+            poi.TrangThaiDuyet = "Pending";
+            poi.NgayDeXuat = DateTime.UtcNow;
+            poi.NgayDuyet = null;
+            poi.LyDoTuChoi = null;
             poi.NguoiCapNhat = User.Identity?.Name;
 
             await _db.SaveChangesAsync(cancellationToken);
 
-            TempData["ok"] = "Đã lưu mô tả, ảnh và audio cho quán.";
+            TempData["ok"] = "Đã gửi đề xuất thay đổi. Vui lòng chờ Admin duyệt trước khi nội dung hiển thị công khai.";
             return RedirectToAction(nameof(Dashboard));
         }
 
@@ -197,15 +205,23 @@ namespace VinhKhanhApi.Controllers
             {
                 PoiId = poi.Id,
                 Ten = poi.Ten,
-                MoTa_Vi = poi.MoTa_Vi,
-                MoTa_En = poi.MoTa_En,
-                MoTa_Zh = poi.MoTa_Zh,
+                MoTa_Vi = GetDescriptionByLanguage(poi, OwnerShopViewModel.VietnameseLanguage),
+                MoTa_En = GetDescriptionByLanguage(poi, OwnerShopViewModel.EnglishLanguage),
+                MoTa_Zh = GetDescriptionByLanguage(poi, OwnerShopViewModel.ChineseLanguage),
                 SourceLanguage = sourceLanguage,
                 ActiveDescriptionTab = sourceLanguage,
                 TenFileAnhMinhHoa = poi.TenFileAnhMinhHoa,
                 TenFileAudio_Vi = poi.TenFileAudio_Vi,
                 TenFileAudio_En = poi.TenFileAudio_En,
-                TenFileAudio_Zh = poi.TenFileAudio_Zh
+                TenFileAudio_Zh = poi.TenFileAudio_Zh,
+                AudioFileViDeXuat = poi.AudioFileViDeXuat,
+                AudioFileEnDeXuat = poi.AudioFileEnDeXuat,
+                AudioFileZhDeXuat = poi.AudioFileZhDeXuat,
+                ImagePathDeXuat = poi.ImagePathDeXuat,
+                TrangThaiDuyet = poi.TrangThaiDuyet,
+                NgayDeXuat = poi.NgayDeXuat,
+                NgayDuyet = poi.NgayDuyet,
+                LyDoTuChoi = poi.LyDoTuChoi
             };
         }
 
@@ -226,13 +242,13 @@ namespace VinhKhanhApi.Controllers
             {
                 model.MoTa_Vi = sourceLanguage == OwnerShopViewModel.VietnameseLanguage
                     ? sourceText
-                    : existingPoi.MoTa_Vi;
+                    : GetDescriptionByLanguage(existingPoi, OwnerShopViewModel.VietnameseLanguage);
                 model.MoTa_En = sourceLanguage == OwnerShopViewModel.EnglishLanguage
                     ? sourceText
-                    : existingPoi.MoTa_En;
+                    : GetDescriptionByLanguage(existingPoi, OwnerShopViewModel.EnglishLanguage);
                 model.MoTa_Zh = sourceLanguage == OwnerShopViewModel.ChineseLanguage
                     ? sourceText
-                    : existingPoi.MoTa_Zh;
+                    : GetDescriptionByLanguage(existingPoi, OwnerShopViewModel.ChineseLanguage);
 
                 return true;
             }
@@ -325,10 +341,24 @@ namespace VinhKhanhApi.Controllers
         private static string GetDescriptionByLanguage(PoiModel poi, string language) =>
             OwnerShopViewModel.NormalizeLanguage(language) switch
             {
-                OwnerShopViewModel.EnglishLanguage => poi.MoTa_En,
-                OwnerShopViewModel.ChineseLanguage => poi.MoTa_Zh,
-                _ => poi.MoTa_Vi
+                OwnerShopViewModel.EnglishLanguage => UseOwnerProposal(poi, poi.MoTaEnDeXuat, poi.MoTa_En),
+                OwnerShopViewModel.ChineseLanguage => UseOwnerProposal(poi, poi.MoTaZhDeXuat, poi.MoTa_Zh),
+                _ => UseOwnerProposal(poi, poi.NoiDungDeXuat, poi.MoTa_Vi)
             };
+
+        private static string UseOwnerProposal(PoiModel poi, string? proposedValue, string publicValue)
+        {
+            if (HasVisibleOwnerProposal(poi) && !string.IsNullOrWhiteSpace(proposedValue))
+            {
+                return proposedValue.Trim();
+            }
+
+            return publicValue;
+        }
+
+        private static bool HasVisibleOwnerProposal(PoiModel poi) =>
+            string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(poi.TrangThaiDuyet, "Rejected", StringComparison.OrdinalIgnoreCase);
 
         private static void ApplyDescriptionsToViewModel(
             OwnerShopViewModel model,
@@ -351,6 +381,14 @@ namespace VinhKhanhApi.Controllers
             model.TenFileAudio_Vi ??= poi.TenFileAudio_Vi;
             model.TenFileAudio_En ??= poi.TenFileAudio_En;
             model.TenFileAudio_Zh ??= poi.TenFileAudio_Zh;
+            model.ImagePathDeXuat ??= poi.ImagePathDeXuat;
+            model.AudioFileViDeXuat ??= poi.AudioFileViDeXuat;
+            model.AudioFileEnDeXuat ??= poi.AudioFileEnDeXuat;
+            model.AudioFileZhDeXuat ??= poi.AudioFileZhDeXuat;
+            model.TrangThaiDuyet = poi.TrangThaiDuyet;
+            model.NgayDeXuat = poi.NgayDeXuat;
+            model.NgayDuyet = poi.NgayDuyet;
+            model.LyDoTuChoi = poi.LyDoTuChoi;
         }
 
         private static string ResolveSourceLanguage(PoiModel poi)
@@ -362,6 +400,25 @@ namespace VinhKhanhApi.Controllers
         }
 
         private static string NormalizeText(string? value) => value?.Trim() ?? string.Empty;
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            var normalizedValue = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalizedValue) ? null : normalizedValue;
+        }
+
+        private static string? NormalizeProposalText(string? proposedValue, string currentPublicValue)
+        {
+            var normalizedProposal = NormalizeOptionalText(proposedValue);
+            if (normalizedProposal == null)
+            {
+                return null;
+            }
+
+            return string.Equals(normalizedProposal, NormalizeText(currentPublicValue), StringComparison.Ordinal)
+                ? null
+                : normalizedProposal;
+        }
 
         private async Task<string?> LuuFileAnhNeuCo(IFormFile? file, string? fileNameCu)
         {

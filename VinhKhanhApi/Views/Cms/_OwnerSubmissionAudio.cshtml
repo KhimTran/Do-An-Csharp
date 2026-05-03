@@ -1,0 +1,14 @@
+@model (string Label, string? FileName)
+
+<div class="owner-submission-audio-row">
+    <strong>@Model.Label</strong>
+    @if (!string.IsNullOrWhiteSpace(Model.FileName))
+    {
+        <audio controls src="@Url.Content($"~/audio/{Model.FileName}")"></audio>
+        <span class="poi-audio-file-name">@Model.FileName</span>
+    }
+    else
+    {
+        <span class="poi-audio-file-name">Không có audio.</span>
+    }
+</div>

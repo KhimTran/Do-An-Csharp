@@ -29,6 +29,8 @@
                 {
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Index" ? "active" : "")"
                        href="@Url.Action("Index", "Cms")">Quản lý POI</a>
+                    <a class="nav-link @(currentController == "Cms" && currentAction == "OwnerSubmissions" ? "active" : "")"
+                       href="@Url.Action("OwnerSubmissions", "Cms")">Đề xuất Owner</a>
                     <a class="nav-link @(currentController == "Cms" && currentAction == "Stats" ? "active" : "")"
                        href="@Url.Action("Stats", "Cms")">Thống kê tổng</a>
                     <a class="nav-link @(currentController == "Cms" && currentAction == "QrCodes" ? "active" : "")"

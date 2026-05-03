@@ -206,6 +206,95 @@ namespace VinhKhanhApi.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> OwnerSubmissions()
+        {
+            var submissions = await _db.POIs
+                .AsNoTracking()
+                .Where(x => x.TrangThaiDuyet == "Pending")
+                .OrderByDescending(x => x.NgayDeXuat)
+                .ThenBy(x => x.Ten)
+                .ToListAsync();
+
+            return View(submissions);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveOwnerSubmission(int id, CancellationToken cancellationToken)
+        {
+            var poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (poi == null) return NotFound();
+
+            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["err"] = "Chỉ có đề xuất Pending mới được duyệt.";
+                return RedirectToAction(nameof(OwnerSubmissions));
+            }
+
+            if (!string.IsNullOrWhiteSpace(poi.NoiDungDeXuat))
+                poi.MoTa_Vi = poi.NoiDungDeXuat.Trim();
+
+            if (!string.IsNullOrWhiteSpace(poi.MoTaEnDeXuat))
+                poi.MoTa_En = poi.MoTaEnDeXuat.Trim();
+
+            if (!string.IsNullOrWhiteSpace(poi.MoTaZhDeXuat))
+                poi.MoTa_Zh = poi.MoTaZhDeXuat.Trim();
+
+            if (!string.IsNullOrWhiteSpace(poi.AudioFileViDeXuat))
+                poi.TenFileAudio_Vi = poi.AudioFileViDeXuat;
+
+            if (!string.IsNullOrWhiteSpace(poi.AudioFileEnDeXuat))
+                poi.TenFileAudio_En = poi.AudioFileEnDeXuat;
+
+            if (!string.IsNullOrWhiteSpace(poi.AudioFileZhDeXuat))
+                poi.TenFileAudio_Zh = poi.AudioFileZhDeXuat;
+
+            if (!string.IsNullOrWhiteSpace(poi.ImagePathDeXuat))
+                poi.TenFileAnhMinhHoa = poi.ImagePathDeXuat;
+
+            poi.TrangThaiDuyet = "Approved";
+            poi.NgayDuyet = DateTime.UtcNow;
+            poi.LyDoTuChoi = null;
+            poi.NoiDungDeXuat = null;
+            poi.MoTaEnDeXuat = null;
+            poi.MoTaZhDeXuat = null;
+            poi.AudioFileViDeXuat = null;
+            poi.AudioFileEnDeXuat = null;
+            poi.AudioFileZhDeXuat = null;
+            poi.ImagePathDeXuat = null;
+            poi.NguoiCapNhat = User.Identity?.Name ?? "admin";
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            TempData["ok"] = $"Đã duyệt đề xuất cho POI {poi.Ten}.";
+            return RedirectToAction(nameof(OwnerSubmissions));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectOwnerSubmission(int id, string? lyDoTuChoi, CancellationToken cancellationToken)
+        {
+            var poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (poi == null) return NotFound();
+
+            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["err"] = "Chỉ có đề xuất Pending mới được từ chối.";
+                return RedirectToAction(nameof(OwnerSubmissions));
+            }
+
+            poi.TrangThaiDuyet = "Rejected";
+            poi.LyDoTuChoi = NormalizeOptionalText(lyDoTuChoi) ?? "Admin từ chối đề xuất.";
+            poi.NgayDuyet = DateTime.UtcNow;
+            poi.NguoiCapNhat = User.Identity?.Name ?? "admin";
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            TempData["ok"] = $"Đã từ chối đề xuất cho POI {poi.Ten}.";
+            return RedirectToAction(nameof(OwnerSubmissions));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateOwnerAccount(string username, string password, int poiId)

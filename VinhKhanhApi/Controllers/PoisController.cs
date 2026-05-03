@@ -15,16 +15,14 @@ namespace VinhKhanhApi.Controllers
 
         // GET api/pois — App MAUI gọi để lấy danh sách POI đã duyệt.
         [HttpGet]
-        public async Task<ActionResult<List<PoiApiItemDto>>> GetAll([FromQuery] bool includePending = false)
+        public async Task<ActionResult<List<PoiApiItemDto>>> GetAll()
         {
             ApplyNoCacheHeaders();
 
             var query = _db.POIs
                 .AsNoTracking()
+                .Where(p => p.TrangThaiDuyet == "Approved")
                 .AsQueryable();
-
-            if (!includePending)
-                query = query.Where(p => p.TrangThaiDuyet == "Approved");
 
             var danhSach = await query
                 .OrderBy(p => p.UuTien)
@@ -41,7 +39,7 @@ namespace VinhKhanhApi.Controllers
 
             var poi = await _db.POIs
                 .AsNoTracking()
-                .Where(p => p.Id == id)
+                .Where(p => p.Id == id && p.TrangThaiDuyet == "Approved")
                 .Select(MapToDtoExpression())
                 .FirstOrDefaultAsync();
             if (poi == null) return NotFound();
@@ -92,8 +90,16 @@ namespace VinhKhanhApi.Controllers
             poi.MonDacTrung = request.MonDacTrung;
             poi.GalleryJson = request.GalleryJson;
             poi.NoiDungDeXuat = request.NoiDungDeXuat;
+            poi.MoTaEnDeXuat = request.MoTaEnDeXuat;
+            poi.MoTaZhDeXuat = request.MoTaZhDeXuat;
+            poi.AudioFileViDeXuat = request.AudioFileViDeXuat;
+            poi.AudioFileEnDeXuat = request.AudioFileEnDeXuat;
+            poi.AudioFileZhDeXuat = request.AudioFileZhDeXuat;
+            poi.ImagePathDeXuat = request.ImagePathDeXuat;
             poi.TrangThaiDuyet = "Pending";
             poi.NgayDeXuat = DateTime.UtcNow;
+            poi.NgayDuyet = null;
+            poi.LyDoTuChoi = null;
             poi.NguoiCapNhat = request.TenChuQuan;
 
             await _db.SaveChangesAsync();
@@ -108,14 +114,41 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FindAsync(id);
             if (poi == null) return NotFound();
 
+            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Chỉ có đề xuất Pending mới được duyệt hoặc từ chối." });
+
             if (request.Approved)
             {
                 if (!string.IsNullOrWhiteSpace(poi.NoiDungDeXuat))
-                    poi.MoTa_Vi = poi.NoiDungDeXuat;
+                    poi.MoTa_Vi = poi.NoiDungDeXuat.Trim();
+
+                if (!string.IsNullOrWhiteSpace(poi.MoTaEnDeXuat))
+                    poi.MoTa_En = poi.MoTaEnDeXuat.Trim();
+
+                if (!string.IsNullOrWhiteSpace(poi.MoTaZhDeXuat))
+                    poi.MoTa_Zh = poi.MoTaZhDeXuat.Trim();
+
+                if (!string.IsNullOrWhiteSpace(poi.AudioFileViDeXuat))
+                    poi.TenFileAudio_Vi = poi.AudioFileViDeXuat;
+
+                if (!string.IsNullOrWhiteSpace(poi.AudioFileEnDeXuat))
+                    poi.TenFileAudio_En = poi.AudioFileEnDeXuat;
+
+                if (!string.IsNullOrWhiteSpace(poi.AudioFileZhDeXuat))
+                    poi.TenFileAudio_Zh = poi.AudioFileZhDeXuat;
+
+                if (!string.IsNullOrWhiteSpace(poi.ImagePathDeXuat))
+                    poi.TenFileAnhMinhHoa = poi.ImagePathDeXuat;
 
                 poi.TrangThaiDuyet = "Approved";
                 poi.LyDoTuChoi = null;
                 poi.NoiDungDeXuat = null;
+                poi.MoTaEnDeXuat = null;
+                poi.MoTaZhDeXuat = null;
+                poi.AudioFileViDeXuat = null;
+                poi.AudioFileEnDeXuat = null;
+                poi.AudioFileZhDeXuat = null;
+                poi.ImagePathDeXuat = null;
             }
             else
             {
@@ -139,6 +172,12 @@ namespace VinhKhanhApi.Controllers
             public string? MonDacTrung { get; set; }
             public string? GalleryJson { get; set; }
             public string? NoiDungDeXuat { get; set; }
+            public string? MoTaEnDeXuat { get; set; }
+            public string? MoTaZhDeXuat { get; set; }
+            public string? AudioFileViDeXuat { get; set; }
+            public string? AudioFileEnDeXuat { get; set; }
+            public string? AudioFileZhDeXuat { get; set; }
+            public string? ImagePathDeXuat { get; set; }
         }
 
         public class ApproveRequest

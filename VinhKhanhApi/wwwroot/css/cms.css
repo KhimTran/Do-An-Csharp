@@ -744,6 +744,81 @@ body.cms-body {
     border-radius: 12px;
 }
 
+.owner-submission-compare,
+.owner-submission-media-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.owner-submission-compare h3,
+.owner-submission-media-grid h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.owner-submission-block {
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    background: #fbfcfe;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.owner-submission-block.is-proposed {
+    border-color: rgba(31, 181, 154, 0.32);
+    background: rgba(31, 181, 154, 0.06);
+}
+
+.owner-submission-block strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #0f172a;
+}
+
+.owner-submission-block p {
+    margin: 0;
+    color: #475569;
+    white-space: pre-line;
+}
+
+.owner-submission-audio-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    background: #fbfcfe;
+    margin-bottom: 10px;
+}
+
+.owner-submission-audio-row audio {
+    width: 100%;
+}
+
+.owner-submission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-top: 20px;
+}
+
+.owner-submission-actions form,
+.owner-submission-reject-form {
+    margin: 0;
+}
+
+.owner-submission-reject-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
 @media (max-width: 1200px) {
     .cms-shell {
         grid-template-columns: 180px minmax(0, 1fr);
@@ -796,6 +871,11 @@ body.cms-body {
     }
 
     .poi-admin-preview-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .owner-submission-compare,
+    .owner-submission-media-grid {
         grid-template-columns: 1fr;
     }
 }

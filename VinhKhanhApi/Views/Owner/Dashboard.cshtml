@@ -5,6 +5,17 @@
     var sourceLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(Model.SourceLanguage);
     var activeLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(
         string.IsNullOrWhiteSpace(Model.ActiveDescriptionTab) ? sourceLanguage : Model.ActiveDescriptionTab);
+    var approvalStatus = string.IsNullOrWhiteSpace(Model.TrangThaiDuyet) ? "Approved" : Model.TrangThaiDuyet;
+    var approvalBadgeClass = approvalStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)
+        ? "badge-pending"
+        : approvalStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase)
+            ? "badge-rejected"
+            : "badge-approved";
+    var approvalMessage = approvalStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)
+        ? "Đề xuất đang chờ Admin duyệt"
+        : approvalStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase)
+            ? "Đề xuất bị từ chối"
+            : "Nội dung đang được sử dụng công khai";
 }
 
 <div class="page-header">
@@ -26,6 +37,83 @@
 {
     <div class="alert alert-danger">@TempData["err"]</div>
 }
+
+<section class="poi-editor-card">
+    <div class="poi-section-heading">
+        <div>
+            <h2>Trạng thái duyệt</h2>
+            <p>Nội dung khách thấy trên app chỉ đổi sau khi Admin duyệt đề xuất.</p>
+        </div>
+        <span class="badge-pill @approvalBadgeClass">@approvalStatus</span>
+    </div>
+
+    <div class="alert @(approvalStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ? "alert-danger" : approvalStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase) ? "alert-warning" : "alert-success")">
+        <strong>@approvalMessage</strong>
+        @if (approvalStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(Model.LyDoTuChoi))
+        {
+            <div class="mt-2">Lý do từ chối: @Model.LyDoTuChoi</div>
+        }
+        @if (Model.NgayDeXuat.HasValue && !approvalStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="mt-2">Ngày gửi đề xuất: @Model.NgayDeXuat.Value.ToString("dd/MM/yyyy HH:mm")</div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ImagePathDeXuat) ||
+         !string.IsNullOrWhiteSpace(Model.AudioFileViDeXuat) ||
+         !string.IsNullOrWhiteSpace(Model.AudioFileEnDeXuat) ||
+         !string.IsNullOrWhiteSpace(Model.AudioFileZhDeXuat))
+    {
+        <div class="poi-grid poi-grid-audio">
+            @if (!string.IsNullOrWhiteSpace(Model.ImagePathDeXuat))
+            {
+                <div class="poi-field">
+                    <label>Ảnh đề xuất</label>
+                    <div class="poi-image-preview">
+                        <img src="~/images/poi/@Model.ImagePathDeXuat" alt="Ảnh đề xuất @Model.Ten" class="poi-preview-image" />
+                        <div class="poi-image-preview-meta">
+                            <strong>File đề xuất</strong>
+                            <span>@Model.ImagePathDeXuat</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.AudioFileViDeXuat))
+            {
+                <div class="poi-field">
+                    <label>Audio tiếng Việt đề xuất</label>
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.AudioFileViDeXuat}")"></audio>
+                        <span class="poi-audio-file-name">@Model.AudioFileViDeXuat</span>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.AudioFileEnDeXuat))
+            {
+                <div class="poi-field">
+                    <label>Audio tiếng Anh đề xuất</label>
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.AudioFileEnDeXuat}")"></audio>
+                        <span class="poi-audio-file-name">@Model.AudioFileEnDeXuat</span>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.AudioFileZhDeXuat))
+            {
+                <div class="poi-field">
+                    <label>Audio tiếng Hoa đề xuất</label>
+                    <div class="poi-audio-current">
+                        <audio controls src="@Url.Content($"~/audio/{Model.AudioFileZhDeXuat}")"></audio>
+                        <span class="poi-audio-file-name">@Model.AudioFileZhDeXuat</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
 
 <form method="post" asp-action="Dashboard" enctype="multipart/form-data" class="poi-editor-form">
     @Html.AntiForgeryToken()
@@ -85,15 +173,18 @@
                     <div class="poi-audio-current">
                         <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_Vi}")"></audio>
                         <span class="poi-audio-file-name">@Model.TenFileAudio_Vi</span>
-                        <label class="poi-audio-delete-option">
-                            <input asp-for="XoaAudioVi" type="checkbox" />
-                            <span>Xóa audio tiếng Việt hiện tại</span>
-                        </label>
                     </div>
                 }
                 else
                 {
                     <div class="poi-empty-state">Chưa có audio tiếng Việt.</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.AudioFileViDeXuat))
+                {
+                    <label class="poi-audio-delete-option">
+                        <input asp-for="XoaAudioVi" type="checkbox" />
+                        <span>Xóa audio tiếng Việt đề xuất</span>
+                    </label>
                 }
             </div>
 
@@ -107,15 +198,18 @@
                     <div class="poi-audio-current">
                         <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_En}")"></audio>
                         <span class="poi-audio-file-name">@Model.TenFileAudio_En</span>
-                        <label class="poi-audio-delete-option">
-                            <input asp-for="XoaAudioEn" type="checkbox" />
-                            <span>Xóa audio tiếng Anh hiện tại</span>
-                        </label>
                     </div>
                 }
                 else
                 {
                     <div class="poi-empty-state">Chưa có audio tiếng Anh.</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.AudioFileEnDeXuat))
+                {
+                    <label class="poi-audio-delete-option">
+                        <input asp-for="XoaAudioEn" type="checkbox" />
+                        <span>Xóa audio tiếng Anh đề xuất</span>
+                    </label>
                 }
             </div>
 
@@ -129,15 +223,18 @@
                     <div class="poi-audio-current">
                         <audio controls src="@Url.Content($"~/audio/{Model.TenFileAudio_Zh}")"></audio>
                         <span class="poi-audio-file-name">@Model.TenFileAudio_Zh</span>
-                        <label class="poi-audio-delete-option">
-                            <input asp-for="XoaAudioZh" type="checkbox" />
-                            <span>Xóa audio tiếng Hoa hiện tại</span>
-                        </label>
                     </div>
                 }
                 else
                 {
                     <div class="poi-empty-state">Chưa có audio tiếng Hoa.</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.AudioFileZhDeXuat))
+                {
+                    <label class="poi-audio-delete-option">
+                        <input asp-for="XoaAudioZh" type="checkbox" />
+                        <span>Xóa audio tiếng Hoa đề xuất</span>
+                    </label>
                 }
             </div>
         </div>
@@ -227,7 +324,7 @@
     </section>
 
     <div class="poi-form-actions">
-        <button type="submit" class="vk-btn primary">Lưu thay đổi</button>
+        <button type="submit" class="vk-btn primary">Gửi đề xuất</button>
     </div>
 </form>
 

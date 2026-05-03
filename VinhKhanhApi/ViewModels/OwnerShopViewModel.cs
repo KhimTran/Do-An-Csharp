@@ -38,6 +38,14 @@ namespace VinhKhanhApi.ViewModels
         public string? TenFileAudio_Vi { get; set; }
         public string? TenFileAudio_En { get; set; }
         public string? TenFileAudio_Zh { get; set; }
+        public string? AudioFileViDeXuat { get; set; }
+        public string? AudioFileEnDeXuat { get; set; }
+        public string? AudioFileZhDeXuat { get; set; }
+        public string? ImagePathDeXuat { get; set; }
+        public string TrangThaiDuyet { get; set; } = "Approved";
+        public DateTime? NgayDeXuat { get; set; }
+        public DateTime? NgayDuyet { get; set; }
+        public string? LyDoTuChoi { get; set; }
 
         public IFormFile? AnhMinhHoa { get; set; }
         public IFormFile? AudioVi { get; set; }
