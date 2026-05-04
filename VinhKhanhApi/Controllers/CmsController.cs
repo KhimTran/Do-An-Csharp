@@ -12,6 +12,9 @@ namespace VinhKhanhApi.Controllers
     [Authorize(Roles = "Admin")]
     public class CmsController : Controller
     {
+        private const string StatusPending = "Pending";
+        private const string StatusApproved = "Approved";
+        private const string StatusRejected = "Rejected";
         private const long KichThuocAudioToiDa = 20 * 1024 * 1024;
 
         private readonly AppDbContext _db;
@@ -226,7 +229,7 @@ namespace VinhKhanhApi.Controllers
         {
             var submissions = await _db.POIs
                 .AsNoTracking()
-                .Where(x => x.TrangThaiDuyet == "Pending")
+                .Where(x => x.TrangThaiDeXuatOwner == StatusPending)
                 .OrderByDescending(x => x.NgayDeXuat)
                 .ThenBy(x => x.Ten)
                 .ToListAsync();
@@ -241,7 +244,7 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             if (poi == null) return NotFound();
 
-            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+            if (!IsPendingOwnerProposal(poi))
             {
                 TempData["err"] = "Chỉ có đề xuất Pending mới được duyệt.";
                 return RedirectToAction(nameof(OwnerSubmissions));
@@ -273,7 +276,8 @@ namespace VinhKhanhApi.Controllers
             if (!string.IsNullOrWhiteSpace(poi.ImagePathDeXuat))
                 poi.TenFileAnhMinhHoa = poi.ImagePathDeXuat;
 
-            poi.TrangThaiDuyet = "Approved";
+            poi.TrangThaiDuyet = StatusApproved;
+            poi.TrangThaiDeXuatOwner = StatusApproved;
             poi.NgayDuyet = DateTime.UtcNow;
             poi.LyDoTuChoi = null;
             poi.NoiDungDeXuat = null;
@@ -303,13 +307,16 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             if (poi == null) return NotFound();
 
-            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+            if (!IsPendingOwnerProposal(poi))
             {
                 TempData["err"] = "Chỉ có đề xuất Pending mới được từ chối.";
                 return RedirectToAction(nameof(OwnerSubmissions));
             }
 
-            poi.TrangThaiDuyet = "Rejected";
+            if (!IsApproved(poi.TrangThaiDuyet))
+                poi.TrangThaiDuyet = StatusRejected;
+
+            poi.TrangThaiDeXuatOwner = StatusRejected;
             poi.LyDoTuChoi = NormalizeOptionalText(lyDoTuChoi) ?? "Admin từ chối đề xuất.";
             poi.NgayDuyet = DateTime.UtcNow;
             poi.NguoiCapNhat = User.Identity?.Name ?? "admin";
@@ -749,6 +756,7 @@ namespace VinhKhanhApi.Controllers
                 QrCodeNoiDung = poi.QrCodeNoiDung,
                 TtsVoiceCode = poi.TtsVoiceCode,
                 TrangThaiDuyet = poi.TrangThaiDuyet,
+                TrangThaiDeXuatOwner = poi.TrangThaiDeXuatOwner,
                 NoiDungDeXuat = poi.NoiDungDeXuat,
                 NgayDeXuat = poi.NgayDeXuat,
                 NgayDuyet = poi.NgayDuyet,
@@ -832,6 +840,14 @@ namespace VinhKhanhApi.Controllers
         }
 
         private static string NormalizeText(string? value) => value?.Trim() ?? string.Empty;
+
+        private static bool IsApproved(string? status) =>
+            string.Equals(status, StatusApproved, StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPendingOwnerProposal(PoiModel poi) =>
+            string.Equals(poi.TrangThaiDeXuatOwner, StatusPending, StringComparison.OrdinalIgnoreCase) ||
+            (string.IsNullOrWhiteSpace(poi.TrangThaiDeXuatOwner) &&
+             string.Equals(poi.TrangThaiDuyet, StatusPending, StringComparison.OrdinalIgnoreCase));
 
         private static string? NormalizeOptionalText(string? value)
         {

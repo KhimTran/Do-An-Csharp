@@ -37,6 +37,7 @@
         public string? AudioFileZhDeXuat { get; set; }
         public string? ImagePathDeXuat { get; set; }
         public string TrangThaiDuyet { get; set; } = "Approved"; // Pending | Approved | Rejected
+        public string? TrangThaiDeXuatOwner { get; set; } // null | Pending | Approved | Rejected
         public DateTime? NgayDeXuat { get; set; }
         public DateTime? NgayDuyet { get; set; }
         public string? LyDoTuChoi { get; set; }

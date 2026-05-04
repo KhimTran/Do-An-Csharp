@@ -158,6 +158,9 @@ namespace VinhKhanhApi.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("TrangThaiDeXuatOwner")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TtsVoiceCode")
                         .HasColumnType("nvarchar(max)");
 

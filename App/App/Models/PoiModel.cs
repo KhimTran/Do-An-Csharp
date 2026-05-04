@@ -24,6 +24,10 @@ namespace App.Models
         public string? TenFileAudio_En { get; set; }
         [JsonPropertyName("tenFileAudio_Zh")]
         public string? TenFileAudio_Zh { get; set; }
+        public string? LocalAudioPath_Vi { get; set; }
+        public string? LocalAudioPath_En { get; set; }
+        public string? LocalAudioPath_Zh { get; set; }
+        public string? LocalAudioCachedAt { get; set; }
 
         public string? SoDienThoai { get; set; }
         public string? GioMoCua { get; set; }

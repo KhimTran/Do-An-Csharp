@@ -9,6 +9,10 @@ namespace VinhKhanhApi.Controllers
     [Route("api/[controller]")]
     public class PoisController : ControllerBase
     {
+        private const string StatusPending = "Pending";
+        private const string StatusApproved = "Approved";
+        private const string StatusRejected = "Rejected";
+
         private readonly AppDbContext _db;
 
         public PoisController(AppDbContext db) => _db = db;
@@ -21,7 +25,7 @@ namespace VinhKhanhApi.Controllers
 
             var query = _db.POIs
                 .AsNoTracking()
-                .Where(p => p.TrangThaiDuyet == "Approved")
+                .Where(p => p.TrangThaiDuyet == StatusApproved)
                 .AsQueryable();
 
             var danhSach = await query
@@ -39,7 +43,7 @@ namespace VinhKhanhApi.Controllers
 
             var poi = await _db.POIs
                 .AsNoTracking()
-                .Where(p => p.Id == id && p.TrangThaiDuyet == "Approved")
+                .Where(p => p.Id == id && p.TrangThaiDuyet == StatusApproved)
                 .Select(MapToDtoExpression())
                 .FirstOrDefaultAsync();
             if (poi == null) return NotFound();
@@ -96,7 +100,10 @@ namespace VinhKhanhApi.Controllers
             poi.AudioFileEnDeXuat = request.AudioFileEnDeXuat;
             poi.AudioFileZhDeXuat = request.AudioFileZhDeXuat;
             poi.ImagePathDeXuat = request.ImagePathDeXuat;
-            poi.TrangThaiDuyet = "Pending";
+            if (!IsApproved(poi.TrangThaiDuyet))
+                poi.TrangThaiDuyet = StatusPending;
+
+            poi.TrangThaiDeXuatOwner = StatusPending;
             poi.NgayDeXuat = DateTime.UtcNow;
             poi.NgayDuyet = null;
             poi.LyDoTuChoi = null;
@@ -114,7 +121,7 @@ namespace VinhKhanhApi.Controllers
             var poi = await _db.POIs.FindAsync(id);
             if (poi == null) return NotFound();
 
-            if (!string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase))
+            if (!IsPendingOwnerProposal(poi))
                 return BadRequest(new { message = "Chỉ có đề xuất Pending mới được duyệt hoặc từ chối." });
 
             if (request.Approved)
@@ -140,7 +147,8 @@ namespace VinhKhanhApi.Controllers
                 if (!string.IsNullOrWhiteSpace(poi.ImagePathDeXuat))
                     poi.TenFileAnhMinhHoa = poi.ImagePathDeXuat;
 
-                poi.TrangThaiDuyet = "Approved";
+                poi.TrangThaiDuyet = StatusApproved;
+                poi.TrangThaiDeXuatOwner = StatusApproved;
                 poi.LyDoTuChoi = null;
                 poi.NoiDungDeXuat = null;
                 poi.MoTaEnDeXuat = null;
@@ -152,7 +160,10 @@ namespace VinhKhanhApi.Controllers
             }
             else
             {
-                poi.TrangThaiDuyet = "Rejected";
+                if (!IsApproved(poi.TrangThaiDuyet))
+                    poi.TrangThaiDuyet = StatusRejected;
+
+                poi.TrangThaiDeXuatOwner = StatusRejected;
                 poi.LyDoTuChoi = request.LyDoTuChoi;
             }
 
@@ -160,7 +171,7 @@ namespace VinhKhanhApi.Controllers
             poi.NguoiCapNhat = request.AdminName;
             await _db.SaveChangesAsync();
 
-            return Ok(new { poi.Id, poi.TrangThaiDuyet, poi.NgayDuyet });
+            return Ok(new { poi.Id, poi.TrangThaiDuyet, poi.TrangThaiDeXuatOwner, poi.NgayDuyet });
         }
 
         public class OwnerSubmitRequest
@@ -210,6 +221,14 @@ namespace VinhKhanhApi.Controllers
             public string? TrangThaiDuyet { get; set; }
             public string? QrCodeNoiDung { get; set; }
         }
+
+        private static bool IsApproved(string? status) =>
+            string.Equals(status, StatusApproved, StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPendingOwnerProposal(PoiModel poi) =>
+            string.Equals(poi.TrangThaiDeXuatOwner, StatusPending, StringComparison.OrdinalIgnoreCase) ||
+            (string.IsNullOrWhiteSpace(poi.TrangThaiDeXuatOwner) &&
+             string.Equals(poi.TrangThaiDuyet, StatusPending, StringComparison.OrdinalIgnoreCase));
 
         private static System.Linq.Expressions.Expression<Func<PoiModel, PoiApiItemDto>> MapToDtoExpression() =>
             poi => new PoiApiItemDto

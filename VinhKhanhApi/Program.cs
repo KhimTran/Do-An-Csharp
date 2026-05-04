@@ -96,6 +96,7 @@ static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
         "IF COL_LENGTH('POIs','AudioFileZhDeXuat') IS NULL ALTER TABLE POIs ADD AudioFileZhDeXuat NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','ImagePathDeXuat') IS NULL ALTER TABLE POIs ADD ImagePathDeXuat NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','TrangThaiDuyet') IS NULL ALTER TABLE POIs ADD TrangThaiDuyet NVARCHAR(MAX) NOT NULL CONSTRAINT DF_POIs_TrangThaiDuyet DEFAULT 'Approved';",
+        "IF COL_LENGTH('POIs','TrangThaiDeXuatOwner') IS NULL ALTER TABLE POIs ADD TrangThaiDeXuatOwner NVARCHAR(MAX) NULL;",
         "IF COL_LENGTH('POIs','NgayDeXuat') IS NULL ALTER TABLE POIs ADD NgayDeXuat DATETIME2 NULL;",
         "IF COL_LENGTH('POIs','NgayDuyet') IS NULL ALTER TABLE POIs ADD NgayDuyet DATETIME2 NULL;",
         "IF COL_LENGTH('POIs','LyDoTuChoi') IS NULL ALTER TABLE POIs ADD LyDoTuChoi NVARCHAR(MAX) NULL;"
@@ -103,6 +104,59 @@ static async Task DamBaoCotPoiMoiAsync(AppDbContext db)
 
     foreach (var sql in scripts)
         await db.Database.ExecuteSqlRawAsync(sql);
+
+    await SuaTrangThaiDeXuatOwnerCuAsync(db);
+}
+
+static async Task SuaTrangThaiDeXuatOwnerCuAsync(AppDbContext db)
+{
+    var sql = @"
+UPDATE POIs
+SET TrangThaiDeXuatOwner =
+    CASE
+        WHEN TrangThaiDuyet = N'Pending' THEN N'Pending'
+        WHEN TrangThaiDuyet = N'Rejected' THEN N'Rejected'
+        ELSE TrangThaiDeXuatOwner
+    END,
+    TrangThaiDuyet = N'Approved'
+WHERE TrangThaiDuyet IN (N'Pending', N'Rejected')
+    AND (
+        NgayDeXuat IS NOT NULL
+        OR NoiDungDeXuat IS NOT NULL
+        OR MoTaEnDeXuat IS NOT NULL
+        OR MoTaZhDeXuat IS NOT NULL
+        OR AudioFileViDeXuat IS NOT NULL
+        OR AudioFileEnDeXuat IS NOT NULL
+        OR AudioFileZhDeXuat IS NOT NULL
+        OR ImagePathDeXuat IS NOT NULL
+    )
+    AND (
+        LTRIM(RTRIM(ISNULL(MoTa_Vi, N''))) <> N''
+        OR LTRIM(RTRIM(ISNULL(MoTa_En, N''))) <> N''
+        OR LTRIM(RTRIM(ISNULL(MoTa_Zh, N''))) <> N''
+        OR TenFileAudio_Vi IS NOT NULL
+        OR TenFileAudio_En IS NOT NULL
+        OR TenFileAudio_Zh IS NOT NULL
+        OR TenFileAnhMinhHoa IS NOT NULL
+    );
+
+UPDATE POIs
+SET TrangThaiDeXuatOwner = N'Pending'
+WHERE TrangThaiDeXuatOwner IS NULL
+    AND TrangThaiDuyet = N'Approved'
+    AND NgayDeXuat IS NOT NULL
+    AND NgayDuyet IS NULL
+    AND (
+        NoiDungDeXuat IS NOT NULL
+        OR MoTaEnDeXuat IS NOT NULL
+        OR MoTaZhDeXuat IS NOT NULL
+        OR AudioFileViDeXuat IS NOT NULL
+        OR AudioFileEnDeXuat IS NOT NULL
+        OR AudioFileZhDeXuat IS NOT NULL
+        OR ImagePathDeXuat IS NOT NULL
+    );";
+
+    await db.Database.ExecuteSqlRawAsync(sql);
 }
 
 static async Task DamBaoBangTaiKhoanAsync(AppDbContext db)

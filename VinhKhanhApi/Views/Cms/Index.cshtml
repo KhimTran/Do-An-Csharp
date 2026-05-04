@@ -90,6 +90,11 @@
                         }
                     </div>
                     <div class="poi-admin-info-line">Ưu tiên: @item.UuTien</div>
+                    <div class="poi-admin-info-line">Trạng thái public: @item.TrangThaiDuyet</div>
+                    @if (!string.IsNullOrWhiteSpace(item.TrangThaiDeXuatOwner))
+                    {
+                        <div class="poi-admin-info-line">Đề xuất Owner: @item.TrangThaiDeXuatOwner</div>
+                    }
                 </div>
 
                 <div class="poi-admin-preview"

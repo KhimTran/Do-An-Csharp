@@ -154,6 +154,51 @@
                 </Grid>
             </Border>
 
+            <Border Style="{StaticResource CardBorderStyle}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                    <Border Style="{StaticResource IconBadgeStyle}">
+                        <Label Text="&#x1F3A7;" FontSize="30" TextColor="#8B5CF6"
+                               HorizontalOptions="Center" VerticalOptions="Center"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="12">
+                        <Label Style="{StaticResource SectionTitleStyle}"
+                               Text="Audio offline" />
+                        <Label Style="{StaticResource SectionSubtitleStyle}"
+                               Text="Tải sẵn MP3 để nghe khi mất mạng" />
+
+                        <Label x:Name="AudioOfflineStatusLabel"
+                               Text="Chưa tải"
+                               FontSize="13"
+                               TextColor="#D0D5DD"
+                               LineBreakMode="WordWrap" />
+
+                        <Button x:Name="DownloadAudioOfflineButton"
+                                Text="Tải audio offline"
+                                Clicked="DownloadAudioOfflineButton_Clicked"
+                                HeightRequest="50"
+                                CornerRadius="16"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="15"
+                                TextColor="White"
+                                Background="{StaticResource SaveButtonBrush}" />
+
+                        <Button x:Name="ClearAudioOfflineButton"
+                                Text="Xóa audio offline"
+                                Clicked="ClearAudioOfflineButton_Clicked"
+                                HeightRequest="50"
+                                CornerRadius="16"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="15"
+                                TextColor="#8B5CF6"
+                                BackgroundColor="#1A1D26"
+                                BorderColor="#6C3DFF"
+                                BorderWidth="1" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
             <Button Text="{Binding [SettingsPage_Save], Source={x:Static services:LocalizationResourceManager.Instance}}"
                     Clicked="LuuButton_Clicked"
                     HeightRequest="56"

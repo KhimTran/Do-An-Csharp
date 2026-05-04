@@ -51,6 +51,10 @@ namespace App.Services
                 "ALTER TABLE POIs ADD COLUMN TenFileAudio_Vi TEXT",
                 "ALTER TABLE POIs ADD COLUMN TenFileAudio_En TEXT",
                 "ALTER TABLE POIs ADD COLUMN TenFileAudio_Zh TEXT",
+                "ALTER TABLE POIs ADD COLUMN LocalAudioPath_Vi TEXT",
+                "ALTER TABLE POIs ADD COLUMN LocalAudioPath_En TEXT",
+                "ALTER TABLE POIs ADD COLUMN LocalAudioPath_Zh TEXT",
+                "ALTER TABLE POIs ADD COLUMN LocalAudioCachedAt TEXT",
                 "ALTER TABLE POIs ADD COLUMN QrCodeNoiDung TEXT",
                 "ALTER TABLE POIs ADD COLUMN TtsVoiceCode TEXT",
                 "ALTER TABLE POIs ADD COLUMN TrangThaiDuyet TEXT",
@@ -130,6 +134,21 @@ namespace App.Services
         {
             await KhoiTaoAsync();
             await _db!.DeleteAsync<PoiModel>(id);
+        }
+
+        public async Task XoaTatCaDuongDanAudioLocalAsync()
+        {
+            await KhoiTaoAsync();
+
+            var danhSachPoi = await _db!.Table<PoiModel>().ToListAsync();
+            foreach (var poi in danhSachPoi)
+            {
+                poi.LocalAudioPath_Vi = null;
+                poi.LocalAudioPath_En = null;
+                poi.LocalAudioPath_Zh = null;
+                poi.LocalAudioCachedAt = null;
+                await _db.UpdateAsync(poi);
+            }
         }
 
         public async Task XoaNhungPoiKhongConTrenServerAsync(List<int> serverIds)

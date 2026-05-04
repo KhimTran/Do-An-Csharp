@@ -12,6 +12,9 @@ namespace VinhKhanhApi.Controllers
     [Authorize(Roles = "Owner")]
     public class OwnerController : Controller
     {
+        private const string StatusPending = "Pending";
+        private const string StatusApproved = "Approved";
+        private const string StatusRejected = "Rejected";
         private const long KichThuocAudioToiDa = 20 * 1024 * 1024;
         private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
@@ -102,7 +105,10 @@ namespace VinhKhanhApi.Controllers
             poi.AudioFileViDeXuat = tenFileAudioVi;
             poi.AudioFileEnDeXuat = tenFileAudioEn;
             poi.AudioFileZhDeXuat = tenFileAudioZh;
-            poi.TrangThaiDuyet = "Pending";
+            if (!IsApproved(poi.TrangThaiDuyet))
+                poi.TrangThaiDuyet = StatusPending;
+
+            poi.TrangThaiDeXuatOwner = StatusPending;
             poi.NgayDeXuat = DateTime.UtcNow;
             poi.NgayDuyet = null;
             poi.LyDoTuChoi = null;
@@ -232,6 +238,7 @@ namespace VinhKhanhApi.Controllers
                 AudioFileZhDeXuat = poi.AudioFileZhDeXuat,
                 ImagePathDeXuat = poi.ImagePathDeXuat,
                 TrangThaiDuyet = poi.TrangThaiDuyet,
+                TrangThaiDeXuatOwner = poi.TrangThaiDeXuatOwner,
                 NgayDeXuat = poi.NgayDeXuat,
                 NgayDuyet = poi.NgayDuyet,
                 LyDoTuChoi = poi.LyDoTuChoi
@@ -370,8 +377,8 @@ namespace VinhKhanhApi.Controllers
         }
 
         private static bool HasVisibleOwnerProposal(PoiModel poi) =>
-            string.Equals(poi.TrangThaiDuyet, "Pending", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(poi.TrangThaiDuyet, "Rejected", StringComparison.OrdinalIgnoreCase);
+            string.Equals(poi.TrangThaiDeXuatOwner, StatusPending, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(poi.TrangThaiDeXuatOwner, StatusRejected, StringComparison.OrdinalIgnoreCase);
 
         private static void ApplyDescriptionsToViewModel(
             OwnerShopViewModel model,
@@ -399,6 +406,7 @@ namespace VinhKhanhApi.Controllers
             model.AudioFileEnDeXuat ??= poi.AudioFileEnDeXuat;
             model.AudioFileZhDeXuat ??= poi.AudioFileZhDeXuat;
             model.TrangThaiDuyet = poi.TrangThaiDuyet;
+            model.TrangThaiDeXuatOwner = poi.TrangThaiDeXuatOwner;
             model.NgayDeXuat = poi.NgayDeXuat;
             model.NgayDuyet = poi.NgayDuyet;
             model.LyDoTuChoi = poi.LyDoTuChoi;
@@ -413,6 +421,9 @@ namespace VinhKhanhApi.Controllers
         }
 
         private static string NormalizeText(string? value) => value?.Trim() ?? string.Empty;
+
+        private static bool IsApproved(string? status) =>
+            string.Equals(status, StatusApproved, StringComparison.OrdinalIgnoreCase);
 
         private static string? NormalizeOptionalText(string? value)
         {

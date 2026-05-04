@@ -16,12 +16,9 @@ namespace App.Services
         private MediaPlayer? _currentPlayer;
 #endif
 
-        public async Task<bool> PlayAsync(string audioUrl, CancellationToken cancellationToken = default)
+        public async Task<bool> PlayAsync(string audioSource, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(audioUrl) ||
-                !Uri.TryCreate(audioUrl.Trim(), UriKind.Absolute, out var uri) ||
-                (!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-                 !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+            if (!TryResolveAudioSource(audioSource, out var dataSource))
             {
                 return false;
             }
@@ -30,7 +27,7 @@ namespace App.Services
 
             try
             {
-                return await PlayPlatformAsync(uri.ToString(), cancellationToken);
+                return await PlayPlatformAsync(dataSource, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -82,8 +79,42 @@ namespace App.Services
             completion?.TrySetResult(false);
         }
 
+        private static bool TryResolveAudioSource(string audioSource, out string dataSource)
+        {
+            dataSource = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(audioSource))
+                return false;
+
+            var trimmed = audioSource.Trim();
+            if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            {
+                if (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                    uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                {
+                    dataSource = uri.ToString();
+                    return true;
+                }
+
+                if (uri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) &&
+                    File.Exists(uri.LocalPath))
+                {
+                    dataSource = uri.LocalPath;
+                    return true;
+                }
+            }
+
+            if (Path.IsPathRooted(trimmed) && File.Exists(trimmed))
+            {
+                dataSource = trimmed;
+                return true;
+            }
+
+            return false;
+        }
+
 #if ANDROID
-        private async Task<bool> PlayPlatformAsync(string audioUrl, CancellationToken cancellationToken)
+        private async Task<bool> PlayPlatformAsync(string audioSource, CancellationToken cancellationToken)
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -133,7 +164,7 @@ namespace App.Services
 
             try
             {
-                player.SetDataSource(audioUrl);
+                player.SetDataSource(audioSource);
                 player.PrepareAsync();
 
                 var completed = await completion.Task;

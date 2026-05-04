@@ -42,8 +42,9 @@ else
                             Ngày gửi:
                             @(poi.NgayDeXuat.HasValue ? poi.NgayDeXuat.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa có")
                         </p>
+                        <p>Trạng thái public: @poi.TrangThaiDuyet</p>
                     </div>
-                    <span class="badge-pill badge-pending">Pending</span>
+                    <span class="badge-pill badge-pending">@(poi.TrangThaiDeXuatOwner ?? "Pending")</span>
                 </div>
 
                 <div class="owner-submission-compare">

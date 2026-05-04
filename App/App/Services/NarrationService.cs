@@ -7,11 +7,16 @@ namespace App.Services
     {
         private readonly ITtsService _tts;
         private readonly IAudioPlaybackService _audioPlayback;
+        private readonly IOfflineAudioCacheService _offlineAudioCache;
 
-        public NarrationService(ITtsService tts, IAudioPlaybackService audioPlayback)
+        public NarrationService(
+            ITtsService tts,
+            IAudioPlaybackService audioPlayback,
+            IOfflineAudioCacheService offlineAudioCache)
         {
             _tts = tts;
             _audioPlayback = audioPlayback;
+            _offlineAudioCache = offlineAudioCache;
         }
 
         public async Task<NarrationPlaybackResult> PhatThuyetMinhPoiAsync(
@@ -21,17 +26,32 @@ namespace App.Services
         {
             var requestedLanguage = ResolveLanguage(maNgonNgu);
             var description = PoiDescriptionResolver.GetBestDescriptionWithLanguage(poi, requestedLanguage);
+            var offlineMode = Preferences.Get("offline_mode", false);
 
-            var audioCandidate = FindAudioCandidate(poi, requestedLanguage);
-            if (audioCandidate != null)
+            foreach (var language in BuildAudioLanguagePriority(requestedLanguage))
             {
-                _tts.DungPhat();
-
-                var audioUrl = ApiEndpointResolver.BuildPoiAudioUrl(audioCandidate.Value.FileName);
-                if (!string.IsNullOrWhiteSpace(audioUrl) &&
-                    await _audioPlayback.PlayAsync(audioUrl, cancellationToken))
+                var localPath = _offlineAudioCache.GetCachedAudioPath(poi, language);
+                if (!string.IsNullOrWhiteSpace(localPath))
                 {
-                    return NarrationPlaybackResult.CompletedAudio(audioCandidate.Value.Language, description.Text);
+                    _tts.DungPhat();
+                    if (await _audioPlayback.PlayAsync(localPath, cancellationToken))
+                        return NarrationPlaybackResult.CompletedAudio(language, description.Text);
+                }
+
+                if (offlineMode)
+                    continue;
+
+                var fileName = GetAudioFileName(poi, language);
+                if (!string.IsNullOrWhiteSpace(fileName))
+                {
+                    _tts.DungPhat();
+
+                    var audioUrl = ApiEndpointResolver.BuildPoiAudioUrl(fileName);
+                    if (!string.IsNullOrWhiteSpace(audioUrl) &&
+                        await _audioPlayback.PlayAsync(audioUrl, cancellationToken))
+                    {
+                        return NarrationPlaybackResult.CompletedAudio(language, description.Text);
+                    }
                 }
             }
 
@@ -65,24 +85,16 @@ namespace App.Services
             return PoiDescriptionResolver.NormalizeLanguage(language);
         }
 
-        private static (string Language, string FileName)? FindAudioCandidate(PoiModel poi, string requestedLanguage)
+        private static string? GetAudioFileName(PoiModel poi, string language)
         {
-            foreach (var language in BuildAudioLanguagePriority(requestedLanguage))
+            var fileName = language switch
             {
-                var fileName = language switch
-                {
-                    "en" => poi.TenFileAudio_En,
-                    "zh" => poi.TenFileAudio_Zh,
-                    _ => poi.TenFileAudio_Vi
-                };
+                "en" => poi.TenFileAudio_En,
+                "zh" => poi.TenFileAudio_Zh,
+                _ => poi.TenFileAudio_Vi
+            };
 
-                if (!string.IsNullOrWhiteSpace(fileName))
-                {
-                    return (language, fileName.Trim());
-                }
-            }
-
-            return null;
+            return string.IsNullOrWhiteSpace(fileName) ? null : fileName.Trim();
         }
 
         private static IEnumerable<string> BuildAudioLanguagePriority(string requestedLanguage)

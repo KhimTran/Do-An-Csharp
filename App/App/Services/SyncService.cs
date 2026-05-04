@@ -1,4 +1,5 @@
 using App.Models;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -130,6 +131,7 @@ namespace App.Services
                             poi.TenFileAudio_Vi = ChuanHoaTenFileAudio(poi.TenFileAudio_Vi);
                             poi.TenFileAudio_En = ChuanHoaTenFileAudio(poi.TenFileAudio_En);
                             poi.TenFileAudio_Zh = ChuanHoaTenFileAudio(poi.TenFileAudio_Zh);
+                            await GiuCacheAudioLocalNeuConHopLeAsync(poi);
                             await _db.LuuPoiAsync(poi);
                         }
 
@@ -193,6 +195,63 @@ namespace App.Services
         {
             var normalized = tenFileAudio?.Trim();
             return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
+        private async Task GiuCacheAudioLocalNeuConHopLeAsync(PoiModel poiMoi)
+        {
+            var poiLocal = await _db.LayPoiTheoIdAsync(poiMoi.Id);
+            if (poiLocal == null)
+                return;
+
+            poiMoi.LocalAudioPath_Vi = LayDuongDanAudioLocalConHopLe(
+                poiLocal.LocalAudioPath_Vi,
+                poiLocal.TenFileAudio_Vi,
+                poiMoi.TenFileAudio_Vi);
+            poiMoi.LocalAudioPath_En = LayDuongDanAudioLocalConHopLe(
+                poiLocal.LocalAudioPath_En,
+                poiLocal.TenFileAudio_En,
+                poiMoi.TenFileAudio_En);
+            poiMoi.LocalAudioPath_Zh = LayDuongDanAudioLocalConHopLe(
+                poiLocal.LocalAudioPath_Zh,
+                poiLocal.TenFileAudio_Zh,
+                poiMoi.TenFileAudio_Zh);
+
+            poiMoi.LocalAudioCachedAt =
+                !string.IsNullOrWhiteSpace(poiMoi.LocalAudioPath_Vi) ||
+                !string.IsNullOrWhiteSpace(poiMoi.LocalAudioPath_En) ||
+                !string.IsNullOrWhiteSpace(poiMoi.LocalAudioPath_Zh)
+                    ? poiLocal.LocalAudioCachedAt
+                    : null;
+        }
+
+        private static string? LayDuongDanAudioLocalConHopLe(
+            string? localPath,
+            string? tenFileAudioCu,
+            string? tenFileAudioMoi)
+        {
+            if (string.IsNullOrWhiteSpace(localPath))
+                return null;
+
+            if (!string.Equals(tenFileAudioCu?.Trim(), tenFileAudioMoi?.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                XoaFileCacheCuNeuCo(localPath);
+                return null;
+            }
+
+            return File.Exists(localPath) ? localPath : null;
+        }
+
+        private static void XoaFileCacheCuNeuCo(string localPath)
+        {
+            try
+            {
+                if (File.Exists(localPath))
+                    File.Delete(localPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SyncService] Khong xoa duoc audio cache cu {localPath}: {ex.Message}");
+            }
         }
 
         private async Task<List<PoiModel>?> TaiDanhSachPoiTuServerAsync(string poiApiUrl)

@@ -47,6 +47,7 @@ namespace App
             builder.Services.AddSingleton<GeofenceService>();
             builder.Services.AddSingleton<ITtsService, TtsService>();
             builder.Services.AddSingleton<IAudioPlaybackService, AudioPlaybackService>();
+            builder.Services.AddSingleton<IOfflineAudioCacheService, OfflineAudioCacheService>();
             builder.Services.AddSingleton<INarrationService, NarrationService>();
             builder.Services.AddSingleton<ILocationService, LocationService>();
 

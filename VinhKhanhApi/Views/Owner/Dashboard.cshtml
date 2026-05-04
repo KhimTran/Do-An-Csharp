@@ -5,7 +5,9 @@
     var sourceLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(Model.SourceLanguage);
     var activeLanguage = VinhKhanhApi.ViewModels.OwnerShopViewModel.NormalizeLanguage(
         string.IsNullOrWhiteSpace(Model.ActiveDescriptionTab) ? sourceLanguage : Model.ActiveDescriptionTab);
-    var approvalStatus = string.IsNullOrWhiteSpace(Model.TrangThaiDuyet) ? "Approved" : Model.TrangThaiDuyet;
+    var approvalStatus = !string.IsNullOrWhiteSpace(Model.TrangThaiDeXuatOwner)
+        ? Model.TrangThaiDeXuatOwner
+        : (string.IsNullOrWhiteSpace(Model.TrangThaiDuyet) ? "Approved" : Model.TrangThaiDuyet);
     var approvalBadgeClass = approvalStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)
         ? "badge-pending"
         : approvalStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase)

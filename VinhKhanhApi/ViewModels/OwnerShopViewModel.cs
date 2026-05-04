@@ -43,6 +43,7 @@ namespace VinhKhanhApi.ViewModels
         public string? AudioFileZhDeXuat { get; set; }
         public string? ImagePathDeXuat { get; set; }
         public string TrangThaiDuyet { get; set; } = "Approved";
+        public string? TrangThaiDeXuatOwner { get; set; }
         public DateTime? NgayDeXuat { get; set; }
         public DateTime? NgayDuyet { get; set; }
         public string? LyDoTuChoi { get; set; }

@@ -68,6 +68,7 @@ namespace VinhKhanhApi.ViewModels
         public string? TtsVoiceCode { get; set; } = "vi-VN";
 
         public string TrangThaiDuyet { get; set; } = "Approved";
+        public string? TrangThaiDeXuatOwner { get; set; }
         public string? NoiDungDeXuat { get; set; }
         public DateTime? NgayDeXuat { get; set; }
         public DateTime? NgayDuyet { get; set; }

@@ -6,10 +6,14 @@ namespace App.Views;
 public partial class SettingsPage : ContentPage
 {
     private readonly LocalDatabase _db;
-    public SettingsPage(LocalDatabase db)
+    private readonly IOfflineAudioCacheService _offlineAudioCache;
+    private bool _isAudioCacheBusy;
+
+    public SettingsPage(LocalDatabase db, IOfflineAudioCacheService offlineAudioCache)
     {
         InitializeComponent();
         _db = db;
+        _offlineAudioCache = offlineAudioCache;
         NgonNguPicker.Items.Add("VN - Tieng Viet");
         NgonNguPicker.Items.Add("EN - English");
         NgonNguPicker.Items.Add("ZH - \u4e2d\u6587");
@@ -19,6 +23,7 @@ public partial class SettingsPage : ContentPage
     {
         base.OnAppearing();
         await TaiCaiDatAsync();
+        await CapNhatTrangThaiAudioOfflineAsync();
     }
 
     private async Task TaiCaiDatAsync()
@@ -47,9 +52,92 @@ public partial class SettingsPage : ContentPage
         OfflineSwitch.IsToggled = offlineMode;
     }
 
+    private async Task CapNhatTrangThaiAudioOfflineAsync()
+    {
+        try
+        {
+            var cacheSize = await _offlineAudioCache.GetCacheSizeBytesAsync();
+            AudioOfflineStatusLabel.Text = cacheSize > 0
+                ? $"Da co audio offline ({DinhDangDungLuong(cacheSize)})"
+                : "Chua tai";
+        }
+        catch
+        {
+            AudioOfflineStatusLabel.Text = "Chua tai";
+        }
+    }
+
     private void BanKinhSlider_ValueChanged(object? sender, ValueChangedEventArgs e)
     {
         BanKinhLabel.Text = $"{(int)e.NewValue}m";
+    }
+
+    private async void DownloadAudioOfflineButton_Clicked(object? sender, EventArgs e)
+    {
+        if (_isAudioCacheBusy)
+            return;
+
+        try
+        {
+            DatTrangThaiNutAudioCache(false);
+            AudioOfflineStatusLabel.Text = "Dang tai...";
+
+            var progress = new Progress<string>(message =>
+            {
+                AudioOfflineStatusLabel.Text = message;
+            });
+
+            var result = await _offlineAudioCache.DownloadAllPoiAudioAsync(progress);
+            AudioOfflineStatusLabel.Text =
+                $"Da tai {result.Downloaded}/{result.TotalFiles} file, bo qua {result.Skipped}, loi {result.Failed}. Dung luong {DinhDangDungLuong(result.CacheSizeBytes)}.";
+
+            await DisplayAlertAsync(
+                "Audio offline",
+                $"{result.Summary}\nDung luong cache: {DinhDangDungLuong(result.CacheSizeBytes)}",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            AudioOfflineStatusLabel.Text = "Tai audio offline bi loi";
+            await DisplayAlertAsync("Audio offline", ex.Message, "OK");
+        }
+        finally
+        {
+            DatTrangThaiNutAudioCache(true);
+        }
+    }
+
+    private async void ClearAudioOfflineButton_Clicked(object? sender, EventArgs e)
+    {
+        if (_isAudioCacheBusy)
+            return;
+
+        try
+        {
+            DatTrangThaiNutAudioCache(false);
+            AudioOfflineStatusLabel.Text = "Dang xoa cache...";
+
+            await _offlineAudioCache.ClearCacheAsync();
+            AudioOfflineStatusLabel.Text = "Da xoa cache";
+
+            await DisplayAlertAsync("Audio offline", "Da xoa audio offline.", "OK");
+        }
+        catch (Exception ex)
+        {
+            AudioOfflineStatusLabel.Text = "Xoa audio offline bi loi";
+            await DisplayAlertAsync("Audio offline", ex.Message, "OK");
+        }
+        finally
+        {
+            DatTrangThaiNutAudioCache(true);
+        }
+    }
+
+    private void DatTrangThaiNutAudioCache(bool enabled)
+    {
+        _isAudioCacheBusy = !enabled;
+        DownloadAudioOfflineButton.IsEnabled = enabled;
+        ClearAudioOfflineButton.IsEnabled = enabled;
     }
 
     private async void LuuButton_Clicked(object? sender, EventArgs e)
@@ -107,5 +195,18 @@ public partial class SettingsPage : ContentPage
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessMessage"],
             "OK");
+    }
+
+    private static string DinhDangDungLuong(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+
+        var kb = bytes / 1024d;
+        if (kb < 1024)
+            return $"{kb:0.#} KB";
+
+        var mb = kb / 1024d;
+        return $"{mb:0.#} MB";
     }
 }
