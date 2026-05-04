@@ -63,7 +63,6 @@ namespace App.Services
                 _runtimeApiBaseUrlOverride = baseUrl;
                 Preferences.Set("api_base_url", baseUrl);
                 Preferences.Set("offline_mode", false);
-                Preferences.Set("force_reread_once", true);
 
                 await _db.LuuCaiDatAsync("api_base_url", baseUrl);
                 await _db.LuuCaiDatAsync("offline_mode", false.ToString());

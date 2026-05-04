@@ -129,18 +129,13 @@ namespace App.ViewModels
             var viTriHienTai = await _gps.LayViTriHienTaiAsync();
             if (viTriHienTai != null)
             {
-                _viTriNguoiDungHienTai = viTriHienTai;
                 await XuLyViTriMoiAsync(viTriHienTai, followUser: !_daCanhTheoNguoiDung);
-                _daCanhTheoNguoiDung = true;
             }
 
             await _gps.BatDauTheoDoiAsync(
                 khiCoViTri: snapshot =>
                 {
-                    _viTriNguoiDungHienTai = snapshot;
                     bool canTheoNguoiDung = !_daCanhTheoNguoiDung;
-                    if (canTheoNguoiDung)
-                        _daCanhTheoNguoiDung = true;
 
                     _ = XuLyViTriMoiAsync(snapshot, followUser: canTheoNguoiDung);
                 },
@@ -279,6 +274,16 @@ namespace App.ViewModels
             {
                 var lat = snapshot.Lat;
                 var lng = snapshot.Lng;
+                GhiLogViTri(snapshot);
+
+                if (!LocationSnapshotValidation.IsUsableForDisplay(snapshot))
+                {
+                    GhiLogBoQuaGeofence(snapshot, "not-usable-for-display");
+                    return;
+                }
+
+                _viTriNguoiDungHienTai = snapshot;
+                bool gpsTinCay = LocationSnapshotValidation.IsTrustedForGeofence(snapshot, out var lyDoGps);
 
                 PoiModel? ganNhat = null;
                 double minKc = double.MaxValue;
@@ -316,32 +321,41 @@ namespace App.ViewModels
                 _ = _analytics.GuiRoutePingAsync(lat, lng, "GPS");
                 _ = _analytics.GuiHeartbeatAsync();
 
-                bool forceReread = Preferences.Get("force_reread_once", false);
-                if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
+                if (!gpsTinCay)
                 {
-                    await DocThuyetMinhTheoNgonNguAsync(ganNhat, "GPS");
-                    Preferences.Set("force_reread_once", false);
+                    GhiLogBoQuaGeofence(snapshot, lyDoGps);
                 }
                 else
                 {
-                    var geofenceResult = await _geofence.KiemTraVungChiTietAsync(lat, lng);
-                    GhiLogGeofence(geofenceResult);
-
-                    switch (geofenceResult.Status)
+                    bool forceReread = Preferences.Get("force_reread_once", false);
+                    if (forceReread && ganNhat != null && minKc <= banKinhMacDinh)
                     {
-                        case GeofenceService.GeofenceCheckStatus.Triggered when geofenceResult.Poi != null:
-                            await DocThuyetMinhTheoNgonNguAsync(geofenceResult.Poi, "GPS");
-                            break;
-                        case GeofenceService.GeofenceCheckStatus.Cooldown:
-                            await MainThread.InvokeOnMainThreadAsync(() =>
-                            {
-                                TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackCooldown"];
-                            });
-                            break;
+                        await DocThuyetMinhTheoNgonNguAsync(ganNhat, "GPS");
+                        Preferences.Set("force_reread_once", false);
+                    }
+                    else
+                    {
+                        var geofenceResult = await _geofence.KiemTraVungChiTietAsync(lat, lng);
+                        GhiLogGeofence(geofenceResult);
+
+                        switch (geofenceResult.Status)
+                        {
+                            case GeofenceService.GeofenceCheckStatus.Triggered when geofenceResult.Poi != null:
+                                await DocThuyetMinhTheoNgonNguAsync(geofenceResult.Poi, "GPS");
+                                break;
+                            case GeofenceService.GeofenceCheckStatus.Cooldown:
+                                await MainThread.InvokeOnMainThreadAsync(() =>
+                                {
+                                    TrangThaiPhat = LocalizationResourceManager.Instance["MapPage_PlaybackCooldown"];
+                                });
+                                break;
+                        }
                     }
                 }
 
                 PhatMapState(followUser: followUser);
+                if (followUser)
+                    _daCanhTheoNguoiDung = true;
             }
             catch (Exception ex)
             {
@@ -600,6 +614,26 @@ namespace App.ViewModels
 
             System.Diagnostics.Debug.WriteLine(
                 $"[Geofence] poi={poiTen}, distance={khoangCach}m, radius={banKinh}m, status={result.Status}, reason={result.Reason}");
+        }
+
+        private static void GhiLogViTri(LocationSnapshot snapshot)
+        {
+            var age = LocationSnapshotValidation.GetAge(snapshot);
+            var ageText = age.HasValue ? $"{age.Value.TotalSeconds:0.#}s" : "n/a";
+            var accuracyText = snapshot.AccuracyMeters.HasValue ? $"{snapshot.AccuracyMeters.Value:0.#}m" : "n/a";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[GPS] Map snapshot lat={snapshot.Lat:0.000000}, lng={snapshot.Lng:0.000000}, accuracy={accuracyText}, age={ageText}");
+        }
+
+        private static void GhiLogBoQuaGeofence(LocationSnapshot snapshot, string reason)
+        {
+            var age = LocationSnapshotValidation.GetAge(snapshot);
+            var ageText = age.HasValue ? $"{age.Value.TotalSeconds:0.#}s" : "n/a";
+            var accuracyText = snapshot.AccuracyMeters.HasValue ? $"{snapshot.AccuracyMeters.Value:0.#}m" : "n/a";
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[Geofence] skipped reason={reason}, lat={snapshot.Lat:0.000000}, lng={snapshot.Lng:0.000000}, accuracy={accuracyText}, age={ageText}");
         }
 
         private static string ChonMoTaTheoNgonNgu(PoiModel poi)

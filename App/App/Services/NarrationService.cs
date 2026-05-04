@@ -99,16 +99,7 @@ namespace App.Services
 
         private static IEnumerable<string> BuildAudioLanguagePriority(string requestedLanguage)
         {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            if (seen.Add(requestedLanguage))
-                yield return requestedLanguage;
-
-            foreach (var language in new[] { "vi", "en", "zh" })
-            {
-                if (seen.Add(language))
-                    yield return language;
-            }
+            yield return requestedLanguage;
         }
 
         private static string ToTtsLanguageCode(string language) => language switch

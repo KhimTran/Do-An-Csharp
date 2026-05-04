@@ -58,12 +58,12 @@ public partial class SettingsPage : ContentPage
         {
             var cacheSize = await _offlineAudioCache.GetCacheSizeBytesAsync();
             AudioOfflineStatusLabel.Text = cacheSize > 0
-                ? $"Da co audio offline ({DinhDangDungLuong(cacheSize)})"
-                : "Chua tai";
+                ? T("SettingsPage_AudioOfflineStatusCachedFormat", DinhDangDungLuong(cacheSize))
+                : T("SettingsPage_AudioOfflineStatusNotDownloaded");
         }
         catch
         {
-            AudioOfflineStatusLabel.Text = "Chua tai";
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineStatusNotDownloaded");
         }
     }
 
@@ -80,7 +80,7 @@ public partial class SettingsPage : ContentPage
         try
         {
             DatTrangThaiNutAudioCache(false);
-            AudioOfflineStatusLabel.Text = "Dang tai...";
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineDownloading");
 
             var progress = new Progress<string>(message =>
             {
@@ -88,18 +88,31 @@ public partial class SettingsPage : ContentPage
             });
 
             var result = await _offlineAudioCache.DownloadAllPoiAudioAsync(progress);
-            AudioOfflineStatusLabel.Text =
-                $"Da tai {result.Downloaded}/{result.TotalFiles} file, bo qua {result.Skipped}, loi {result.Failed}. Dung luong {DinhDangDungLuong(result.CacheSizeBytes)}.";
+            var summary = T(
+                "SettingsPage_AudioOfflineDownloadSummaryFormat",
+                result.Downloaded,
+                result.TotalFiles,
+                result.Skipped,
+                result.Failed);
+            var cacheSize = DinhDangDungLuong(result.CacheSizeBytes);
+
+            AudioOfflineStatusLabel.Text = T(
+                "SettingsPage_AudioOfflineDownloadSummaryWithSizeFormat",
+                result.Downloaded,
+                result.TotalFiles,
+                result.Skipped,
+                result.Failed,
+                cacheSize);
 
             await DisplayAlertAsync(
-                "Audio offline",
-                $"{result.Summary}\nDung luong cache: {DinhDangDungLuong(result.CacheSizeBytes)}",
+                T("SettingsPage_AudioOfflineTitle"),
+                $"{summary}\n{T("SettingsPage_AudioOfflineCacheSizeFormat", cacheSize)}",
                 "OK");
         }
         catch (Exception ex)
         {
-            AudioOfflineStatusLabel.Text = "Tai audio offline bi loi";
-            await DisplayAlertAsync("Audio offline", ex.Message, "OK");
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineDownloadError");
+            await DisplayAlertAsync(T("SettingsPage_AudioOfflineTitle"), ex.Message, "OK");
         }
         finally
         {
@@ -115,17 +128,20 @@ public partial class SettingsPage : ContentPage
         try
         {
             DatTrangThaiNutAudioCache(false);
-            AudioOfflineStatusLabel.Text = "Dang xoa cache...";
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineClearing");
 
             await _offlineAudioCache.ClearCacheAsync();
-            AudioOfflineStatusLabel.Text = "Da xoa cache";
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineCleared");
 
-            await DisplayAlertAsync("Audio offline", "Da xoa audio offline.", "OK");
+            await DisplayAlertAsync(
+                T("SettingsPage_AudioOfflineTitle"),
+                T("SettingsPage_AudioOfflineClearedMessage"),
+                "OK");
         }
         catch (Exception ex)
         {
-            AudioOfflineStatusLabel.Text = "Xoa audio offline bi loi";
-            await DisplayAlertAsync("Audio offline", ex.Message, "OK");
+            AudioOfflineStatusLabel.Text = T("SettingsPage_AudioOfflineClearError");
+            await DisplayAlertAsync(T("SettingsPage_AudioOfflineTitle"), ex.Message, "OK");
         }
         finally
         {
@@ -157,7 +173,6 @@ public partial class SettingsPage : ContentPage
         Preferences.Set("app_language", maNgonNgu);
         Preferences.Set("geofence_radius", banKinh);
         Preferences.Set("offline_mode", offlineMode);
-        Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", maNgonNgu);
         await _db.LuuCaiDatAsync("app_language", maNgonNgu);
@@ -165,6 +180,7 @@ public partial class SettingsPage : ContentPage
         await _db.LuuCaiDatAsync("offline_mode", offlineMode.ToString());
 
         LocalizationResourceManager.Instance.SetLanguage(maNgonNgu);
+        await CapNhatTrangThaiAudioOfflineAsync();
 
         await DisplayAlertAsync(
             LocalizationResourceManager.Instance["SettingsPage_SaveSuccessTitle"],
@@ -182,7 +198,6 @@ public partial class SettingsPage : ContentPage
         Preferences.Set("app_language", "vi-VN");
         Preferences.Set("geofence_radius", 50);
         Preferences.Set("offline_mode", false);
-        Preferences.Set("force_reread_once", true);
 
         await _db.LuuCaiDatAsync("tts_language", "vi-VN");
         await _db.LuuCaiDatAsync("app_language", "vi-VN");
@@ -190,6 +205,7 @@ public partial class SettingsPage : ContentPage
         await _db.LuuCaiDatAsync("offline_mode", "False");
 
         LocalizationResourceManager.Instance.SetLanguage("vi-VN");
+        await CapNhatTrangThaiAudioOfflineAsync();
 
         await DisplayAlertAsync(
             LocalizationResourceManager.Instance["SettingsPage_ResetSuccessTitle"],
@@ -209,4 +225,7 @@ public partial class SettingsPage : ContentPage
         var mb = kb / 1024d;
         return $"{mb:0.#} MB";
     }
+
+    private static string T(string key, params object[] args)
+        => LocalizationResourceManager.Instance.Translate(key, args);
 }

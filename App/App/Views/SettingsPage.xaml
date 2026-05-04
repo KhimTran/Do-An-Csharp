@@ -164,18 +164,18 @@
 
                     <VerticalStackLayout Grid.Column="1" Spacing="12">
                         <Label Style="{StaticResource SectionTitleStyle}"
-                               Text="Audio offline" />
+                               Text="{Binding [SettingsPage_AudioOfflineTitle], Source={x:Static services:LocalizationResourceManager.Instance}}" />
                         <Label Style="{StaticResource SectionSubtitleStyle}"
-                               Text="Tải sẵn MP3 để nghe khi mất mạng" />
+                               Text="{Binding [SettingsPage_AudioOfflineDescription], Source={x:Static services:LocalizationResourceManager.Instance}}" />
 
                         <Label x:Name="AudioOfflineStatusLabel"
-                               Text="Chưa tải"
+                               Text="{Binding [SettingsPage_AudioOfflineStatusNotDownloaded], Source={x:Static services:LocalizationResourceManager.Instance}}"
                                FontSize="13"
                                TextColor="#D0D5DD"
                                LineBreakMode="WordWrap" />
 
                         <Button x:Name="DownloadAudioOfflineButton"
-                                Text="Tải audio offline"
+                                Text="{Binding [SettingsPage_AudioOfflineDownloadButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
                                 Clicked="DownloadAudioOfflineButton_Clicked"
                                 HeightRequest="50"
                                 CornerRadius="16"
@@ -185,7 +185,7 @@
                                 Background="{StaticResource SaveButtonBrush}" />
 
                         <Button x:Name="ClearAudioOfflineButton"
-                                Text="Xóa audio offline"
+                                Text="{Binding [SettingsPage_AudioOfflineClearButton], Source={x:Static services:LocalizationResourceManager.Instance}}"
                                 Clicked="ClearAudioOfflineButton_Clicked"
                                 HeightRequest="50"
                                 CornerRadius="16"

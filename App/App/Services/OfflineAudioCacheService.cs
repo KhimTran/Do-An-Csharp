@@ -37,8 +37,8 @@ namespace App.Services
             var failed = 0;
 
             progress?.Report(candidates.Count == 0
-                ? "Khong co file MP3 de tai."
-                : $"Dang tai 0/{candidates.Count} file...");
+                ? T("SettingsPage_AudioOfflineNoMp3")
+                : T("SettingsPage_AudioOfflineDownloadProgressFormat", 0, candidates.Count));
 
             for (var index = 0; index < candidates.Count; index++)
             {
@@ -48,7 +48,7 @@ namespace App.Services
                 var displayIndex = index + 1;
                 var localPath = BuildLocalPath(cacheDirectory, candidate.Poi.Id, candidate.Language, candidate.ServerFileName);
 
-                progress?.Report($"Dang tai {displayIndex}/{candidates.Count}: {candidate.Poi.Ten}");
+                progress?.Report(T("SettingsPage_AudioOfflineDownloadingPoiFormat", displayIndex, candidates.Count, candidate.Poi.Ten));
 
                 try
                 {
@@ -94,7 +94,7 @@ namespace App.Services
             }
 
             var cacheSize = await GetCacheSizeBytesAsync();
-            progress?.Report($"Da tai {downloaded}/{candidates.Count} file, bo qua {skipped}, loi {failed}.");
+            progress?.Report(T("SettingsPage_AudioOfflineDownloadSummaryFormat", downloaded, candidates.Count, skipped, failed));
 
             return new OfflineAudioCacheResult(candidates.Count, downloaded, skipped, failed, cacheSize);
         }
@@ -322,6 +322,9 @@ namespace App.Services
 
         private static string GetCacheDirectory()
             => Path.Combine(FileSystem.AppDataDirectory, CacheFolderName);
+
+        private static string T(string key, params object[] args)
+            => LocalizationResourceManager.Instance.Translate(key, args);
 
         private sealed record AudioDownloadCandidate(PoiModel Poi, string Language, string ServerFileName);
     }

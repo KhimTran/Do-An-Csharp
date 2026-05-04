@@ -150,17 +150,57 @@ public class LocationService : ILocationService
 
     public async Task<LocationSnapshot?> LayViTriHienTaiAsync()
     {
-        var viTri = await Geolocation.GetLastKnownLocationAsync();
-        if (viTri == null)
-            return DeviceRuntimeProfile.IsVirtualDevice
-                ? DeviceRuntimeProfile.CreateDemoLocation()
-                : null;
+        try
+        {
+            var viTriHienTai = await Geolocation.GetLocationAsync(
+                new GeolocationRequest(GeolocationAccuracy.Best, TrackingTimeout));
 
-        return new LocationSnapshot(
-            viTri.Latitude,
-            viTri.Longitude,
-            viTri.Accuracy,
-            viTri.Timestamp);
+            if (viTriHienTai != null)
+            {
+                var snapshot = TaoSnapshot(viTriHienTai);
+                GhiLogSnapshot("current", snapshot);
+
+                if (LocationSnapshotValidation.IsUsableForDisplay(snapshot))
+                    return snapshot;
+
+                GhiLogBoQua("current", snapshot, "not-usable-for-display");
+            }
+        }
+        catch (Exception ex) when (ex is FeatureNotEnabledException
+                                   or FeatureNotSupportedException
+                                   or PermissionException
+                                   or TaskCanceledException
+                                   or OperationCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GPS] Current location unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GPS] Current location error: {ex.Message}");
+        }
+
+        try
+        {
+            var viTriGanNhat = await Geolocation.GetLastKnownLocationAsync();
+            if (viTriGanNhat != null)
+            {
+                var snapshot = TaoSnapshot(viTriGanNhat);
+                GhiLogSnapshot("last-known", snapshot);
+
+                if (LocationSnapshotValidation.IsTrustedForGeofence(snapshot, out var reason))
+                    return snapshot;
+
+                GhiLogBoQua("last-known", snapshot, reason);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GPS] Last-known location unavailable: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        return DeviceRuntimeProfile.IsVirtualDevice
+            ? DeviceRuntimeProfile.CreateDemoLocation()
+            : null;
     }
 
     private bool TryEmitVirtualFallback(
@@ -196,6 +236,32 @@ public class LocationService : ILocationService
             snapshot.Lng);
 
         return khoangCach >= 3;
+    }
+
+    private static LocationSnapshot TaoSnapshot(Location location) => new(
+        location.Latitude,
+        location.Longitude,
+        location.Accuracy,
+        location.Timestamp);
+
+    private static void GhiLogSnapshot(string source, LocationSnapshot snapshot)
+    {
+        var age = LocationSnapshotValidation.GetAge(snapshot);
+        var ageText = age.HasValue ? $"{age.Value.TotalSeconds:0.#}s" : "n/a";
+        var accuracyText = snapshot.AccuracyMeters.HasValue ? $"{snapshot.AccuracyMeters.Value:0.#}m" : "n/a";
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[GPS] source={source}, lat={snapshot.Lat:0.000000}, lng={snapshot.Lng:0.000000}, accuracy={accuracyText}, age={ageText}");
+    }
+
+    private static void GhiLogBoQua(string source, LocationSnapshot snapshot, string reason)
+    {
+        var age = LocationSnapshotValidation.GetAge(snapshot);
+        var ageText = age.HasValue ? $"{age.Value.TotalSeconds:0.#}s" : "n/a";
+        var accuracyText = snapshot.AccuracyMeters.HasValue ? $"{snapshot.AccuracyMeters.Value:0.#}m" : "n/a";
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[GPS] Skip {source} location: reason={reason}, lat={snapshot.Lat:0.000000}, lng={snapshot.Lng:0.000000}, accuracy={accuracyText}, age={ageText}");
     }
 
     private static void StartAndroidForegroundService()

@@ -10,7 +10,12 @@ namespace App.Services
         long CacheSizeBytes)
     {
         public string Summary =>
-            $"Da tai {Downloaded}/{TotalFiles} file, bo qua {Skipped}, loi {Failed}.";
+            LocalizationResourceManager.Instance.Translate(
+                "SettingsPage_AudioOfflineDownloadSummaryFormat",
+                Downloaded,
+                TotalFiles,
+                Skipped,
+                Failed);
     }
 
     public interface IOfflineAudioCacheService
