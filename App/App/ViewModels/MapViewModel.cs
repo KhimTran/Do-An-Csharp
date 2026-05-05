@@ -574,7 +574,12 @@ namespace App.ViewModels
 
             TrangThaiPhat = LocalizationResourceManager.Instance.Translate("MapPage_PlaybackStarted", poi.Ten);
 
-            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(
+                poi,
+                maNgonNgu,
+                priority: NarrationRequestPriority.Normal,
+                interruptCurrent: false,
+                source: "geofence");
 
             if (ketQuaPhat.Completed)
             {

@@ -119,7 +119,12 @@ namespace App.ViewModels
                 return;
 
             string maNgonNgu = ChuyenMaNgonNgu(item.NgonNgu);
-            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(
+                poi,
+                maNgonNgu,
+                priority: NarrationRequestPriority.UserInitiated,
+                interruptCurrent: true,
+                source: "history");
             if (!ketQuaPhat.Completed || !ketQuaPhat.CreatedNewSession)
                 return;
 

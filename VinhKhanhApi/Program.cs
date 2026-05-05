@@ -64,7 +64,18 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        var requestPath = context.Context.Request.Path.Value;
+        if (requestPath?.StartsWith("/audio/", StringComparison.OrdinalIgnoreCase) == true &&
+            requestPath.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Context.Response.Headers["Cache-Control"] = "public,max-age=86400";
+        }
+    }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

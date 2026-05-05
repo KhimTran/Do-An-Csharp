@@ -109,7 +109,12 @@ public partial class PoiListViewModel : ObservableObject
             return;
 
         string maNgonNgu = Preferences.Get("tts_language", "vi-VN");
-        var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+        var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(
+            poi,
+            maNgonNgu,
+            priority: NarrationRequestPriority.UserInitiated,
+            interruptCurrent: true,
+            source: "list");
         if (ketQuaPhat.Status == "empty")
             ThongBao = EmptyDescriptionMessage;
 

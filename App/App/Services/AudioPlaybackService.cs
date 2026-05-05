@@ -9,11 +9,10 @@ namespace App.Services
     public class AudioPlaybackService : IAudioPlaybackService
     {
         private readonly object _stateLock = new();
-        private CancellationTokenSource? _currentCts;
-        private TaskCompletionSource<bool>? _currentCompletion;
+        private readonly SemaphoreSlim _operationLock = new(1, 1);
 
 #if ANDROID
-        private MediaPlayer? _currentPlayer;
+        private PlaybackSession? _currentSession;
 #endif
 
         public async Task<bool> PlayAsync(string audioSource, CancellationToken cancellationToken = default)
@@ -23,60 +22,67 @@ namespace App.Services
                 return false;
             }
 
-            await StopAsync();
+#if ANDROID
+            PlaybackSession? session = null;
 
             try
             {
-                return await PlayPlatformAsync(dataSource, cancellationToken);
+                await _operationLock.WaitAsync(cancellationToken);
+                try
+                {
+                    StopCurrentPlayback();
+                    session = StartPlatformSession(dataSource, cancellationToken);
+                }
+                finally
+                {
+                    _operationLock.Release();
+                }
+
+                return await WaitForSessionAsync(session);
+            }
+            catch (OperationCanceledException)
+            {
+                StopSessionIfCurrent(session, cancelSession: false);
+                return false;
             }
             catch (Exception ex)
             {
+                StopSessionIfCurrent(session, cancelSession: true);
                 Debug.WriteLine($"[AudioPlayback] Loi phat MP3: {ex.Message}");
                 return false;
             }
+#else
+            await StopAsync();
+            return false;
+#endif
         }
 
-        public Task StopAsync()
+        public async Task StopAsync()
         {
-            StopCurrentPlayback();
-            return Task.CompletedTask;
+            await _operationLock.WaitAsync();
+            try
+            {
+                StopCurrentPlayback();
+            }
+            finally
+            {
+                _operationLock.Release();
+            }
         }
 
         private void StopCurrentPlayback()
         {
-            CancellationTokenSource? cts;
-            TaskCompletionSource<bool>? completion;
-
 #if ANDROID
-            MediaPlayer? player;
-#endif
+            PlaybackSession? session;
 
             lock (_stateLock)
             {
-                cts = _currentCts;
-                completion = _currentCompletion;
-                _currentCts = null;
-                _currentCompletion = null;
+                session = _currentSession;
+                _currentSession = null;
+            }
 
-#if ANDROID
-                player = _currentPlayer;
-                _currentPlayer = null;
+            StopSessionPlayback(session, cancelSession: true);
 #endif
-            }
-
-            try
-            {
-                cts?.Cancel();
-            }
-            catch
-            {
-            }
-
-#if ANDROID
-            DisposePlayer(player);
-#endif
-
-            completion?.TrySetResult(false);
         }
 
         private static bool TryResolveAudioSource(string audioSource, out string dataSource)
@@ -114,18 +120,21 @@ namespace App.Services
         }
 
 #if ANDROID
-        private async Task<bool> PlayPlatformAsync(string audioSource, CancellationToken cancellationToken)
+        private PlaybackSession StartPlatformSession(string audioSource, CancellationToken cancellationToken)
         {
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var player = new MediaPlayer();
+            var session = new PlaybackSession(player, linkedCts, completion);
 
-            EventHandler? preparedHandler = null;
-            EventHandler? completionHandler = null;
-            EventHandler<MediaPlayer.ErrorEventArgs>? errorHandler = null;
-
-            preparedHandler = (_, _) =>
+            session.PreparedHandler = (_, _) =>
             {
+                if (session.IsPlayerDisposed || linkedCts.IsCancellationRequested)
+                {
+                    completion.TrySetResult(false);
+                    return;
+                }
+
                 try
                 {
                     player.Start();
@@ -137,65 +146,103 @@ namespace App.Services
                 }
             };
 
-            completionHandler = (_, _) => completion.TrySetResult(true);
+            session.CompletionHandler = (_, _) => completion.TrySetResult(true);
 
-            errorHandler = (_, args) =>
+            session.ErrorHandler = (_, args) =>
             {
                 args.Handled = true;
+                Debug.WriteLine($"[AudioPlayback] MediaPlayer error what={args.What}, extra={args.Extra}");
                 completion.TrySetResult(false);
             };
 
-            player.Prepared += preparedHandler;
-            player.Completion += completionHandler;
-            player.Error += errorHandler;
+            session.AttachHandlers();
 
             lock (_stateLock)
             {
-                _currentCts = linkedCts;
-                _currentCompletion = completion;
-                _currentPlayer = player;
+                _currentSession = session;
             }
 
-            using var registration = linkedCts.Token.Register(() =>
+            session.CancellationRegistration = linkedCts.Token.Register(() =>
             {
-                StopCurrentPlayback();
-                completion.TrySetResult(false);
+                StopSessionIfCurrent(session, cancelSession: false);
             });
 
             try
             {
                 player.SetDataSource(audioSource);
                 player.PrepareAsync();
-
-                var completed = await completion.Task;
-                return completed && !linkedCts.Token.IsCancellationRequested;
+                return session;
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine($"[AudioPlayback] Loi tai/phat MP3: {ex.Message}");
-                return false;
-            }
-            finally
-            {
-                player.Prepared -= preparedHandler;
-                player.Completion -= completionHandler;
-                player.Error -= errorHandler;
-
-                lock (_stateLock)
-                {
-                    if (ReferenceEquals(_currentPlayer, player))
-                    {
-                        _currentPlayer = null;
-                        _currentCts = null;
-                        _currentCompletion = null;
-                    }
-                }
-
-                DisposePlayer(player);
+                StopSessionIfCurrent(session, cancelSession: true);
+                throw;
             }
         }
 
-        private static void DisposePlayer(MediaPlayer? player)
+        private async Task<bool> WaitForSessionAsync(PlaybackSession session)
+        {
+            try
+            {
+                var completed = await session.Completion.Task;
+                return completed && !session.Cancellation.IsCancellationRequested;
+            }
+            finally
+            {
+                ClearCurrentIfSession(session);
+                session.Dispose();
+            }
+        }
+
+        private void StopSessionIfCurrent(PlaybackSession? session, bool cancelSession)
+        {
+            if (session == null)
+                return;
+
+            var shouldStop = false;
+            lock (_stateLock)
+            {
+                if (ReferenceEquals(_currentSession, session))
+                {
+                    _currentSession = null;
+                    shouldStop = true;
+                }
+            }
+
+            if (shouldStop)
+                StopSessionPlayback(session, cancelSession);
+        }
+
+        private void ClearCurrentIfSession(PlaybackSession session)
+        {
+            lock (_stateLock)
+            {
+                if (ReferenceEquals(_currentSession, session))
+                    _currentSession = null;
+            }
+        }
+
+        private static void StopSessionPlayback(PlaybackSession? session, bool cancelSession)
+        {
+            if (session == null)
+                return;
+
+            if (cancelSession && !session.Cancellation.IsCancellationRequested)
+            {
+                try
+                {
+                    session.Cancellation.Cancel();
+                }
+                catch
+                {
+                }
+            }
+
+            session.DisposePlayer();
+            session.Completion.TrySetResult(false);
+        }
+
+        private static void ReleasePlayer(MediaPlayer? player)
         {
             if (player == null)
                 return;
@@ -227,9 +274,91 @@ namespace App.Services
 
             player.Dispose();
         }
-#else
-        private Task<bool> PlayPlatformAsync(string audioUrl, CancellationToken cancellationToken)
-            => Task.FromResult(false);
+
+        private sealed class PlaybackSession : IDisposable
+        {
+            private int _playerDisposed;
+            private int _disposed;
+
+            public PlaybackSession(
+                MediaPlayer player,
+                CancellationTokenSource cancellation,
+                TaskCompletionSource<bool> completion)
+            {
+                Player = player;
+                Cancellation = cancellation;
+                Completion = completion;
+            }
+
+            public MediaPlayer Player { get; }
+
+            public CancellationTokenSource Cancellation { get; }
+
+            public TaskCompletionSource<bool> Completion { get; }
+
+            public CancellationTokenRegistration CancellationRegistration { get; set; }
+
+            public EventHandler? PreparedHandler { get; set; }
+
+            public EventHandler? CompletionHandler { get; set; }
+
+            public EventHandler<MediaPlayer.ErrorEventArgs>? ErrorHandler { get; set; }
+
+            public bool IsPlayerDisposed => _playerDisposed != 0;
+
+            public void AttachHandlers()
+            {
+                if (PreparedHandler != null)
+                    Player.Prepared += PreparedHandler;
+
+                if (CompletionHandler != null)
+                    Player.Completion += CompletionHandler;
+
+                if (ErrorHandler != null)
+                    Player.Error += ErrorHandler;
+            }
+
+            public void DisposePlayer()
+            {
+                if (Interlocked.Exchange(ref _playerDisposed, 1) != 0)
+                    return;
+
+                try
+                {
+                    if (PreparedHandler != null)
+                        Player.Prepared -= PreparedHandler;
+
+                    if (CompletionHandler != null)
+                        Player.Completion -= CompletionHandler;
+
+                    if (ErrorHandler != null)
+                        Player.Error -= ErrorHandler;
+                }
+                catch
+                {
+                }
+
+                ReleasePlayer(Player);
+            }
+
+            public void Dispose()
+            {
+                DisposePlayer();
+
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                    return;
+
+                try
+                {
+                    CancellationRegistration.Dispose();
+                }
+                catch
+                {
+                }
+
+                Cancellation.Dispose();
+            }
+        }
 #endif
     }
 }

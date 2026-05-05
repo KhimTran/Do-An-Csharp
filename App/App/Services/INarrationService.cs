@@ -7,6 +7,9 @@ namespace App.Services
         Task<NarrationPlaybackResult> PhatThuyetMinhPoiAsync(
             PoiModel poi,
             string? maNgonNgu = null,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            NarrationRequestPriority priority = NarrationRequestPriority.Normal,
+            bool interruptCurrent = false,
+            string? source = null);
     }
 }

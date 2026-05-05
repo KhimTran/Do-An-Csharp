@@ -105,7 +105,12 @@ namespace App.ViewModels
 
             TrangThaiQuet = $"Đang phát thuyết minh: {poi.Ten}";
 
-            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(poi, maNgonNgu);
+            var ketQuaPhat = await _narration.PhatThuyetMinhPoiAsync(
+                poi,
+                maNgonNgu,
+                priority: NarrationRequestPriority.High,
+                interruptCurrent: true,
+                source: "qr");
 
             if (!ketQuaPhat.Completed)
             {
@@ -115,17 +120,17 @@ namespace App.ViewModels
                 return;
             }
 
-            await _db.GhiLichSuPhatAsync(new LichSuPhatModel
-            {
-                PoiId = poi.Id,
-                TenPoi = poi.Ten,
-                NgonNgu = ketQuaPhat.Language,
-                ThoiGianPhat = DateTime.Now,
-                NguonKichHoat = "QR"
-            });
-
             if (ketQuaPhat.CreatedNewSession)
             {
+                await _db.GhiLichSuPhatAsync(new LichSuPhatModel
+                {
+                    PoiId = poi.Id,
+                    TenPoi = poi.Ten,
+                    NgonNgu = ketQuaPhat.Language,
+                    ThoiGianPhat = DateTime.Now,
+                    NguonKichHoat = "QR"
+                });
+
                 int thoiLuongGiay = AnalyticsService.UocTinhThoiLuongGiay(ketQuaPhat.TextForAnalytics);
                 await _analytics.GuiLogAsync(poi.Id, poi.Ten, "QR", thoiLuongGiay);
             }
