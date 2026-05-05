@@ -11,6 +11,7 @@ namespace App.Services
         private static readonly TimeSpan CooldownMacDinh = TimeSpan.FromMinutes(5);
 #endif
         private static readonly TimeSpan CuaSoLamMoiDanhSachPoi = TimeSpan.FromSeconds(30);
+        private const double SaiSoKhoangCachMet = 1.0;
 
         private readonly LocalDatabase _db;
 
@@ -78,13 +79,11 @@ namespace App.Services
 
                     double banKinhApDung = Math.Max(poi.BanKinh, banKinhMacDinh);
 
-                    return new
-                    {
-                        Poi = poi,
-                        KhoangCach = khoangCach,
-                        BanKinh = banKinhApDung,
-                        TrongVung = khoangCach <= (banKinhApDung + 15)
-                    };
+                    return new KetQuaGeofencePoi(
+                        poi,
+                        khoangCach,
+                        banKinhApDung,
+                        khoangCach <= (banKinhApDung + 15));
                 })
                 .OrderBy(x => x.KhoangCach)
                 .ThenBy(x => x.Poi.UuTien)
@@ -108,11 +107,8 @@ namespace App.Services
                     _dangTrongVung.Remove(item.Poi.Id);
             }
 
-            var danhSachTrongVung = ketQua
-                .Where(x => x.TrongVung)
-                .OrderBy(x => x.KhoangCach)
-                .ThenBy(x => x.Poi.UuTien)
-                .ToList();
+            var danhSachTrongVung = SapXepPoiTheoUuTienKichHoat(
+                ketQua.Where(x => x.TrongVung));
 
             if (danhSachTrongVung.Count == 0)
             {
@@ -174,6 +170,16 @@ namespace App.Services
             return DateTime.Now - lanCuoi >= CooldownMacDinh;
         }
 
+        private static List<KetQuaGeofencePoi> SapXepPoiTheoUuTienKichHoat(
+            IEnumerable<KetQuaGeofencePoi> danhSachTrongVung)
+        {
+            return danhSachTrongVung
+                .OrderBy(x => Math.Round(x.KhoangCach / SaiSoKhoangCachMet))
+                .ThenBy(x => x.Poi.UuTien)
+                .ThenBy(x => x.Poi.Id)
+                .ToList();
+        }
+
         private async Task<List<PoiModel>> LayDanhSachPoiCoCacheAsync()
         {
             bool canLamMoi = _cachedPoi.Count == 0 || DateTime.Now - _lanLamMoiPoiCuoi >= CuaSoLamMoiDanhSachPoi;
@@ -215,5 +221,11 @@ namespace App.Services
         }
 
         private static double ToRad(double deg) => deg * Math.PI / 180.0;
+
+        private sealed record KetQuaGeofencePoi(
+            PoiModel Poi,
+            double KhoangCach,
+            double BanKinh,
+            bool TrongVung);
     }
 }
